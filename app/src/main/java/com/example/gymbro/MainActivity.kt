@@ -17,6 +17,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+
         setContent {
             GymBroTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -27,6 +29,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+
+        // link to the layout
+        setContentView(R.layout.activity_main)
     }
 }
 

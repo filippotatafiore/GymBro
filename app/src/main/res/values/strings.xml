@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">GymBro</string>
+    <string name="last_training_session">Last training session</string>
+    <string name="profile">Profile</string>
+    <string name="settings">Settings</string>
+
 </resources>
