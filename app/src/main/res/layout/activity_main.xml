@@ -13,43 +13,27 @@
     android:background="@color/lightGrey">
 
 
-    <!----------------------------- top strip ----------------------------->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:orientation="horizontal"
-        android:background="@color/darkGrey">
-
-        <Button
-            android:id="@+id/Button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/profile"
-            android:background="@color/lightBlue"
-            android:textColor="#FFFF00"/>
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
-        <Button
-            android:id="@+id/Button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/settings"
-            android:background="@color/lightBlue"
-            android:textColor="#FFFF00"/>
-
-
-    </LinearLayout>
-    <!----------------------------- top strip ----------------------------->
-
-
     <!-- spacer -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="20dp" />
+        android:layout_height="30dp"/>
+    <!--************************************** top strip **************************************-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/calendarButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/calendar_icon"/>
+
+    </LinearLayout>
+    <!--************************************** top strip **************************************-->
+
 
 
 
@@ -57,32 +41,319 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:gravity="center"
-        android:background="@color/darkBlue">
+        android:gravity="center">
 
-        <TextView
+        <Button
+            android:id="@+id/new_session_Button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/last_training_session"
-            android:textColor="@color/white"
-            android:textSize="20sp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center">
-
-            <Button
-                android:id="@+id/Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/profile"
-                android:background="@color/lightBlue"
-                android:textColor="#FFFF00"/>
-        </LinearLayout>
+            android:layout_marginTop="60dp"
+            android:layout_marginBottom="30dp"
+            android:text="start\ntraining"
+            android:background="@color/lightBlue"
+            android:textColor="#FFFF00"/>
 
     </LinearLayout>
+
+    <!-- spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="100dp"/>
+
+    <!-- last sessions -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/last_session"
+            android:textColor="#FFFF00"/>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="100dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <!-- previous session -->
+                <LinearLayout
+                    android:layout_width="250dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@color/lightBlue">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="10/11/2024"
+                        android:textColor="#FFFF00"
+                        android:textSize="12dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:padding="10dp"
+                        android:text="PETTO - TRICIPITI"
+                        android:gravity="center"
+                        android:textColor="#FFFF00"/>
+
+                </LinearLayout>
+
+                <!-- previous session -->
+                <LinearLayout
+                    android:layout_width="250dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@color/lightBlue">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="10/11/2024"
+                        android:textColor="#FFFF00"
+                        android:textSize="12dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:padding="10dp"
+                        android:text="PETTO - TRICIPITI"
+                        android:gravity="center"
+                        android:textColor="#FFFF00"/>
+
+                </LinearLayout>
+
+                <!-- previous session -->
+                <LinearLayout
+                    android:layout_width="250dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@color/lightBlue">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="10/11/2024"
+                        android:textColor="#FFFF00"
+                        android:textSize="12dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:padding="10dp"
+                        android:text="PETTO - TRICIPITI"
+                        android:gravity="center"
+                        android:textColor="#FFFF00"/>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </ScrollView>
+
+    </LinearLayout>
+
+    <!-- spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="100dp"/>
+
+    <!-- schedule -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/schedule"
+            android:textColor="#FFFF00"/>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="100dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <!-- previous session -->
+                <LinearLayout
+                    android:layout_width="250dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@color/lightBlue">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="10/11/2024"
+                        android:textColor="#FFFF00"
+                        android:textSize="12dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:padding="10dp"
+                        android:text="PETTO - TRICIPITI"
+                        android:gravity="center"
+                        android:textColor="#FFFF00"/>
+
+                </LinearLayout>
+
+                <!-- previous session -->
+                <LinearLayout
+                    android:layout_width="250dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@color/lightBlue">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="10/11/2024"
+                        android:textColor="#FFFF00"
+                        android:textSize="12dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:padding="10dp"
+                        android:text="PETTO - TRICIPITI"
+                        android:gravity="center"
+                        android:textColor="#FFFF00"/>
+
+                </LinearLayout>
+
+                <!-- previous session -->
+                <LinearLayout
+                    android:layout_width="250dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:background="@color/lightBlue">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="10/11/2024"
+                        android:textColor="#FFFF00"
+                        android:textSize="12dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:padding="10dp"
+                        android:text="PETTO - TRICIPITI"
+                        android:gravity="center"
+                        android:textColor="#FFFF00"/>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </ScrollView>
+
+    </LinearLayout>
+
+
+
+
+    <!-- spacer to place bottom strip at the bottom -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+    <!--************************************** bottom strip **************************************-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@color/darkGrey">
+
+        <ImageButton
+            android:id="@+id/homeButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/home_icon"/>
+
+        <ImageButton
+            android:id="@+id/chatButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:padding="8dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/chat_icon"/>
+
+        <ImageButton
+            android:id="@+id/searchButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:padding="8dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/search_icon"/>
+
+        <ImageButton
+            android:id="@+id/profileButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:padding="8dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/profile_icon"/>
+
+
+    </LinearLayout>
+    <!--************************************** bottom strip **************************************-->
+    <!-- spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:background="@color/darkGrey"/>
 
 
 </LinearLayout>

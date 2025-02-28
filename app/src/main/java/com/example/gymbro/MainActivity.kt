@@ -13,12 +13,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.gymbro.ui.theme.GymBroTheme
 
+
+import android.widget.ImageButton
+import android.content.Intent
+
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
 
+        /*
         setContent {
             GymBroTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -29,13 +35,28 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        */
 
 
         // link to the layout
         setContentView(R.layout.activity_main)
+
+        // navbar links
+        val profileButton = findViewById<ImageButton>(R.id.profileButton)
+        profileButton.setOnClickListener {
+            val intent = Intent(this, ProfileActivity::class.java)
+            startActivity(intent)
+        }
+        val homeButton = findViewById<ImageButton>(R.id.homeButton)
+        homeButton.setOnClickListener {
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+        }
+
     }
 }
 
+/*
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
@@ -51,3 +72,4 @@ fun GreetingPreview() {
         Greeting("Android")
     }
 }
+*/
