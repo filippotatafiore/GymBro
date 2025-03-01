@@ -6,6 +6,7 @@
 -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -16,7 +17,7 @@
     <!-- spacer -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="30dp"/>
+        android:layout_height="50dp"/>
     <!--************************************** top strip **************************************-->
     <LinearLayout
         android:layout_width="match_parent"
@@ -290,70 +291,27 @@
 
 
 
+    <!--************************************** bottom strip **************************************-->
     <!-- spacer to place bottom strip at the bottom -->
     <View
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
-    <!--************************************** bottom strip **************************************-->
-    <LinearLayout
+
+    <!-- bottom navbar -->
+    <include
+        layout="@layout/bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:background="@color/darkGrey">
+        android:layout_gravity="bottom"/>
 
-        <ImageButton
-            android:id="@+id/homeButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@android:color/transparent"
-            android:src="@drawable/home_icon"/>
-
-        <ImageButton
-            android:id="@+id/chatButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:padding="8dp"
-            android:background="@android:color/transparent"
-            android:src="@drawable/chat_icon"/>
-
-        <ImageButton
-            android:id="@+id/searchButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:padding="8dp"
-            android:background="@android:color/transparent"
-            android:src="@drawable/search_icon"/>
-
-        <ImageButton
-            android:id="@+id/profileButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:padding="8dp"
-            android:background="@android:color/transparent"
-            android:src="@drawable/profile_icon"/>
-
-
-    </LinearLayout>
-    <!--************************************** bottom strip **************************************-->
     <!-- spacer -->
     <View
         android:layout_width="match_parent"
         android:layout_height="20dp"
         android:background="@color/darkGrey"/>
+    <!--************************************** bottom strip **************************************-->
+
 
 
 </LinearLayout>

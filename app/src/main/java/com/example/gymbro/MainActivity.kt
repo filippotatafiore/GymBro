@@ -23,6 +23,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // link to the layout
+        setContentView(R.layout.activity_main)
+
 
         /*
         setContent {
@@ -38,19 +41,19 @@ class MainActivity : ComponentActivity() {
         */
 
 
-        // link to the layout
-        setContentView(R.layout.activity_main)
-
-        // navbar links
+        // Navbar button references
+        val homeButton = findViewById<ImageButton>(R.id.homeButton)
         val profileButton = findViewById<ImageButton>(R.id.profileButton)
+
+        homeButton.setOnClickListener {
+            // Do nothing or refresh current activity
+        }
+
+        // Profile Button - Switch to ProfileActivity
         profileButton.setOnClickListener {
             val intent = Intent(this, ProfileActivity::class.java)
             startActivity(intent)
-        }
-        val homeButton = findViewById<ImageButton>(R.id.homeButton)
-        homeButton.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
+            //overridePendingTransition(0, 0) // Removes animation for seamless transition
         }
 
     }
