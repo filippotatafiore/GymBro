@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/settings"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="end"
+    android:orientation="vertical"
+    android:background="@color/darkGrey">
+
+    <!-- spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="50dp"/>
+
+    <TextView
+        android:id="@+id/menu_title"
+        style="@style/ProfileMenuTitleStyle"
+        android:gravity="center"
+        android:text="@string/settings"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:background="@color/darkGrey"/>
+
+    <!-- Menu items -->
+
+    <Button
+        android:id="@+id/settings_option_1"
+        style="@style/ProfileMenuItemStyle"
+        android:text="App Theme"/>
+
+    <Button
+        android:id="@+id/settings_option_2"
+        style="@style/ProfileMenuItemStyle"
+        android:text="Option 2"/>
+
+
+
+    <!-- spacer to place last item at the bottom -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <Button
+        android:id="@+id/menu_option_5"
+        style="@style/ProfileMenuItemStyle"
+        android:text="Back"/>
+
+    <!-- spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:background="@color/darkGrey"/>
+
+</LinearLayout>

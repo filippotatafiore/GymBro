@@ -2,6 +2,9 @@ package com.example.gymbro
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
+import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import androidx.activity.enableEdgeToEdge
@@ -18,6 +21,7 @@ class ProfileActivity : ComponentActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var menuButton: ImageButton
+    private lateinit var menuContainer: FrameLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,17 +40,52 @@ class ProfileActivity : ComponentActivity() {
         */
 
 
+        // --------------------------------------------------------- SLIDING MENU
 
         // Initialize DrawerLayout and NavigationView
         drawerLayout = findViewById(R.id.drawer_layout)
         menuButton = findViewById(R.id.menuButton)
+        menuContainer = findViewById(R.id.menu_container)
 
         // Open the menu when the button is clicked
         menuButton.setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.END)
         }
 
+        // Function to load profile menu and set up its buttons
+        fun loadProfileMenu() {
+            menuContainer.removeAllViews()
+            layoutInflater.inflate(R.layout.profile_menu, menuContainer, true)
 
+            // bind the settings button and its click listener
+            val settingsButton = menuContainer.findViewById<Button>(R.id.settingsButton)
+            settingsButton.setOnClickListener {
+                val settingsView = layoutInflater.inflate(R.layout.settings, menuContainer, false)
+                menuContainer.removeAllViews()
+                menuContainer.addView(settingsView)
+            }
+        }
+
+        // Load the initial profile menu
+        loadProfileMenu()
+
+        // Listen for drawer close event
+        drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener {
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {}
+
+            override fun onDrawerOpened(drawerView: View) {}
+
+            override fun onDrawerClosed(drawerView: View) {
+                loadProfileMenu()
+            }
+
+            override fun onDrawerStateChanged(newState: Int) {}
+        })
+
+
+
+
+        // --------------------------------------------------------- NAVBAR
 
         // Navbar button references
         val homeButton = findViewById<ImageButton>(R.id.homeButton)

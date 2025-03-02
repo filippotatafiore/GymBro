@@ -25,24 +25,25 @@
         android:layout_height="20dp"
         android:background="@color/darkGrey"/>
 
+
     <!-- Menu items -->
 
-    <TextView
+    <Button
         android:id="@+id/menu_option_1"
         style="@style/ProfileMenuItemStyle"
         android:text="Option 1"/>
 
-    <TextView
+    <Button
         android:id="@+id/menu_option_2"
         style="@style/ProfileMenuItemStyle"
         android:text="Option 2"/>
 
-    <TextView
+    <Button
         android:id="@+id/menu_option_3"
         style="@style/ProfileMenuItemStyle"
         android:text="Modify account"/>
 
-    <TextView
+    <Button
         android:id="@+id/menu_option_4"
         style="@style/ProfileMenuItemStyle"
         android:text="@string/delete_acc"/>
@@ -54,10 +55,10 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <TextView
-        android:id="@+id/menu_option_5"
+    <Button
+        android:id="@+id/settingsButton"
         style="@style/ProfileMenuItemStyle"
-        android:text="@string/settings"/>
+        android:text="@string/settings" />
 
     <!-- spacer -->
     <View
