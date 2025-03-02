@@ -3,13 +3,22 @@ package com.example.gymbro
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
+import com.google.android.material.navigation.NavigationView
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.core.view.GravityCompat
+
 class ProfileActivity : ComponentActivity() {
+
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var menuButton: ImageButton
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -25,6 +34,18 @@ class ProfileActivity : ComponentActivity() {
             insets
         }
         */
+
+
+
+        // Initialize DrawerLayout and NavigationView
+        drawerLayout = findViewById(R.id.drawer_layout)
+        menuButton = findViewById(R.id.menuButton)
+
+        // Open the menu when the button is clicked
+        menuButton.setOnClickListener {
+            drawerLayout.openDrawer(GravityCompat.END)
+        }
+
 
 
         // Navbar button references

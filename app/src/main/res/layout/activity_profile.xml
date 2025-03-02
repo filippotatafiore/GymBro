@@ -1,48 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/drawer_layout"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".ProfileActivity"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="top|center_horizontal"
-    android:background="@color/lightGrey">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="profile page ..."
-        android:textColor="#ffffff"/>
-
-
-
-
-
-
-
-
-
-    <!--************************************** bottom strip **************************************-->
-    <!-- spacer to place bottom strip at the bottom -->
-    <View
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_height="match_parent"
+        android:background="@color/lightGrey"
+        android:gravity="top|center_horizontal"
+        android:orientation="vertical">
 
-    <!-- bottom navbar -->
+        <!-- spacer -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="50dp"/>
+
+        <!--************************************** top strip **************************************-->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:orientation="horizontal"
+            android:gravity="end">
+
+            <ImageButton
+                android:id="@+id/menuButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:scaleType="centerInside"
+                android:padding="8dp"
+                android:background="@android:color/transparent"
+                android:src="@drawable/menu_icon"/>
+
+        </LinearLayout>
+        <!--************************************** top strip **************************************-->
+
+
+
+
+
+
+
+
+        <!--************************************** bottom strip **************************************-->
+        <!-- spacer to place bottom strip at the bottom -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- bottom navbar -->
+        <include
+            layout="@layout/bottom_nav"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom" />
+
+        <!-- spacer -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:background="@color/darkGrey" />
+        <!--************************************** bottom strip **************************************-->
+
+
+    </LinearLayout>
+
+
+
+    <!--************************************** sliding menu (Drawer) **************************************-->
+    <!-- sliding menu (navigation drawer) -->
     <include
-        layout="@layout/bottom_nav"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"/>
-
-    <!-- spacer -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="20dp"
-        android:background="@color/darkGrey"/>
-    <!--************************************** bottom strip **************************************-->
+        layout="@layout/profile_menu"
+        android:layout_width="250dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="end" />
+    <!--************************************** sliding menu (Drawer) **************************************-->
 
 
-
-</LinearLayout>
+</androidx.drawerlayout.widget.DrawerLayout>

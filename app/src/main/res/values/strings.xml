@@ -1,6 +1,9 @@
 <resources>
-    <string name="app_name">GymBro</string>
+    <string name="app_name" translatable="false">GymBro</string>
     <string name="last_session">LAST SESSIONS</string>
     <string name="schedule">SCHEDULE</string>
+
+    <string name="delete_acc">Delete Account</string>
+    <string name="settings">Settings</string>
 
 </resources>
