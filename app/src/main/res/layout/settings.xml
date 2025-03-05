@@ -45,10 +45,14 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <Button
-        android:id="@+id/menu_option_5"
-        style="@style/ProfileMenuItemStyle"
-        android:text="Back"/>
+    <ImageButton
+        android:id="@+id/backmenuButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:scaleType="centerInside"
+        android:padding="8dp"
+        android:background="@android:color/transparent"
+        android:src="@drawable/back_arrow_icon"/>
 
     <!-- spacer -->
     <View

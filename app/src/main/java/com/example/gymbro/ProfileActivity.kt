@@ -16,12 +16,14 @@ import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.navigation.NavigationView
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.core.view.GravityCompat
+import java.util.Stack
 
 class ProfileActivity : ComponentActivity() {
 
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var menuButton: ImageButton
     private lateinit var menuContainer: FrameLayout
+    private val menuHistory = Stack<Int>() // Stack to store previous menus
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,22 +54,32 @@ class ProfileActivity : ComponentActivity() {
             drawerLayout.openDrawer(GravityCompat.END)
         }
 
-        // Function to load profile menu and set up its buttons
-        fun loadProfileMenu() {
-            menuContainer.removeAllViews()
-            layoutInflater.inflate(R.layout.profile_menu, menuContainer, true)
+        // Function to load profile menu and store previous state
+        fun loadProfileMenu(layoutId: Int, storePrevious: Boolean = true) {
+            if (storePrevious) menuHistory.push(layoutId) // Store previous menu
 
-            // bind the settings button and its click listener
-            val settingsButton = menuContainer.findViewById<Button>(R.id.settingsButton)
-            settingsButton.setOnClickListener {
-                val settingsView = layoutInflater.inflate(R.layout.settings, menuContainer, false)
-                menuContainer.removeAllViews()
-                menuContainer.addView(settingsView)
+            menuContainer.removeAllViews()
+            layoutInflater.inflate(layoutId, menuContainer, true)
+
+
+            // Handle the settings button (if present in the current layout)
+            menuContainer.findViewById<Button>(R.id.settingsButton)?.setOnClickListener {
+                loadProfileMenu(R.layout.settings) // Open settings menu
+            }
+
+            // Handle the back button (if present in the current layout)
+            menuContainer.findViewById<ImageButton>(R.id.backmenuButton)?.setOnClickListener {
+                if (menuHistory.isNotEmpty()) {
+                    val previousMenu = menuHistory.pop() // Go back
+                    loadProfileMenu(previousMenu, storePrevious = false)
+                } else {
+                    loadProfileMenu(R.layout.profile_menu) // Default fallback
+                }
             }
         }
 
         // Load the initial profile menu
-        loadProfileMenu()
+        loadProfileMenu(R.layout.profile_menu, storePrevious = false)
 
         // Listen for drawer close event
         drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener {
@@ -76,7 +88,8 @@ class ProfileActivity : ComponentActivity() {
             override fun onDrawerOpened(drawerView: View) {}
 
             override fun onDrawerClosed(drawerView: View) {
-                loadProfileMenu()
+                menuHistory.clear() // Clear history when menu closes
+                loadProfileMenu(R.layout.profile_menu, storePrevious = false)
             }
 
             override fun onDrawerStateChanged(newState: Int) {}
