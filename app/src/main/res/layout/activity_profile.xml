@@ -40,6 +40,30 @@
         <!--************************************** top strip **************************************-->
 
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0sp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:layout_weight="1">
+
+            <TextView
+                style="@style/TextStyle1"
+                android:text="@string/register_invitation"/>
+
+            <!-- spacer -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="30dp"/>
+
+            <Button
+                android:id="@+id/register_Button"
+                style="@style/ButtonStyle1"
+                android:text="@string/register"
+                />
+
+        </LinearLayout>
+
 
 
 
@@ -47,12 +71,6 @@
 
 
         <!--************************************** bottom strip **************************************-->
-        <!-- spacer to place bottom strip at the bottom -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
         <!-- bottom navbar -->
         <include
             layout="@layout/bottom_nav"
@@ -69,6 +87,8 @@
 
 
     </LinearLayout>
+
+
 
 
 

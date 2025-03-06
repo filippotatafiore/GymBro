@@ -6,4 +6,7 @@
     <string name="delete_acc">Delete Account</string>
     <string name="settings">Settings</string>
 
+    <string name="register_invitation">Unlock all GymBro's functionalities.\nBecome a member!</string>
+    <string name="register">Register to GymBro</string>
+
 </resources>

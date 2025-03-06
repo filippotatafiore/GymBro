@@ -43,42 +43,37 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:gravity="center">
+        android:layout_weight="1"
+        android:gravity="center"
+        android:padding="50sp">
 
         <Button
             android:id="@+id/new_session_Button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="60dp"
-            android:layout_marginBottom="30dp"
-            android:text="start\ntraining"
-            android:background="@color/lightBlue"
-            android:textColor="#FFFF00"/>
+            style="@style/ButtonStyle1"
+            android:text="start\ntraining"/>
 
     </LinearLayout>
 
-    <!-- spacer -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="100dp"/>
+
 
     <!-- last sessions -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
+        android:layout_weight="1"
         android:gravity="center">
 
         <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
+            style="@style/TitleStyle"
             android:text="@string/last_session"
-            android:textColor="#FFFF00"/>
+            android:layout_weight="1"/>
+
 
         <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="100dp">
+            android:layout_height="100dp"
+            android:layout_weight="1">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -88,20 +83,29 @@
 
                 <!-- previous session -->
                 <LinearLayout
-                    android:layout_width="250dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="@color/lightBlue">
+                    style="@style/ContainerStyle1">
+
+                    <TextView
+                        style="@style/sessionDate"
+                        android:text="10/11/2024" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="10/11/2024"
-                        android:textColor="#FFFF00"
-                        android:textSize="12dp"/>
+                        android:gravity="center"
+                        android:padding="10dp"
+                        android:text="PETTO - TRICIPITI"
+                        android:textColor="#FFFF00" />
+
+                </LinearLayout>
+
+                <!-- previous session -->
+                <LinearLayout
+                    style="@style/ContainerStyle1">
+
+                    <TextView
+                        style="@style/sessionDate"
+                        android:text="8/11/2024"/>
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -115,47 +119,11 @@
 
                 <!-- previous session -->
                 <LinearLayout
-                    android:layout_width="250dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="@color/lightBlue">
+                    style="@style/ContainerStyle1">
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="10/11/2024"
-                        android:textColor="#FFFF00"
-                        android:textSize="12dp"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:padding="10dp"
-                        android:text="PETTO - TRICIPITI"
-                        android:gravity="center"
-                        android:textColor="#FFFF00"/>
-
-                </LinearLayout>
-
-                <!-- previous session -->
-                <LinearLayout
-                    android:layout_width="250dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="@color/lightBlue">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="10/11/2024"
-                        android:textColor="#FFFF00"
-                        android:textSize="12dp"/>
+                        style="@style/sessionDate"
+                        android:text="5/11/2024"/>
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -173,28 +141,32 @@
 
     </LinearLayout>
 
+
     <!-- spacer -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="100dp"/>
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+
 
     <!-- schedule -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
+        android:layout_weight="1"
         android:gravity="center">
 
         <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
+            style="@style/TitleStyle"
             android:text="@string/schedule"
-            android:textColor="#FFFF00"/>
+            android:layout_weight="1"/>
 
         <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="100dp">
+            android:layout_height="100dp"
+            android:layout_weight="1">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -204,20 +176,11 @@
 
                 <!-- previous session -->
                 <LinearLayout
-                    android:layout_width="250dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="@color/lightBlue">
+                    style="@style/ContainerStyle1">
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="10/11/2024"
-                        android:textColor="#FFFF00"
-                        android:textSize="12dp"/>
+                        style="@style/sessionDate"
+                        android:text="10/11/2024"/>
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -231,20 +194,11 @@
 
                 <!-- previous session -->
                 <LinearLayout
-                    android:layout_width="250dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="@color/lightBlue">
+                    style="@style/ContainerStyle1">
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="10/11/2024"
-                        android:textColor="#FFFF00"
-                        android:textSize="12dp"/>
+                        style="@style/sessionDate"
+                        android:text="10/11/2024"/>
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -258,20 +212,11 @@
 
                 <!-- previous session -->
                 <LinearLayout
-                    android:layout_width="250dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="@color/lightBlue">
+                    style="@style/ContainerStyle1">
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="10/11/2024"
-                        android:textColor="#FFFF00"
-                        android:textSize="12dp"/>
+                        style="@style/sessionDate"
+                        android:text="10/11/2024"/>
 
                     <TextView
                         android:layout_width="wrap_content"

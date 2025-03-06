@@ -41,6 +41,8 @@ class MainActivity : ComponentActivity() {
         */
 
 
+        // --------------------------------------------------------- NAVBAR
+
         // Navbar button references
         val homeButton = findViewById<ImageButton>(R.id.homeButton)
         val profileButton = findViewById<ImageButton>(R.id.profileButton)

@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="darkGrey">#171717</color>
+    <color name="lighterGrey">#404045</color>
     <color name="lightGrey">#212121</color>
+    <color name="darkGrey">#171717</color>
+
+    <color name="lighterBlue">#0a6ed3</color>
     <color name="lightBlue">#23395d</color>  <!-- light pastel blue -->
     <color name="darkBlue">#152238</color>  <!-- dark pastel blue -->
+
     <color name="white">#FFFFFF</color>
 </resources>
 
