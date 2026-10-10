@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,17 @@ plugins {
 
     // for Room
     id("kotlin-kapt")
+}
+
+// Secret values (e.g. the Google Maps API key) are read from local.properties,
+// which is NOT committed to git
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val mapsApiKey: String = localProperties.getProperty("MAPS_API_KEY", "")
+if (mapsApiKey.isBlank()) {
+    logger.warn("MAPS_API_KEY not found in local.properties: the map of the Run page will not load.")
 }
 
 android {
@@ -19,6 +32,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Google Maps API key, injected into AndroidManifest.xml as ${MAPS_API_KEY}
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {
@@ -68,4 +84,12 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     kapt(libs.androidx.room.compiler)
+
+    // Google Maps and location (GPS)
+    implementation(libs.play.services.maps)
+    implementation(libs.play.services.location)
+
+    // Lists (exercise list) and fragments (map)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.fragment)
 }

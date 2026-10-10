@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window appearing: grows from the center with a small bounce while fading in -->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shareInterpolator="false">
+
+    <scale
+        android:duration="350"
+        android:interpolator="@android:anim/overshoot_interpolator"
+        android:fromXScale="0.6"
+        android:toXScale="1.0"
+        android:fromYScale="0.6"
+        android:toYScale="1.0"
+        android:pivotX="50%"
+        android:pivotY="50%"/>
+
+    <alpha
+        android:duration="250"
+        android:interpolator="@android:anim/decelerate_interpolator"
+        android:fromAlpha="0.0"
+        android:toAlpha="1.0"/>
+
+</set>

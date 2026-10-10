@@ -16,9 +16,17 @@ import com.example.gymbro.ui.theme.GymBroTheme
 
 import android.widget.ImageButton
 import android.content.Intent
+import android.app.Dialog
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
 
 
 class MainActivity : ComponentActivity() {
+
+    // Modal window to choose the type of training (null when not shown)
+    private var trainingDialog: Dialog? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -41,6 +49,14 @@ class MainActivity : ComponentActivity() {
         */
 
 
+        // --------------------------------------------------------- START TRAINING
+
+        val startTrainingButton = findViewById<Button>(R.id.new_session_Button)
+        startTrainingButton.setOnClickListener {
+            showTrainingTypeDialog()
+        }
+
+
         // --------------------------------------------------------- NAVBAR
 
         // Navbar button references
@@ -58,6 +74,36 @@ class MainActivity : ComponentActivity() {
             //overridePendingTransition(0, 0) // Removes animation for seamless transition
         }
 
+    }
+
+    // Shows the modal window with the "Gym" and "Run" buttons.
+    // Its look is in res/layout/dialog_training_type.xml, its animation in res/anim/modal_*.xml
+    private fun showTrainingTypeDialog() {
+        val dialog = Dialog(this, R.style.ModalDialogTheme)
+        dialog.setContentView(R.layout.dialog_training_type)
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+
+        // Gym button - Switch to GymActivity (exercise list)
+        dialog.findViewById<View>(R.id.gymOption).setOnClickListener {
+            dialog.dismiss()
+            startActivity(Intent(this, GymActivity::class.java))
+        }
+
+        // Run button - Switch to RunActivity (map)
+        dialog.findViewById<View>(R.id.runOption).setOnClickListener {
+            dialog.dismiss()
+            startActivity(Intent(this, RunActivity::class.java))
+        }
+
+        dialog.setOnDismissListener { trainingDialog = null }
+        trainingDialog = dialog
+        dialog.show()
+    }
+
+    override fun onDestroy() {
+        // Close the modal window if the activity is destroyed (e.g. screen rotation) to avoid leaking it
+        trainingDialog?.dismiss()
+        super.onDestroy()
     }
 }
 

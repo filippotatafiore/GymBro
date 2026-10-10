@@ -9,4 +9,17 @@
     <string name="register_invitation">Unlock all GymBro\'s functionalities.\nBecome a member!</string>
     <string name="register">Register</string>
 
+    <!-- start training modal -->
+    <string name="choose_training">Choose your training</string>
+    <string name="gym">Gym</string>
+    <string name="run">Run</string>
+
+    <!-- training pages -->
+    <string name="back">Back</string>
+    <string name="gym_session">GYM SESSION</string>
+    <string name="run_session">RUN SESSION</string>
+    <string name="sets_reps">%1$d × %2$d</string>
+    <string name="location_permission_denied">Location permission is needed to show your position on the map</string>
+    <string name="location_unavailable">Unable to get your current position</string>
+
 </resources>

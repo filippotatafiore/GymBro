@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A single row of the exercise list of the Gym page -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginTop="6dp"
+    android:layout_marginBottom="6dp"
+    android:padding="16dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/exercise_item_background">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/exerciseName"
+            style="@style/ExerciseNameStyle"
+            tools:text="Bench Press"/>
+
+        <TextView
+            android:id="@+id/exerciseMuscleGroup"
+            style="@style/ExerciseMuscleGroupStyle"
+            tools:text="CHEST"/>
+
+    </LinearLayout>
+
+    <!-- sets x reps -->
+    <TextView
+        android:id="@+id/exerciseSetsReps"
+        style="@style/ExerciseSetsRepsStyle"
+        tools:text="4 × 8"/>
+
+</LinearLayout>

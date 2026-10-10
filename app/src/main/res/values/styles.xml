@@ -72,4 +72,97 @@
         <item name="android:textSize">20sp</item>
     </style>
 
+
+
+    <!-- ************************************ Start training modal ************************************ -->
+    <!-- Theme of the modal window: transparent window (the card is drawn by the layout),
+         dimmed background and custom enter/exit animations -->
+    <style name="ModalDialogTheme" parent="android:Theme.Material.Dialog.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@style/ModalAnimation</item>
+        <item name="android:backgroundDimAmount">0.7</item>
+    </style>
+
+    <style name="ModalAnimation">
+        <item name="android:windowEnterAnimation">@anim/modal_enter</item>
+        <item name="android:windowExitAnimation">@anim/modal_exit</item>
+    </style>
+
+    <style name="ModalTitleStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/lighterBlue</item>
+        <item name="android:textSize">24sp</item>
+    </style>
+
+    <!-- Gym / Run buttons -->
+    <style name="TrainingOptionStyle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">24dp</item>
+        <item name="android:paddingBottom">20dp</item>
+        <item name="android:background">@drawable/training_option_background</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="TrainingOptionIconStyle">
+        <item name="android:layout_width">64dp</item>
+        <item name="android:layout_height">64dp</item>
+        <item name="android:scaleType">fitCenter</item>
+    </style>
+
+    <style name="TrainingOptionTextStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">12dp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">20sp</item>
+    </style>
+
+
+
+    <!-- ************************************ Gym / Run pages ************************************ -->
+    <style name="TopStripTitleStyle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/lighterBlue</item>
+        <item name="android:textSize">22sp</item>
+    </style>
+
+    <style name="ExerciseNameStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <style name="ExerciseMuscleGroupStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textColor">@color/yellow</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="ExerciseSetsRepsStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">16dp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/lighterBlue</item>
+        <item name="android:textSize">20sp</item>
+    </style>
+
 </resources>
