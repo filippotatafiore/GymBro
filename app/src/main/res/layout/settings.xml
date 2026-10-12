@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:layout_gravity="end"
     android:orientation="vertical"
-    android:background="@color/darkGrey">
+    android:background="@drawable/drawer_background">
 
     <!-- spacer -->
     <View
@@ -22,8 +22,7 @@
 
     <View
         android:layout_width="match_parent"
-        android:layout_height="20dp"
-        android:background="@color/darkGrey"/>
+        android:layout_height="20dp"/>
 
     <!-- Menu items -->
 
@@ -47,17 +46,14 @@
 
     <ImageButton
         android:id="@+id/backmenuButton"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:scaleType="centerInside"
-        android:padding="8dp"
-        android:background="@android:color/transparent"
+        style="@style/RoundIconButtonStyle"
+        android:layout_marginStart="16dp"
+        android:contentDescription="@string/back"
         android:src="@drawable/back_arrow_icon"/>
 
     <!-- spacer -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="30dp"
-        android:background="@color/darkGrey"/>
+        android:layout_height="30dp"/>
 
 </LinearLayout>

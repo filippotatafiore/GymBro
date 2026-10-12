@@ -1,12 +1,13 @@
-package com.example.gymbro
+package com.example.gymbro.session
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.example.gymbro.R
 
-// Fills the exercise list of the Gym page: one row (res/layout/item_exercise.xml) for each exercise
+// Fills the exercise list of the gym session: one row (res/layout/item_exercise.xml) for each exercise
 class ExerciseAdapter(private val exercises: List<Exercise>) :
     RecyclerView.Adapter<ExerciseAdapter.ExerciseViewHolder>() {
 

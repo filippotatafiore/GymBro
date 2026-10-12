@@ -1,9 +1,7 @@
 package com.example.gymbro
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -14,22 +12,26 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.gymbro.ui.theme.GymBroTheme
 
 
-import android.widget.ImageButton
-import android.content.Intent
-import android.app.Dialog
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
+import androidx.fragment.app.FragmentActivity
+import com.example.gymbro.data.TrainingSession
+import com.example.gymbro.home.HomeFragment
+import com.example.gymbro.session.ActiveSession
+import com.example.gymbro.session.GymSessionFragment
+import com.example.gymbro.session.RunSessionFragment
+import com.example.gymbro.session.SessionType
+import kotlinx.coroutines.launch
 
 
-class MainActivity : ComponentActivity() {
+// Home page. Its middle part shows the home (start training + last sessions) or, while a
+// session is in progress, the session itself: it stays there when changing page and coming back.
+// FragmentActivity (instead of ComponentActivity) is needed to host these parts (fragments).
+class MainActivity : FragmentActivity() {
 
-    // Modal window to choose the type of training (null when not shown)
-    private var trainingDialog: Dialog? = null
+    private lateinit var bottomNav: BottomNavBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableDarkEdgeToEdge()
 
         // link to the layout
         setContentView(R.layout.activity_main)
@@ -49,61 +51,68 @@ class MainActivity : ComponentActivity() {
         */
 
 
-        // --------------------------------------------------------- START TRAINING
-
-        val startTrainingButton = findViewById<Button>(R.id.new_session_Button)
-        startTrainingButton.setOnClickListener {
-            showTrainingTypeDialog()
-        }
-
-
         // --------------------------------------------------------- NAVBAR
 
-        // Navbar button references
-        val homeButton = findViewById<ImageButton>(R.id.homeButton)
-        val profileButton = findViewById<ImageButton>(R.id.profileButton)
-
-        homeButton.setOnClickListener {
-            // Do nothing or refresh current activity
-        }
-
-        // Profile Button - Switch to ProfileActivity
-        profileButton.setOnClickListener {
-            val intent = Intent(this, ProfileActivity::class.java)
-            startActivity(intent)
-            //overridePendingTransition(0, 0) // Removes animation for seamless transition
-        }
-
+        bottomNav = BottomNavBar(this, BottomNavBar.Page.HOME)
     }
 
-    // Shows the modal window with the "Gym" and "Run" buttons.
-    // Its look is in res/layout/dialog_training_type.xml, its animation in res/anim/modal_*.xml
-    private fun showTrainingTypeDialog() {
-        val dialog = Dialog(this, R.style.ModalDialogTheme)
-        dialog.setContentView(R.layout.dialog_training_type)
-        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-
-        // Gym button - Switch to GymActivity (exercise list)
-        dialog.findViewById<View>(R.id.gymOption).setOnClickListener {
-            dialog.dismiss()
-            startActivity(Intent(this, GymActivity::class.java))
-        }
-
-        // Run button - Switch to RunActivity (map)
-        dialog.findViewById<View>(R.id.runOption).setOnClickListener {
-            dialog.dismiss()
-            startActivity(Intent(this, RunActivity::class.java))
-        }
-
-        dialog.setOnDismissListener { trainingDialog = null }
-        trainingDialog = dialog
-        dialog.show()
+    override fun onResume() {
+        super.onResume()
+        showCurrentPage()
+        bottomNav.refresh()
     }
 
-    override fun onDestroy() {
-        // Close the modal window if the activity is destroyed (e.g. screen rotation) to avoid leaking it
-        trainingDialog?.dismiss()
-        super.onDestroy()
+    override fun onPause() {
+        super.onPause()
+        bottomNav.stopGlow()
+    }
+
+
+    // --------------------------------------------------------- SESSION
+
+    fun startSession(type: SessionType) {
+        ActiveSession.start(type)
+        onSessionChanged()
+    }
+
+    // Saves the session in the database (it appears in LAST SESSIONS) and goes back to the home
+    fun stopAndSaveSession() {
+        val type = ActiveSession.type ?: return
+        val session = TrainingSession(
+            type = type,
+            startTime = ActiveSession.startTime,
+            durationMillis = ActiveSession.elapsedMillis()
+        )
+        ActiveSession.clear()
+
+        // Saved in background: database operations must not run on the main thread
+        val app = gymBroApp
+        app.applicationScope.launch {
+            app.database.trainingSessionDao().insert(session)
+        }
+        onSessionChanged()
+    }
+
+    // Called when a session starts, is paused/resumed or stops
+    fun onSessionChanged() {
+        showCurrentPage()
+        bottomNav.refresh()
+    }
+
+    // Shows home / gym session / run session, depending on the session in progress
+    private fun showCurrentPage() {
+        val page = when (ActiveSession.type) {
+            null -> HomeFragment::class.java
+            SessionType.GYM -> GymSessionFragment::class.java
+            SessionType.RUN -> RunSessionFragment::class.java
+        }
+        val shown = supportFragmentManager.findFragmentById(R.id.page_container)
+        if (shown?.javaClass == page) return
+
+        supportFragmentManager.beginTransaction()
+            .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
+            .replace(R.id.page_container, page, null)
+            .commit()
     }
 }
 

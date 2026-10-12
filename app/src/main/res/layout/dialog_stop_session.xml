@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window shown when the stop button of a session is pressed -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/ModalCardStyle">
+
+    <TextView
+        style="@style/ModalTitleStyle"
+        android:text="@string/stop_session_title"/>
+
+    <TextView
+        style="@style/ModalMessageStyle"
+        android:text="@string/stop_session_message"/>
+
+    <!-- e.g. "Gym · 42:10" -->
+    <TextView
+        android:id="@+id/stopSummary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:textSize="22sp"
+        android:fontFeatureSettings="tnum"
+        tools:text="Gym · 42:10"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/cancelButton"
+            style="@style/SecondaryButtonStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="@string/cancel"/>
+
+        <!-- spacer -->
+        <View
+            android:layout_width="12dp"
+            android:layout_height="match_parent"/>
+
+        <Button
+            android:id="@+id/confirmStopButton"
+            style="@style/PrimaryButtonStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="@string/stop_and_save"/>
+
+    </LinearLayout>
+
+</LinearLayout>

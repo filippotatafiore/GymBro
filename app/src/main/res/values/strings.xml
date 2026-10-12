@@ -1,25 +1,73 @@
 <resources>
     <string name="app_name" translatable="false">GymBro</string>
     <string name="last_session">LAST SESSIONS</string>
-    <string name="schedule">SCHEDULE</string>
 
     <string name="delete_acc">Delete Account</string>
     <string name="settings">Settings</string>
+    <string name="logout">Log out</string>
 
     <string name="register_invitation">Unlock all GymBro\'s functionalities.\nBecome a member!</string>
     <string name="register">Register</string>
+
+    <!-- navigation -->
+    <string name="back">Back</string>
+    <string name="menu">Menu</string>
+    <string name="calendar">Calendar</string>
+    <string name="home">Home</string>
+    <string name="chat">Chat</string>
+    <string name="search">Search</string>
+    <string name="profile">Profile</string>
+
+    <!-- home page -->
+    <string name="start_training">start\ntraining</string>
+    <string name="no_sessions_yet">Your finished sessions will appear here</string>
 
     <!-- start training modal -->
     <string name="choose_training">Choose your training</string>
     <string name="gym">Gym</string>
     <string name="run">Run</string>
 
-    <!-- training pages -->
-    <string name="back">Back</string>
+    <!-- active session -->
     <string name="gym_session">GYM SESSION</string>
     <string name="run_session">RUN SESSION</string>
+    <string name="session_paused">%1$s · PAUSED</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="stop">Stop</string>
     <string name="sets_reps">%1$d × %2$d</string>
     <string name="location_permission_denied">Location permission is needed to show your position on the map</string>
-    <string name="location_unavailable">Unable to get your current position</string>
+    <string name="searching_position">Searching for your position…</string>
+    <string name="maps_key_missing">Map unavailable: the Google Maps API key is missing.\n\nAdd MAPS_API_KEY to local.properties and rebuild the app.</string>
+
+    <!-- stop session modal -->
+    <string name="stop_session_title">Stop the session?</string>
+    <string name="stop_session_message">The session will be stopped and saved in your last sessions.</string>
+    <string name="session_summary">%1$s · %2$s</string>
+    <string name="cancel">Cancel</string>
+    <string name="stop_and_save">Stop &amp; save</string>
+
+    <!-- login / registration -->
+    <string name="already_member">Already a member? Log in</string>
+    <string name="login">Log in</string>
+    <string name="login_title">Welcome back</string>
+    <string name="register_title">Become a member</string>
+    <string name="username">Username</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="add_photo_hint">Tap the picture to choose a photo (optional)</string>
+    <string name="profile_picture">Profile picture</string>
+    <string name="error_fill_all">Please fill in all the fields</string>
+    <string name="error_invalid_email">Invalid email address</string>
+    <string name="error_short_password">The password must be at least 6 characters</string>
+    <string name="error_server_unreachable">Cannot reach the GymBro server. Is it running?</string>
+    <string name="error_picture">Unable to read the selected picture</string>
+
+    <!-- profile -->
+    <string name="my_results">MY RESULTS</string>
+    <string name="publish">Publish</string>
+    <string name="no_results_yet">You haven\'t published any result yet</string>
+    <string name="publish_result_title">Publish a result</string>
+    <string name="result_title_hint">Exercise or activity (e.g. Deadlift)</string>
+    <string name="result_value_hint">Result (e.g. 150 kg)</string>
 
 </resources>

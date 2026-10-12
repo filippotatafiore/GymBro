@@ -1,4 +1,4 @@
-package com.example.gymbro
+package com.example.gymbro.session
 
 // A single exercise of a gym session
 data class Exercise(

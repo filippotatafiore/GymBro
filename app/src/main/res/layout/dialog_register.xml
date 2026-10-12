@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window to register a new user -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/ModalCardStyle">
+
+    <TextView
+        style="@style/ModalTitleStyle"
+        android:text="@string/register_title"/>
+
+    <!-- optional profile picture: tap it to choose a photo -->
+    <ImageView
+        android:id="@+id/registerPicture"
+        style="@style/ProfilePictureStyle"
+        android:contentDescription="@string/profile_picture"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:foreground="?android:attr/selectableItemBackgroundBorderless"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:textColor="@color/textSecondary"
+        android:textSize="13sp"
+        android:text="@string/add_photo_hint"/>
+
+    <EditText
+        android:id="@+id/registerUsername"
+        style="@style/InputStyle"
+        android:layout_marginTop="16dp"
+        android:hint="@string/username"
+        android:inputType="textNoSuggestions"
+        android:autofillHints="username"/>
+
+    <EditText
+        android:id="@+id/registerEmail"
+        style="@style/InputStyle"
+        android:hint="@string/email"
+        android:inputType="textEmailAddress"
+        android:autofillHints="emailAddress"/>
+
+    <EditText
+        android:id="@+id/registerPassword"
+        style="@style/InputStyle"
+        android:hint="@string/password"
+        android:inputType="textPassword"
+        android:autofillHints="password"/>
+
+    <TextView
+        android:id="@+id/registerError"
+        style="@style/ErrorTextStyle"/>
+
+    <Button
+        android:id="@+id/registerConfirmButton"
+        style="@style/PrimaryButtonStyle"
+        android:layout_marginTop="20dp"
+        android:text="@string/register"/>
+
+</LinearLayout>

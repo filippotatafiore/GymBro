@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Top strip of a session in progress: title, timer, pause and stop buttons (logic in SessionFragment.kt) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="20dp"
+    android:paddingEnd="16dp"
+    android:paddingBottom="8dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/sessionTitle"
+            style="@style/SessionTitleStyle"
+            tools:text="GYM SESSION"/>
+
+        <TextView
+            android:id="@+id/sessionTimer"
+            style="@style/SessionTimerStyle"
+            tools:text="12:34"/>
+
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/pauseButton"
+        style="@style/RoundIconButtonStyle"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:padding="14dp"
+        android:contentDescription="@string/pause"
+        android:src="@drawable/pause_icon"/>
+
+    <ImageButton
+        android:id="@+id/stopButton"
+        style="@style/RoundIconButtonStyle"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_marginStart="12dp"
+        android:padding="14dp"
+        android:contentDescription="@string/stop"
+        android:src="@drawable/stop_icon"/>
+
+</LinearLayout>

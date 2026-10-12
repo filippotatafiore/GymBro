@@ -2,16 +2,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- GPS: needed to center the map of the Run page on the current position -->
+    <!-- Internet: REST API (login, profile, results) and Google Maps -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- GPS: needed to center the map of the Run session on the current position -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
+        android:name=".GymBroApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.GymBro"
@@ -22,12 +27,6 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
 
-        <activity
-            android:name=".GymActivity"
-            android:exported="false" />
-        <activity
-            android:name=".RunActivity"
-            android:exported="false" />
         <activity
             android:name=".ProfileActivity"
             android:exported="false" />

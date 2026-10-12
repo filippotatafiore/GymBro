@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.GymBro" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.GymBro" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- dark window background: no white flashes while pages are opening -->
+        <item name="android:windowBackground">@color/lightGrey</item>
+    </style>
 </resources>

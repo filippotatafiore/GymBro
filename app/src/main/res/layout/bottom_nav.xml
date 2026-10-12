@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
 
+<!-- Bottom strip shared by all the pages (logic in BottomNavBar.kt).
+     The home icon shines while a training session is in progress. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:background="@drawable/nav_bar_background">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center"
-        android:background="@color/darkGrey">
+        android:gravity="center">
 
         <ImageButton
             android:id="@+id/homeButton"
@@ -20,6 +24,7 @@
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
             android:background="@android:color/transparent"
+            android:contentDescription="@string/home"
             android:src="@drawable/home_icon"/>
 
         <ImageButton
@@ -32,6 +37,7 @@
             android:layout_marginEnd="8dp"
             android:padding="8dp"
             android:background="@android:color/transparent"
+            android:contentDescription="@string/chat"
             android:src="@drawable/chat_icon"/>
 
         <ImageButton
@@ -44,6 +50,7 @@
             android:layout_marginEnd="8dp"
             android:padding="8dp"
             android:background="@android:color/transparent"
+            android:contentDescription="@string/search"
             android:src="@drawable/search_icon"/>
 
         <ImageButton
@@ -56,9 +63,14 @@
             android:layout_marginEnd="8dp"
             android:padding="8dp"
             android:background="@android:color/transparent"
+            android:contentDescription="@string/profile"
             android:src="@drawable/profile_icon"/>
-
 
     </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- spacer: keeps the icons above the system navigation bar -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="20dp"/>
+
+</LinearLayout>

@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# REST API server: local virtualenv, database and uploaded pictures
+server/.venv/
+server/gymbro.db
+server/uploads/
+__pycache__/

@@ -1,18 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- A single row of the exercise list of the Gym page -->
+<!-- A single row of the exercise list of the gym session -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp"
-    android:layout_marginTop="6dp"
-    android:layout_marginBottom="6dp"
-    android:padding="16dp"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:background="@drawable/exercise_item_background">
+    style="@style/ListRowStyle">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -22,7 +13,7 @@
 
         <TextView
             android:id="@+id/exerciseName"
-            style="@style/ExerciseNameStyle"
+            style="@style/RowTitleStyle"
             tools:text="Bench Press"/>
 
         <TextView
@@ -35,7 +26,7 @@
     <!-- sets x reps -->
     <TextView
         android:id="@+id/exerciseSetsReps"
-        style="@style/ExerciseSetsRepsStyle"
+        style="@style/RowValueStyle"
         tools:text="4 × 8"/>
 
 </LinearLayout>

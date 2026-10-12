@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:layout_gravity="end"
     android:orientation="vertical"
-    android:background="@color/darkGrey">
+    android:background="@drawable/drawer_background">
 
     <!-- spacer -->
     <View
@@ -22,8 +22,7 @@
 
     <View
         android:layout_width="match_parent"
-        android:layout_height="20dp"
-        android:background="@color/darkGrey"/>
+        android:layout_height="20dp"/>
 
 
     <!-- Menu items -->
@@ -56,6 +55,11 @@
         android:layout_weight="1" />
 
     <Button
+        android:id="@+id/logoutButton"
+        style="@style/ProfileMenuItemStyle"
+        android:text="@string/logout" />
+
+    <Button
         android:id="@+id/settingsButton"
         style="@style/ProfileMenuItemStyle"
         android:text="@string/settings" />
@@ -63,7 +67,6 @@
     <!-- spacer -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="30dp"
-        android:background="@color/darkGrey"/>
+        android:layout_height="30dp"/>
 
 </LinearLayout>

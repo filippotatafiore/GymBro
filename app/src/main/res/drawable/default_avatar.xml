@@ -1,0 +1,13 @@
+<!-- Profile picture shown when the user did not choose one -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="96dp" android:viewportHeight="24" android:viewportWidth="24" android:width="96dp">
+
+    <!-- background -->
+    <path android:fillColor="@color/lightBlue" android:pathData="M0,0H24V24H0Z"/>
+
+    <!-- head -->
+    <path android:fillColor="#C9D6EA" android:pathData="M12,5.5A4,4 0,1 1,12,13.5A4,4 0,1 1,12,5.5Z"/>
+
+    <!-- shoulders -->
+    <path android:fillColor="#C9D6EA" android:pathData="M3.5,24C4.3,18.6 7.7,15.5 12,15.5C16.3,15.5 19.7,18.6 20.5,24Z"/>
+
+</vector>

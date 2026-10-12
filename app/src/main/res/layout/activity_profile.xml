@@ -15,7 +15,7 @@
         android:gravity="top|center_horizontal"
         android:orientation="vertical">
 
-        <!-- spacer -->
+        <!-- spacer (status bar) -->
         <View
             android:layout_width="match_parent"
             android:layout_height="50dp"/>
@@ -23,68 +23,159 @@
         <!--************************************** top strip **************************************-->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="40dp"
+            android:layout_height="44dp"
             android:orientation="horizontal"
-            android:gravity="end">
+            android:gravity="end"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
 
+            <!-- visible only when logged in -->
             <ImageButton
                 android:id="@+id/menuButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:scaleType="centerInside"
-                android:padding="8dp"
-                android:background="@android:color/transparent"
-                android:src="@drawable/menu_icon"/>
+                style="@style/RoundIconButtonStyle"
+                android:contentDescription="@string/menu"
+                android:src="@drawable/menu_icon"
+                android:visibility="gone"/>
 
         </LinearLayout>
         <!--************************************** top strip **************************************-->
 
 
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="0sp"
-            android:gravity="center"
-            android:orientation="vertical"
+            android:layout_height="0dp"
             android:layout_weight="1">
 
-            <TextView
-                style="@style/TextStyle1"
-                android:text="@string/register_invitation"/>
-
-            <!-- spacer -->
-            <View
+            <!-- ********** not logged in: invitation to register / log in ********** -->
+            <LinearLayout
+                android:id="@+id/loggedOutView"
                 android:layout_width="match_parent"
-                android:layout_height="30dp"/>
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="24dp">
 
-            <Button
-                android:id="@+id/register_Button"
-                style="@style/ButtonStyle1"
-                android:text="@string/register"
-                />
+                <TextView
+                    style="@style/TextStyle1"
+                    android:text="@string/register_invitation"/>
 
-        </LinearLayout>
+                <!-- spacer -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="30dp"/>
+
+                <Button
+                    android:id="@+id/register_Button"
+                    style="@style/ButtonStyle1"
+                    android:text="@string/register"/>
+
+                <Button
+                    android:id="@+id/loginButton"
+                    style="@style/LinkButtonStyle"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/already_member"/>
+
+            </LinearLayout>
 
 
+            <!-- ********** logged in: profile ********** -->
+            <LinearLayout
+                android:id="@+id/loggedInView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:visibility="gone">
 
+                <!-- tap it to change the picture -->
+                <ImageView
+                    android:id="@+id/profilePicture"
+                    style="@style/ProfilePictureStyle"
+                    android:contentDescription="@string/profile_picture"
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:layout_gravity="center_horizontal"
+                    android:foreground="?android:attr/selectableItemBackgroundBorderless"/>
 
+                <TextView
+                    android:id="@+id/profileUsername"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    tools:text="filippo"/>
 
+                <TextView
+                    android:id="@+id/profileEmail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="14sp"
+                    tools:text="filippo@example.com"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="16dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textStyle="bold"
+                        android:textColor="@color/lighterBlue"
+                        android:textSize="22sp"
+                        android:text="@string/my_results"/>
+
+                    <Button
+                        android:id="@+id/publishResultButton"
+                        style="@style/SmallButtonStyle"
+                        android:drawableStart="@drawable/plus_icon"
+                        android:text="@string/publish"/>
+
+                </LinearLayout>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="8dp">
+
+                    <!-- each row is res/layout/item_result.xml -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/resultList"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:paddingBottom="8dp"
+                        android:clipToPadding="false"
+                        tools:listitem="@layout/item_result"/>
+
+                    <TextView
+                        android:id="@+id/emptyResultsText"
+                        style="@style/EmptyListTextStyle"
+                        android:layout_gravity="top"
+                        android:text="@string/no_results_yet"
+                        android:visibility="gone"/>
+
+                </FrameLayout>
+
+            </LinearLayout>
+
+        </FrameLayout>
 
 
         <!--************************************** bottom strip **************************************-->
-        <!-- bottom navbar -->
         <include
             layout="@layout/bottom_nav"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom" />
-
-        <!-- spacer -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="20dp"
-            android:background="@color/darkGrey" />
-        <!--************************************** bottom strip **************************************-->
-
+            android:layout_height="wrap_content"/>
 
     </LinearLayout>
 
@@ -93,7 +184,7 @@
 
 
     <!--************************************** sliding menu (Drawer) **************************************-->
-    <!-- sliding menu (navigation drawer) -->
+    <!-- sliding menu (navigation drawer), usable only when logged in -->
     <FrameLayout
         android:id="@+id/menu_container"
         android:layout_width="250dp"

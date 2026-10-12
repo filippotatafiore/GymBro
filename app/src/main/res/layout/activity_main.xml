@@ -1,263 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-    android:orientation : alignment of children
-    android:gravity : gravity of the contents of the view
+    Home page. The middle part (page_container) shows one of:
+    - the home (start training button + last sessions)   -> fragment_home.xml
+    - the gym session in progress                        -> fragment_gym_session.xml
+    - the run session in progress                        -> fragment_run_session.xml
+    (see MainActivity.showCurrentPage)
 -->
-
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".MainActivity"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="top|center_horizontal"
     android:background="@color/lightGrey">
 
 
-    <!-- spacer -->
+    <!-- spacer (status bar) -->
     <View
         android:layout_width="match_parent"
         android:layout_height="50dp"/>
-    <!--************************************** top strip **************************************-->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:orientation="horizontal">
-
-        <ImageButton
-            android:id="@+id/calendarButton"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:scaleType="centerInside"
-            android:padding="8dp"
-            android:background="@android:color/transparent"
-            android:src="@drawable/calendar_icon"/>
-
-    </LinearLayout>
-    <!--************************************** top strip **************************************-->
 
 
-
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:padding="50sp">
-
-        <Button
-            android:id="@+id/new_session_Button"
-            style="@style/ButtonStyle1"
-            android:text="start\ntraining"/>
-
-    </LinearLayout>
-
-
-
-    <!-- last sessions -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_weight="1"
-        android:gravity="center">
-
-        <TextView
-            style="@style/TitleStyle"
-            android:text="@string/last_session"
-            android:layout_weight="1"/>
-
-
-        <ScrollView
-            android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:layout_weight="1">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <!-- previous session -->
-                <LinearLayout
-                    style="@style/ContainerStyle1">
-
-                    <TextView
-                        style="@style/sessionDate"
-                        android:text="10/11/2024" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:padding="10dp"
-                        android:text="PETTO - TRICIPITI"
-                        android:textColor="#FFFF00" />
-
-                </LinearLayout>
-
-                <!-- previous session -->
-                <LinearLayout
-                    style="@style/ContainerStyle1">
-
-                    <TextView
-                        style="@style/sessionDate"
-                        android:text="8/11/2024"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:padding="10dp"
-                        android:text="PETTO - TRICIPITI"
-                        android:gravity="center"
-                        android:textColor="#FFFF00"/>
-
-                </LinearLayout>
-
-                <!-- previous session -->
-                <LinearLayout
-                    style="@style/ContainerStyle1">
-
-                    <TextView
-                        style="@style/sessionDate"
-                        android:text="5/11/2024"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:padding="10dp"
-                        android:text="PETTO - TRICIPITI"
-                        android:gravity="center"
-                        android:textColor="#FFFF00"/>
-
-                </LinearLayout>
-
-            </LinearLayout>
-
-        </ScrollView>
-
-    </LinearLayout>
-
-
-    <!-- spacer -->
-    <View
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/page_container"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
-
-
-
-    <!-- schedule -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_weight="1"
-        android:gravity="center">
-
-        <TextView
-            style="@style/TitleStyle"
-            android:text="@string/schedule"
-            android:layout_weight="1"/>
-
-        <ScrollView
-            android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:layout_weight="1">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <!-- previous session -->
-                <LinearLayout
-                    style="@style/ContainerStyle1">
-
-                    <TextView
-                        style="@style/sessionDate"
-                        android:text="10/11/2024"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:padding="10dp"
-                        android:text="PETTO - TRICIPITI"
-                        android:gravity="center"
-                        android:textColor="#FFFF00"/>
-
-                </LinearLayout>
-
-                <!-- previous session -->
-                <LinearLayout
-                    style="@style/ContainerStyle1">
-
-                    <TextView
-                        style="@style/sessionDate"
-                        android:text="10/11/2024"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:padding="10dp"
-                        android:text="PETTO - TRICIPITI"
-                        android:gravity="center"
-                        android:textColor="#FFFF00"/>
-
-                </LinearLayout>
-
-                <!-- previous session -->
-                <LinearLayout
-                    style="@style/ContainerStyle1">
-
-                    <TextView
-                        style="@style/sessionDate"
-                        android:text="10/11/2024"/>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:padding="10dp"
-                        android:text="PETTO - TRICIPITI"
-                        android:gravity="center"
-                        android:textColor="#FFFF00"/>
-
-                </LinearLayout>
-
-            </LinearLayout>
-
-        </ScrollView>
-
-    </LinearLayout>
-
-
+        android:layout_weight="1"/>
 
 
     <!--************************************** bottom strip **************************************-->
-    <!-- spacer to place bottom strip at the bottom -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <!-- bottom navbar -->
     <include
         layout="@layout/bottom_nav"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"/>
-
-    <!-- spacer -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="20dp"
-        android:background="@color/darkGrey"/>
-    <!--************************************** bottom strip **************************************-->
-
-
+        android:layout_height="wrap_content"/>
 
 </LinearLayout>

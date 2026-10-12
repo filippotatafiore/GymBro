@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A finished session in the LAST SESSIONS list of the home page -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/ListRowStyle">
+
+    <ImageView
+        android:id="@+id/sessionIcon"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:scaleType="fitCenter"
+        android:importantForAccessibility="no"
+        tools:src="@drawable/dumbbell_icon"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="16dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/sessionType"
+            style="@style/RowTitleStyle"
+            tools:text="Gym"/>
+
+        <TextView
+            android:id="@+id/sessionDate"
+            style="@style/RowSubtitleStyle"
+            tools:text="Oct 10, 2026, 5:32 PM"/>
+
+    </LinearLayout>
+
+    <!-- duration -->
+    <TextView
+        android:id="@+id/sessionDuration"
+        style="@style/RowValueStyle"
+        tools:text="42:10"/>
+
+</LinearLayout>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window to publish a new result (e.g. Deadlift - 150 kg) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/ModalCardStyle">
+
+    <TextView
+        style="@style/ModalTitleStyle"
+        android:text="@string/publish_result_title"/>
+
+    <EditText
+        android:id="@+id/resultTitleInput"
+        style="@style/InputStyle"
+        android:layout_marginTop="20dp"
+        android:hint="@string/result_title_hint"
+        android:inputType="textCapSentences"
+        android:importantForAutofill="no"/>
+
+    <EditText
+        android:id="@+id/resultValueInput"
+        style="@style/InputStyle"
+        android:hint="@string/result_value_hint"
+        android:inputType="text"
+        android:importantForAutofill="no"/>
+
+    <TextView
+        android:id="@+id/publishError"
+        style="@style/ErrorTextStyle"/>
+
+    <Button
+        android:id="@+id/publishConfirmButton"
+        style="@style/PrimaryButtonStyle"
+        android:layout_marginTop="20dp"
+        android:text="@string/publish"/>
+
+</LinearLayout>

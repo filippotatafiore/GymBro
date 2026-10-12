@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window to log in -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/ModalCardStyle">
+
+    <TextView
+        style="@style/ModalTitleStyle"
+        android:text="@string/login_title"/>
+
+    <EditText
+        android:id="@+id/loginEmail"
+        style="@style/InputStyle"
+        android:layout_marginTop="20dp"
+        android:hint="@string/email"
+        android:inputType="textEmailAddress"
+        android:autofillHints="emailAddress"/>
+
+    <EditText
+        android:id="@+id/loginPassword"
+        style="@style/InputStyle"
+        android:hint="@string/password"
+        android:inputType="textPassword"
+        android:autofillHints="password"/>
+
+    <TextView
+        android:id="@+id/loginError"
+        style="@style/ErrorTextStyle"/>
+
+    <Button
+        android:id="@+id/loginConfirmButton"
+        style="@style/PrimaryButtonStyle"
+        android:layout_marginTop="20dp"
+        android:text="@string/login"/>
+
+</LinearLayout>

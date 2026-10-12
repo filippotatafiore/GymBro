@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A result published by the user, in the profile page -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/ListRowStyle">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/resultTitle"
+            style="@style/RowTitleStyle"
+            tools:text="Deadlift"/>
+
+        <TextView
+            android:id="@+id/resultDate"
+            style="@style/RowSubtitleStyle"
+            tools:text="Oct 10, 2026"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/resultValue"
+        style="@style/RowValueStyle"
+        tools:text="150 kg"/>
+
+</LinearLayout>

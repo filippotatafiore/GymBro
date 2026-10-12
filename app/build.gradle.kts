@@ -20,6 +20,10 @@ if (mapsApiKey.isBlank()) {
     logger.warn("MAPS_API_KEY not found in local.properties: the map of the Run page will not load.")
 }
 
+// Address of the GymBro REST API (server/ folder). 10.0.2.2 is the PC as seen from the emulator.
+// Set API_BASE_URL in local.properties to use the server deployed on PythonAnywhere.
+val apiBaseUrl: String = localProperties.getProperty("API_BASE_URL", "http://10.0.2.2:5000/")
+
 android {
     namespace = "com.example.gymbro"
     compileSdk = 35
@@ -35,6 +39,11 @@ android {
 
         // Google Maps API key, injected into AndroidManifest.xml as ${MAPS_API_KEY}
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+
+        // Address of the REST API, readable from the code as R.string.api_base_url.
+        // (A resource, not a BuildConfig constant: constants get copied into the compiled code
+        // and a changed value may not reach the app without a full rebuild.)
+        resValue("string", "api_base_url", apiBaseUrl)
     }
 
     buildTypes {
