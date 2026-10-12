@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window asking to confirm an action that deletes something (see showConfirmModal in Ui.kt) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/ModalCardStyle">
+
+    <TextView
+        android:id="@+id/confirmTitle"
+        style="@style/ModalTitleStyle"
+        tools:text="Delete the session?"/>
+
+    <TextView
+        android:id="@+id/confirmMessage"
+        style="@style/ModalMessageStyle"
+        tools:text="The session will be removed from your last sessions."/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/cancelButton"
+            style="@style/SecondaryButtonStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="@string/cancel"/>
+
+        <!-- spacer -->
+        <View
+            android:layout_width="12dp"
+            android:layout_height="match_parent"/>
+
+        <Button
+            android:id="@+id/confirmButton"
+            style="@style/DangerButtonStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            tools:text="Delete"/>
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Options of a choice (e.g. Time / Weight): blue when selected, grey otherwise -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#33FFFFFF">
+
+    <item>
+        <selector>
+            <item android:state_checked="true">
+                <shape android:shape="rectangle">
+                    <solid android:color="@color/lightBlue"/>
+                    <corners android:radius="12dp"/>
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="rectangle">
+                    <solid android:color="@color/lighterGrey"/>
+                    <corners android:radius="12dp"/>
+                </shape>
+            </item>
+        </selector>
+    </item>
+
+</ripple>

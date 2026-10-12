@@ -1,5 +1,6 @@
 package com.example.gymbro
 
+import java.text.DecimalFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -28,3 +29,13 @@ fun formatDateTime(epochMillis: Long): String =
 fun formatDate(instant: Instant): String =
     DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
         .format(instant.atZone(ZoneId.systemDefault()))
+
+// e.g. 150.0 -> "150 kg", 72.5 -> "72.5 kg"
+fun formatWeight(kg: Double): String = DecimalFormat("0.##").format(kg) + " kg"
+
+// e.g. 10.0 -> "10 km", 5.25 -> "5.25 km"
+fun formatDistance(km: Double): String = DecimalFormat("0.##").format(km) + " km"
+
+// Average time per km, e.g. 3600 s for 10 km -> "06:00 /km"
+fun formatPace(durationSeconds: Long, km: Double): String =
+    formatDuration((durationSeconds / km * 1000).toLong()) + " /km"

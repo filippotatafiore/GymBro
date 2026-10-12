@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window to publish a result manually: exercise from a predefined list, how it is measured
+     (time or weight), which result is better (higher or lower), the result and optional notes.
+     ScrollView: the window can scroll when the keyboard is open. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout style="@style/ModalCardStyle">
+
+        <TextView
+            style="@style/ModalTitleStyle"
+            android:text="@string/manual_result_title"/>
+
+        <!-- exercise -->
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/exercise"/>
+
+        <Spinner
+            android:id="@+id/exerciseSpinner"
+            style="@style/SpinnerStyle"/>
+
+        <!-- time / weight -->
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/measured_by"/>
+
+        <RadioGroup
+            android:id="@+id/metricGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/metricWeight"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="6dp"
+                android:text="@string/metric_weight"/>
+
+            <RadioButton
+                android:id="@+id/metricTime"
+                style="@style/SegmentStyle"
+                android:layout_marginStart="6dp"
+                android:text="@string/metric_time"/>
+
+        </RadioGroup>
+
+        <!-- higher / lower is better -->
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/better_result"/>
+
+        <RadioGroup
+            android:id="@+id/betterGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/betterHigher"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="6dp"
+                android:text="@string/better_higher"/>
+
+            <RadioButton
+                android:id="@+id/betterLower"
+                style="@style/SegmentStyle"
+                android:layout_marginStart="6dp"
+                android:text="@string/better_lower"/>
+
+        </RadioGroup>
+
+        <!-- result: weight... -->
+        <EditText
+            android:id="@+id/weightInput"
+            style="@style/InputStyle"
+            android:layout_marginTop="16dp"
+            android:hint="@string/weight_hint"
+            android:inputType="numberDecimal"
+            android:importantForAutofill="no"/>
+
+        <!-- ...or time -->
+        <LinearLayout
+            android:id="@+id/timeInputs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/minutesInput"
+                style="@style/InputStyle"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="6dp"
+                android:hint="@string/minutes_hint"
+                android:inputType="number"
+                android:importantForAutofill="no"/>
+
+            <EditText
+                android:id="@+id/secondsInput"
+                style="@style/InputStyle"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="16dp"
+                android:layout_marginStart="6dp"
+                android:hint="@string/seconds_hint"
+                android:inputType="number"
+                android:importantForAutofill="no"/>
+
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/notesInput"
+            style="@style/InputStyle"
+            android:hint="@string/notes_hint"
+            android:inputType="textCapSentences"
+            android:maxLength="200"
+            android:importantForAutofill="no"/>
+
+        <TextView
+            android:id="@+id/publishError"
+            style="@style/ErrorTextStyle"/>
+
+        <Button
+            android:id="@+id/publishConfirmButton"
+            style="@style/PrimaryButtonStyle"
+            android:layout_marginTop="20dp"
+            android:text="@string/publish"/>
+
+    </LinearLayout>
+
+</ScrollView>

@@ -26,31 +26,23 @@
         android:fontFeatureSettings="tnum"
         tools:text="Gym · 42:10"/>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+    <Button
+        android:id="@+id/saveAndPublishButton"
+        style="@style/PrimaryButtonStyle"
         android:layout_marginTop="24dp"
-        android:orientation="horizontal">
+        android:text="@string/save_and_publish"/>
 
-        <Button
-            android:id="@+id/cancelButton"
-            style="@style/SecondaryButtonStyle"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:text="@string/cancel"/>
+    <Button
+        android:id="@+id/saveOnlyButton"
+        style="@style/SecondaryButtonStyle"
+        android:layout_marginTop="12dp"
+        android:text="@string/save_only"/>
 
-        <!-- spacer -->
-        <View
-            android:layout_width="12dp"
-            android:layout_height="match_parent"/>
-
-        <Button
-            android:id="@+id/confirmStopButton"
-            style="@style/PrimaryButtonStyle"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:text="@string/stop_and_save"/>
-
-    </LinearLayout>
+    <Button
+        android:id="@+id/cancelButton"
+        style="@style/LinkButtonStyle"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:text="@string/cancel"/>
 
 </LinearLayout>

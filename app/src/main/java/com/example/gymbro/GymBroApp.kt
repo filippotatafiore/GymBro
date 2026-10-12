@@ -17,7 +17,11 @@ class GymBroApp : Application() {
 
     // Local database (Room) with the finished training sessions
     val database: AppDatabase by lazy {
-        Room.databaseBuilder(this, AppDatabase::class.java, "gymbro.db").build()
+        Room.databaseBuilder(this, AppDatabase::class.java, "gymbro.db")
+            // While developing: when the structure of the tables changes (new version in
+            // AppDatabase), the local database is recreated empty instead of being converted
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     // Coroutines that must complete even if the page that started them is closed (e.g. saving a session)

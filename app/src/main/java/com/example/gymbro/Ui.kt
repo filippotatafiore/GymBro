@@ -3,12 +3,15 @@ package com.example.gymbro
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Color
+import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.LayoutRes
+import androidx.annotation.StringRes
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -45,6 +48,30 @@ fun createModal(
         onDismiss()
     }
     return dialog
+}
+
+// Modal window asking to confirm an action that deletes something: onConfirm is called only if
+// the user presses the red button
+fun showConfirmModal(
+    context: Context,
+    owner: LifecycleOwner,
+    @StringRes title: Int,
+    @StringRes message: Int,
+    @StringRes confirmText: Int,
+    onConfirm: () -> Unit
+) {
+    val dialog = createModal(context, R.layout.dialog_confirm, owner)
+    dialog.findViewById<TextView>(R.id.confirmTitle).setText(title)
+    dialog.findViewById<TextView>(R.id.confirmMessage).setText(message)
+
+    val confirm = dialog.findViewById<Button>(R.id.confirmButton)
+    confirm.setText(confirmText)
+    confirm.setOnClickListener {
+        dialog.dismiss()
+        onConfirm()
+    }
+    dialog.findViewById<View>(R.id.cancelButton).setOnClickListener { dialog.dismiss() }
+    dialog.show()
 }
 
 // Shows an error message in a (normally hidden) TextView

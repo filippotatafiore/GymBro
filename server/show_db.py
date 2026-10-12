@@ -42,10 +42,18 @@ def main():
             ["id", "username", "email", "picture", "registered (UTC)", "password (only its hash is stored)"],
         )
         print_table(
-            db, "RESULTS",
-            "SELECT results.id, users.username, results.title, results.value, results.created_at "
-            "FROM results JOIN users ON users.id = results.user_id ORDER BY results.id",
-            ["id", "user", "title", "value", "published (UTC)"],
+            db, "POSTS",
+            "SELECT posts.id, users.username, posts.kind, posts.title, "
+            # short summary of the post, depending on its kind
+            "CASE posts.kind "
+            "  WHEN 'manual' THEN posts.metric || ' ' || posts.amount || "
+            "       CASE posts.metric WHEN 'time' THEN ' s' ELSE ' kg' END || ', ' || posts.better || ' is better' "
+            "  WHEN 'run' THEN posts.distance_km || ' km in ' || posts.duration_s || ' s' "
+            "  ELSE json_array_length(posts.exercises) || ' exercises in ' || posts.duration_s || ' s' "
+            "END, "
+            "posts.created_at "
+            "FROM posts JOIN users ON users.id = posts.user_id ORDER BY posts.id",
+            ["id", "user", "kind", "title", "details", "published (UTC)"],
         )
         print_table(
             db, "LOGIN TOKENS (one per logged-in device)",

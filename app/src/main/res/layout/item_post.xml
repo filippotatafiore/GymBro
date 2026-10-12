@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A post in the MY RESULTS list of the profile: tap it to see the details -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/ListRowStyle"
+    android:foreground="@drawable/row_ripple">
+
+    <ImageView
+        android:id="@+id/postIcon"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:scaleType="fitCenter"
+        android:importantForAccessibility="no"
+        tools:src="@drawable/shoe_icon"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="14dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/postTitle"
+            style="@style/RowTitleStyle"
+            tools:text="Run · 10 km"/>
+
+        <TextView
+            android:id="@+id/postDate"
+            style="@style/RowSubtitleStyle"
+            tools:text="Oct 12, 2026"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/postValue"
+        style="@style/RowValueStyle"
+        android:textSize="18sp"
+        tools:text="52:30"/>
+
+    <ImageButton
+        android:id="@+id/deletePostButton"
+        style="@style/SmallRoundIconButtonStyle"
+        android:layout_marginStart="12dp"
+        android:contentDescription="@string/delete"
+        android:src="@drawable/delete_icon"/>
+
+</LinearLayout>

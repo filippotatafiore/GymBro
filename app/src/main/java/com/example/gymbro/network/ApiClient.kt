@@ -4,6 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.example.gymbro.R
+import com.example.gymbro.data.TrainingSession
+import com.example.gymbro.session.Exercise
+import com.example.gymbro.session.SessionType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -13,13 +16,11 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 data class User(val id: Long, val username: String, val email: String, val hasPicture: Boolean)
 
 data class AuthResult(val token: String, val user: User)
-
-// A result published by a user, e.g. title = "Deadlift", value = "150 kg"
-data class PublishedResult(val id: Long, val title: String, val value: String, val createdAt: Instant)
 
 // Error of a request to the server. code = HTTP status (e.g. 401), or 0 if the server was not reachable.
 class ApiException(val code: Int, message: String) : Exception(message)
@@ -76,17 +77,53 @@ object ApiClient {
         return withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
     }
 
-    suspend fun getResults(userId: Long): List<PublishedResult> {
-        val array = JSONArray(request("GET", "/api/users/$userId/results").decodeToString())
-        return (0 until array.length()).map { parseResult(array.getJSONObject(it)) }
+    // Posts of a user, newest first
+    suspend fun getPosts(userId: Long): List<Post> {
+        val array = JSONArray(request("GET", "/api/users/$userId/posts").decodeToString())
+        return (0 until array.length()).map { parsePost(array.getJSONObject(it)) }
     }
 
-    suspend fun publishResult(token: String, title: String, value: String): PublishedResult {
+    // A result added manually, e.g. Deadlift - weight - 150 (kg) - higher is better
+    suspend fun publishManual(
+        token: String,
+        title: String,
+        metric: Metric,
+        better: Better,
+        amount: Double,     // seconds (time) or kg (weight)
+        notes: String
+    ): Post {
         val body = JSONObject()
+            .put("kind", PostKind.MANUAL.json)
             .put("title", title)
-            .put("value", value)
-        return parseResult(JSONObject(request("POST", "/api/me/results", token = token, json = body).decodeToString()))
+            .put("metric", metric.json)
+            .put("better", better.json)
+            .put("amount", amount)
+            .put("notes", notes)
+        return publish(token, body)
     }
+
+    // A finished gym or run session
+    suspend fun publishSession(token: String, session: TrainingSession): Post {
+        val body = JSONObject()
+            .put("duration_s", session.durationMillis / 1000)
+            .put("session_start", Instant.ofEpochMilli(session.startTime).truncatedTo(ChronoUnit.SECONDS).toString())
+        when (session.type) {
+            SessionType.RUN -> body
+                .put("kind", PostKind.RUN.json)
+                .put("distance_km", session.distanceKm ?: 0.0)
+            SessionType.GYM -> body
+                .put("kind", PostKind.GYM.json)
+                .put("exercises", JSONArray(session.exercises.orEmpty().map { it.toJson() }))
+        }
+        return publish(token, body)
+    }
+
+    suspend fun deletePost(token: String, postId: Long) {
+        request("DELETE", "/api/me/posts/$postId", token = token)
+    }
+
+    private suspend fun publish(token: String, body: JSONObject): Post =
+        parsePost(JSONObject(request("POST", "/api/me/posts", token = token, json = body).decodeToString()))
 
 
     // --------------------------------------------------------- HTTP
@@ -145,10 +182,23 @@ object ApiClient {
         hasPicture = json.getBoolean("has_picture")
     )
 
-    private fun parseResult(json: JSONObject) = PublishedResult(
+    private fun parsePost(json: JSONObject) = Post(
         id = json.getLong("id"),
+        kind = PostKind.entries.first { it.json == json.getString("kind") },
         title = json.getString("title"),
-        value = json.getString("value"),
+        metric = json.stringOrNull("metric")?.let { value -> Metric.entries.first { it.json == value } },
+        better = json.stringOrNull("better")?.let { value -> Better.entries.first { it.json == value } },
+        amount = if (json.isNull("amount")) null else json.getDouble("amount"),
+        notes = json.stringOrNull("notes"),
+        durationSeconds = if (json.isNull("duration_s")) null else json.getLong("duration_s"),
+        distanceKm = if (json.isNull("distance_km")) null else json.getDouble("distance_km"),
+        exercises = if (json.isNull("exercises")) null else json.getJSONArray("exercises").let { array ->
+            (0 until array.length()).map { Exercise.fromJson(array.getJSONObject(it)) }
+        },
+        sessionStart = json.stringOrNull("session_start")?.let { Instant.parse(it) },
         createdAt = Instant.parse(json.getString("created_at"))
     )
+
+    // null if the value is missing or null in the JSON
+    private fun JSONObject.stringOrNull(key: String): String? = if (isNull(key)) null else getString(key)
 }

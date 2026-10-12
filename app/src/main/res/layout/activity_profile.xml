@@ -29,144 +29,127 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp">
 
-            <!-- visible only when logged in -->
             <ImageButton
                 android:id="@+id/menuButton"
                 style="@style/RoundIconButtonStyle"
                 android:contentDescription="@string/menu"
-                android:src="@drawable/menu_icon"
-                android:visibility="gone"/>
+                android:src="@drawable/menu_icon"/>
 
         </LinearLayout>
         <!--************************************** top strip **************************************-->
 
 
+        <!-- tap it to change the picture -->
+        <ImageView
+            android:id="@+id/profilePicture"
+            style="@style/ProfilePictureStyle"
+            android:contentDescription="@string/profile_picture"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:layout_gravity="center_horizontal"
+            android:foreground="?android:attr/selectableItemBackgroundBorderless"/>
+
+        <TextView
+            android:id="@+id/profileUsername"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:textSize="24sp"
+            tools:text="filippo"/>
+
+        <TextView
+            android:id="@+id/profileEmail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/textSecondary"
+            android:textSize="14sp"
+            tools:text="filippo@example.com"/>
+
+
+        <!-- ************************* personal bests ************************* -->
+        <TextView
+            style="@style/SectionTitleStyle"
+            android:layout_width="match_parent"
+            android:layout_marginTop="16dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:text="@string/personal_bests"/>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp">
+
+            <!-- horizontal list: each card is res/layout/item_personal_best.xml -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/personalBestList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:clipToPadding="false"
+                tools:listitem="@layout/item_personal_best"
+                tools:orientation="horizontal"/>
+
+            <TextView
+                android:id="@+id/emptyPersonalBestsText"
+                style="@style/EmptyListTextStyle"
+                android:padding="12dp"
+                android:text="@string/no_personal_bests"
+                android:visibility="gone"/>
+
+        </FrameLayout>
+
+
+        <!-- ************************* my results ************************* -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="16dp">
+
+            <TextView
+                style="@style/SectionTitleStyle"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="@string/my_results"/>
+
+            <Button
+                android:id="@+id/publishResultButton"
+                style="@style/SmallButtonStyle"
+                android:drawableStart="@drawable/plus_icon"
+                android:text="@string/publish"/>
+
+        </LinearLayout>
+
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1">
+            android:layout_weight="1"
+            android:layout_marginTop="8dp">
 
-            <!-- ********** not logged in: invitation to register / log in ********** -->
-            <LinearLayout
-                android:id="@+id/loggedOutView"
+            <!-- each row is res/layout/item_post.xml -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/postList"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:padding="24dp">
+                android:paddingBottom="8dp"
+                android:clipToPadding="false"
+                tools:listitem="@layout/item_post"/>
 
-                <TextView
-                    style="@style/TextStyle1"
-                    android:text="@string/register_invitation"/>
-
-                <!-- spacer -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="30dp"/>
-
-                <Button
-                    android:id="@+id/register_Button"
-                    style="@style/ButtonStyle1"
-                    android:text="@string/register"/>
-
-                <Button
-                    android:id="@+id/loginButton"
-                    style="@style/LinkButtonStyle"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/already_member"/>
-
-            </LinearLayout>
-
-
-            <!-- ********** logged in: profile ********** -->
-            <LinearLayout
-                android:id="@+id/loggedInView"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <!-- tap it to change the picture -->
-                <ImageView
-                    android:id="@+id/profilePicture"
-                    style="@style/ProfilePictureStyle"
-                    android:contentDescription="@string/profile_picture"
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
-                    android:layout_gravity="center_horizontal"
-                    android:foreground="?android:attr/selectableItemBackgroundBorderless"/>
-
-                <TextView
-                    android:id="@+id/profileUsername"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:gravity="center"
-                    android:textStyle="bold"
-                    android:textColor="@color/white"
-                    android:textSize="24sp"
-                    tools:text="filippo"/>
-
-                <TextView
-                    android:id="@+id/profileEmail"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:textColor="@color/textSecondary"
-                    android:textSize="14sp"
-                    tools:text="filippo@example.com"/>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingStart="20dp"
-                    android:paddingEnd="16dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:textStyle="bold"
-                        android:textColor="@color/lighterBlue"
-                        android:textSize="22sp"
-                        android:text="@string/my_results"/>
-
-                    <Button
-                        android:id="@+id/publishResultButton"
-                        style="@style/SmallButtonStyle"
-                        android:drawableStart="@drawable/plus_icon"
-                        android:text="@string/publish"/>
-
-                </LinearLayout>
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginTop="8dp">
-
-                    <!-- each row is res/layout/item_result.xml -->
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/resultList"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:paddingBottom="8dp"
-                        android:clipToPadding="false"
-                        tools:listitem="@layout/item_result"/>
-
-                    <TextView
-                        android:id="@+id/emptyResultsText"
-                        style="@style/EmptyListTextStyle"
-                        android:layout_gravity="top"
-                        android:text="@string/no_results_yet"
-                        android:visibility="gone"/>
-
-                </FrameLayout>
-
-            </LinearLayout>
+            <TextView
+                android:id="@+id/emptyResultsText"
+                style="@style/EmptyListTextStyle"
+                android:layout_gravity="top"
+                android:text="@string/no_results_yet"
+                android:visibility="gone"/>
 
         </FrameLayout>
 
@@ -184,7 +167,7 @@
 
 
     <!--************************************** sliding menu (Drawer) **************************************-->
-    <!-- sliding menu (navigation drawer), usable only when logged in -->
+    <!-- sliding menu (navigation drawer) -->
     <FrameLayout
         android:id="@+id/menu_container"
         android:layout_width="250dp"

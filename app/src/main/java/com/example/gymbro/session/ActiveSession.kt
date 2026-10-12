@@ -6,6 +6,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.core.content.edit
 import com.example.gymbro.R
+import com.example.gymbro.network.UserSession
 
 enum class SessionType(
     @StringRes val label: Int,      // e.g. "Gym"
@@ -16,8 +17,9 @@ enum class SessionType(
     RUN(R.string.run, R.string.run_session, R.drawable.shoe_icon)
 }
 
-// The training session in progress (if any). It is saved in SharedPreferences, so it is kept
-// when changing page and even when the app is closed.
+// The training session in progress (if any) of the logged user. It is saved in SharedPreferences,
+// so it is kept when changing page and even when the app is closed. Every user has their own:
+// after a logout the session stays there, waiting for the same user to log in again.
 object ActiveSession {
 
     private const val KEY_TYPE = "type"
@@ -25,11 +27,15 @@ object ActiveSession {
     private const val KEY_PAUSED_AT = "paused_at"        // 0 = not paused
     private const val KEY_PAUSED_TOTAL = "paused_total"  // time spent in previous pauses
 
-    private lateinit var prefs: SharedPreferences
+    private lateinit var appContext: Context
 
     fun init(context: Context) {
-        prefs = context.getSharedPreferences("active_session", Context.MODE_PRIVATE)
+        appContext = context.applicationContext
     }
+
+    // File of the logged user (e.g. "active_session_3")
+    private val prefs: SharedPreferences
+        get() = appContext.getSharedPreferences("active_session_${UserSession.userId ?: 0}", Context.MODE_PRIVATE)
 
     val type: SessionType?
         get() = prefs.getString(KEY_TYPE, null)?.let { SessionType.valueOf(it) }

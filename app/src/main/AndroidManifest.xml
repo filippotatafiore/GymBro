@@ -28,6 +28,9 @@
             android:value="${MAPS_API_KEY}" />
 
         <activity
+            android:name=".WelcomeActivity"
+            android:exported="false" />
+        <activity
             android:name=".ProfileActivity"
             android:exported="false" />
         <activity

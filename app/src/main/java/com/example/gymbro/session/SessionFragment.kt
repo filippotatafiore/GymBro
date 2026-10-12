@@ -66,7 +66,7 @@ abstract class SessionFragment(@LayoutRes layout: Int) : Fragment(layout) {
         pauseButton.contentDescription = getString(if (paused) R.string.resume else R.string.pause)
     }
 
-    // Modal window asking to confirm: stop and save the session
+    // Modal window asking to confirm: stop and save the session, and also publish it on the profile
     private fun showStopDialog() {
         val type = ActiveSession.type ?: return
         val dialog = createModal(requireContext(), R.layout.dialog_stop_session, viewLifecycleOwner)
@@ -74,12 +74,16 @@ abstract class SessionFragment(@LayoutRes layout: Int) : Fragment(layout) {
         dialog.findViewById<TextView>(R.id.stopSummary).text = getString(
             R.string.session_summary, getString(type.label), formatDuration(ActiveSession.elapsedMillis())
         )
+        dialog.findViewById<View>(R.id.saveAndPublishButton).setOnClickListener {
+            dialog.dismiss()
+            (requireActivity() as MainActivity).stopAndSaveSession(publish = true)
+        }
+        dialog.findViewById<View>(R.id.saveOnlyButton).setOnClickListener {
+            dialog.dismiss()
+            (requireActivity() as MainActivity).stopAndSaveSession(publish = false)
+        }
         dialog.findViewById<View>(R.id.cancelButton).setOnClickListener {
             dialog.dismiss()
-        }
-        dialog.findViewById<View>(R.id.confirmStopButton).setOnClickListener {
-            dialog.dismiss()
-            (requireActivity() as MainActivity).stopAndSaveSession()
         }
         dialog.show()
     }

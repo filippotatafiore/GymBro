@@ -26,6 +26,10 @@ object UserSession {
     val isLoggedIn: Boolean
         get() = token != null
 
+    // id of the logged user (null if not logged in)
+    val userId: Long?
+        get() = if (isLoggedIn) prefs.getLong(KEY_ID, 0L) else null
+
     val user: User?
         get() = if (!isLoggedIn) null else User(
             id = prefs.getLong(KEY_ID, 0L),

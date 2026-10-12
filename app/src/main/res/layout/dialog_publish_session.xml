@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window to choose which finished session to publish on the profile.
+     ConstraintLayout: lets the list grow up to a maximum height, then it scrolls. -->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="24dp"
+    android:paddingTop="24dp"
+    android:paddingBottom="16dp"
+    android:background="@drawable/modal_background">
+
+    <TextView
+        android:id="@+id/sessionPickerTitle"
+        style="@style/ModalTitleStyle"
+        android:layout_width="0dp"
+        android:text="@string/choose_session_title"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- shown only while a session is in progress -->
+    <TextView
+        android:id="@+id/activeSessionHint"
+        style="@style/ModalMessageStyle"
+        android:layout_width="0dp"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:textSize="14sp"
+        android:text="@string/active_session_not_publishable"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/sessionPickerTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- each row is res/layout/item_session.xml; tap one to publish it -->
+    <FrameLayout
+        android:id="@+id/sessionPickerFrame"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        app:layout_constrainedHeight="true"
+        app:layout_constraintHeight_max="380dp"
+        app:layout_constraintTop_toBottomOf="@id/activeSessionHint"
+        app:layout_constraintBottom_toTopOf="@id/cancelButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/sessionPickerList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:listitem="@layout/item_session"/>
+
+        <TextView
+            android:id="@+id/noSessionsText"
+            style="@style/EmptyListTextStyle"
+            android:text="@string/no_sessions_to_publish"
+            android:visibility="gone"/>
+
+    </FrameLayout>
+
+    <Button
+        android:id="@+id/cancelButton"
+        style="@style/LinkButtonStyle"
+        android:layout_marginTop="8dp"
+        android:text="@string/cancel"
+        app:layout_constraintTop_toBottomOf="@id/sessionPickerFrame"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A personal best: card of the horizontal list PERSONAL BESTS of the profile -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="150dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="6dp"
+    android:layout_marginEnd="6dp"
+    android:orientation="vertical"
+    android:padding="14dp"
+    android:background="@drawable/list_row_background"
+    android:foreground="@drawable/row_ripple">
+
+    <ImageView
+        android:id="@+id/bestIcon"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:scaleType="fitCenter"
+        android:importantForAccessibility="no"
+        tools:src="@drawable/shoe_icon"/>
+
+    <TextView
+        android:id="@+id/bestTitle"
+        style="@style/RowTitleStyle"
+        android:layout_marginTop="8dp"
+        android:textSize="16sp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        tools:text="10 km"/>
+
+    <TextView
+        android:id="@+id/bestValue"
+        style="@style/RowValueStyle"
+        android:layout_marginStart="0dp"
+        android:textSize="22sp"
+        tools:text="52:30"/>
+
+    <TextView
+        android:id="@+id/bestDate"
+        style="@style/RowSubtitleStyle"
+        android:textSize="12sp"
+        tools:text="Oct 12, 2026"/>
+
+</LinearLayout>

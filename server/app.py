@@ -1,8 +1,8 @@
 """
 GymBro REST API.
 
-A small Flask server that stores the users of the app and the results they publish
-in a SQL (SQLite) database.
+A small Flask server that stores the users of the app and the posts they publish
+(results of finished gym/run sessions or results added manually) in a SQL (SQLite) database.
 
 Run it locally (Android emulator reaches it at http://10.0.2.2:5000):
     python app.py
@@ -11,6 +11,7 @@ On PythonAnywhere the WSGI file imports `app` from this module (see README.md).
 """
 
 import hashlib
+import json
 import os
 import re
 import secrets
@@ -48,14 +49,28 @@ CREATE TABLE IF NOT EXISTS tokens (
     created_at TEXT    NOT NULL
 );
 
--- Results published by the users (e.g. "Deadlift" - "150 kg")
-CREATE TABLE IF NOT EXISTS results (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title      TEXT    NOT NULL,
-    value      TEXT    NOT NULL,
-    created_at TEXT    NOT NULL
+-- Posts published by the users on their profile. Three kinds:
+--   manual: a result added by hand, e.g. Deadlift - weight - 150 kg - higher is better
+--   gym:    a finished gym session (training time + exercises)
+--   run:    a finished run session (training time + distance)
+CREATE TABLE IF NOT EXISTS posts (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind          TEXT    NOT NULL CHECK (kind IN ('manual', 'gym', 'run')),
+    title         TEXT    NOT NULL,  -- exercise/activity (manual), 'Gym session' or 'Run'
+    metric        TEXT,              -- manual: 'time' or 'weight'
+    better        TEXT,              -- manual: 'higher' or 'lower' (which result is better)
+    amount        REAL,              -- manual: seconds (time) or kg (weight)
+    notes         TEXT,              -- manual, optional
+    duration_s    INTEGER,           -- gym / run: training time in seconds
+    distance_km   REAL,              -- run
+    exercises     TEXT,              -- gym: JSON list of the exercises
+    session_start TEXT,              -- gym / run: when the session was done
+    created_at    TEXT    NOT NULL
 );
+
+-- Old format of the published results, replaced by "posts"
+DROP TABLE IF EXISTS results;
 """
 
 
@@ -122,14 +137,66 @@ def user_json(user, include_email=False):
     return data
 
 
-def result_json(result):
+def post_json(post):
     return {
-        "id": result["id"],
-        "user_id": result["user_id"],
-        "title": result["title"],
-        "value": result["value"],
-        "created_at": result["created_at"],
+        "id": post["id"],
+        "user_id": post["user_id"],
+        "kind": post["kind"],
+        "title": post["title"],
+        "metric": post["metric"],
+        "better": post["better"],
+        "amount": post["amount"],
+        "notes": post["notes"],
+        "duration_s": post["duration_s"],
+        "distance_km": post["distance_km"],
+        "exercises": json.loads(post["exercises"]) if post["exercises"] else None,
+        "session_start": post["session_start"],
+        "created_at": post["created_at"],
     }
+
+
+def number(data, key, minimum, maximum):
+    """The number data[key] if it is between minimum and maximum, otherwise None."""
+    value = data.get(key)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return value if minimum <= value <= maximum else None
+
+
+def session_start(data):
+    """The session_start of the request (e.g. 2026-10-12T15:30:00Z), or None if invalid."""
+    value = str(data.get("session_start", ""))
+    try:
+        datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        return None
+    return value
+
+
+def clean_exercises(exercises):
+    """The exercises of a gym session, validated, or None if invalid."""
+    if not isinstance(exercises, list) or not 1 <= len(exercises) <= 50:
+        return None
+    cleaned = []
+    for exercise in exercises:
+        if not isinstance(exercise, dict):
+            return None
+        name = str(exercise.get("name", "")).strip()
+        sets = number(exercise, "sets", 1, 100)
+        reps = number(exercise, "reps", 1, 1000)
+        weight = exercise.get("weight_kg")
+        if not 1 <= len(name) <= 60 or sets is None or reps is None:
+            return None
+        if weight is not None and number(exercise, "weight_kg", 0, 1000) is None:
+            return None
+        cleaned.append({
+            "name": name,
+            "muscle_group": str(exercise.get("muscle_group", "")).strip()[:60],
+            "sets": int(sets),
+            "reps": int(reps),
+            "weight_kg": weight,
+        })
+    return cleaned
 
 
 def picture_path(user_id):
@@ -264,34 +331,78 @@ def get_picture(user_id):
     return send_file(path, mimetype="image/jpeg", max_age=0)
 
 
-@app.get("/api/users/<int:user_id>/results")
-def user_results(user_id):
+@app.get("/api/users/<int:user_id>/posts")
+def user_posts(user_id):
     rows = get_db().execute(
-        "SELECT * FROM results WHERE user_id = ? ORDER BY created_at DESC, id DESC", (user_id,)
+        "SELECT * FROM posts WHERE user_id = ? ORDER BY created_at DESC, id DESC", (user_id,)
     ).fetchall()
-    return jsonify([result_json(row) for row in rows])
+    return jsonify([post_json(row) for row in rows])
 
 
-@app.post("/api/me/results")
+@app.post("/api/me/posts")
 @login_required
-def publish_result():
+def publish_post():
     data = request.get_json(silent=True) or {}
-    title = str(data.get("title", "")).strip()
-    value = str(data.get("value", "")).strip()
+    kind = data.get("kind")
+    post = {"kind": kind}
 
-    if not 1 <= len(title) <= 60:
-        return error(400, "The exercise/activity must be 1-60 characters")
-    if not 1 <= len(value) <= 30:
-        return error(400, "The result must be 1-30 characters")
+    if kind == "manual":
+        post["title"] = str(data.get("title", "")).strip()
+        post["metric"] = data.get("metric")
+        post["better"] = data.get("better")
+        post["amount"] = number(data, "amount", 0.001, 1_000_000)
+        post["notes"] = str(data.get("notes") or "").strip()
+        if not 1 <= len(post["title"]) <= 60:
+            return error(400, "The exercise/activity must be 1-60 characters")
+        if post["metric"] not in ("time", "weight") or post["better"] not in ("higher", "lower"):
+            return error(400, "Choose how the result is measured and which result is better")
+        if post["amount"] is None:
+            return error(400, "Invalid result")
+        if len(post["notes"]) > 200:
+            return error(400, "The notes must be at most 200 characters")
+
+    elif kind in ("gym", "run"):
+        post["title"] = "Gym session" if kind == "gym" else "Run"
+        post["duration_s"] = number(data, "duration_s", 1, 7 * 24 * 3600)
+        post["session_start"] = session_start(data)
+        if post["duration_s"] is None or post["session_start"] is None:
+            return error(400, "Invalid session")
+        post["duration_s"] = int(post["duration_s"])
+
+        if kind == "run":
+            post["distance_km"] = number(data, "distance_km", 0.001, 1000)
+            if post["distance_km"] is None:
+                return error(400, "Invalid distance")
+        else:
+            exercises = clean_exercises(data.get("exercises"))
+            if exercises is None:
+                return error(400, "Invalid exercises")
+            post["exercises"] = json.dumps(exercises)
+
+    else:
+        return error(400, "The kind of post must be 'manual', 'gym' or 'run'")
+
+    post["user_id"] = g.user["id"]
+    post["created_at"] = now_iso()
+    columns = ", ".join(post)
+    placeholders = ", ".join("?" for _ in post)
 
     db = get_db()
-    cursor = db.execute(
-        "INSERT INTO results (user_id, title, value, created_at) VALUES (?, ?, ?, ?)",
-        (g.user["id"], title, value, now_iso()),
-    )
+    cursor = db.execute(f"INSERT INTO posts ({columns}) VALUES ({placeholders})", tuple(post.values()))
     db.commit()
-    result = db.execute("SELECT * FROM results WHERE id = ?", (cursor.lastrowid,)).fetchone()
-    return jsonify(result_json(result)), 201
+    row = db.execute("SELECT * FROM posts WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    return jsonify(post_json(row)), 201
+
+
+@app.delete("/api/me/posts/<int:post_id>")
+@login_required
+def delete_post(post_id):
+    db = get_db()
+    cursor = db.execute("DELETE FROM posts WHERE id = ? AND user_id = ?", (post_id, g.user["id"]))
+    db.commit()
+    if cursor.rowcount == 0:
+        return error(404, "Post not found")
+    return "", 204
 
 
 # Create the tables when the module is loaded (also on PythonAnywhere)

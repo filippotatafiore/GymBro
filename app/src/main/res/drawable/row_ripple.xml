@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Ripple effect drawn over a row of a list when it is tapped (same rounded shape of the row) -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#26FFFFFF">
+
+    <item android:id="@android:id/mask">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/white"/>
+            <corners android:radius="16dp"/>
+        </shape>
+    </item>
+
+</ripple>

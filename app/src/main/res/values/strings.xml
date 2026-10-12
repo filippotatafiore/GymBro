@@ -21,6 +21,12 @@
     <!-- home page -->
     <string name="start_training">start\ntraining</string>
     <string name="no_sessions_yet">Your finished sessions will appear here</string>
+    <string name="publish_on_profile">Publish on profile</string>
+    <string name="published">Published on profile</string>
+    <string name="session_published">Session published on your profile</string>
+    <string name="delete">Delete</string>
+    <string name="delete_session_title">Delete the session?</string>
+    <string name="delete_session_message">The session will be removed from your last sessions. If you published it, the post stays on your profile.</string>
 
     <!-- start training modal -->
     <string name="choose_training">Choose your training</string>
@@ -41,10 +47,11 @@
 
     <!-- stop session modal -->
     <string name="stop_session_title">Stop the session?</string>
-    <string name="stop_session_message">The session will be stopped and saved in your last sessions.</string>
+    <string name="stop_session_message">The session will be stopped and saved in your last sessions. You can also publish it on your profile.</string>
     <string name="session_summary">%1$s · %2$s</string>
     <string name="cancel">Cancel</string>
-    <string name="stop_and_save">Stop &amp; save</string>
+    <string name="save_and_publish">Save &amp; publish on profile</string>
+    <string name="save_only">Save only</string>
 
     <!-- login / registration -->
     <string name="already_member">Already a member? Log in</string>
@@ -66,8 +73,46 @@
     <string name="my_results">MY RESULTS</string>
     <string name="publish">Publish</string>
     <string name="no_results_yet">You haven\'t published any result yet</string>
+    <string name="personal_bests">PERSONAL BESTS</string>
+    <string name="no_personal_bests">Publish runs or manual results to see your personal bests here</string>
+    <string name="run_post_title">Run · %1$s</string>
+    <string name="gym_post_title">Gym session</string>
+    <string name="delete_post_title">Delete the post?</string>
+    <string name="delete_post_message">The post will be removed from your profile and your personal bests will be updated.</string>
+
+    <!-- publish modal -->
     <string name="publish_result_title">Publish a result</string>
-    <string name="result_title_hint">Exercise or activity (e.g. Deadlift)</string>
-    <string name="result_value_hint">Result (e.g. 150 kg)</string>
+    <string name="publish_from_session">A finished session</string>
+    <string name="publish_manual">A result added manually</string>
+    <string name="choose_session_title">Choose a session</string>
+    <string name="no_sessions_to_publish">No finished sessions to publish</string>
+    <string name="active_session_not_publishable">The session in progress can be published once it is finished</string>
+    <string name="manual_result_title">Add a result</string>
+    <string name="exercise">Exercise / activity</string>
+    <string name="measured_by">Measured by</string>
+    <string name="metric_time">Time</string>
+    <string name="metric_weight">Weight</string>
+    <string name="better_result">Better result</string>
+    <string name="better_higher">Higher</string>
+    <string name="better_lower">Lower</string>
+    <string name="weight_hint">Weight (kg)</string>
+    <string name="minutes_hint">Minutes</string>
+    <string name="seconds_hint">Seconds</string>
+    <string name="notes_hint">Notes (optional)</string>
+    <string name="error_invalid_weight">Insert a valid weight</string>
+    <string name="error_invalid_time">Insert a valid time (seconds from 0 to 59)</string>
+
+    <!-- post details modal -->
+    <string name="published_on">Published on %1$s</string>
+    <string name="detail_result">Result</string>
+    <string name="detail_measured_by">Measured by</string>
+    <string name="detail_better">Better result</string>
+    <string name="detail_notes">Notes</string>
+    <string name="detail_time">Time</string>
+    <string name="detail_distance">Distance</string>
+    <string name="detail_pace">Pace</string>
+    <string name="detail_date">Date</string>
+    <string name="detail_exercises">EXERCISES</string>
+    <string name="close">Close</string>
 
 </resources>

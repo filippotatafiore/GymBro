@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- A single row of the exercise list of the gym session -->
+<!-- A single row of the exercise list of the gym session (and of the details of a published session) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     style="@style/ListRowStyle">
@@ -23,10 +23,24 @@
 
     </LinearLayout>
 
-    <!-- sets x reps -->
-    <TextView
-        android:id="@+id/exerciseSetsReps"
-        style="@style/RowValueStyle"
-        tools:text="4 × 8"/>
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="end">
+
+        <!-- sets x reps -->
+        <TextView
+            android:id="@+id/exerciseSetsReps"
+            style="@style/RowValueStyle"
+            tools:text="4 × 8"/>
+
+        <!-- weight (hidden for bodyweight exercises) -->
+        <TextView
+            android:id="@+id/exerciseWeight"
+            style="@style/RowSubtitleStyle"
+            tools:text="60 kg"/>
+
+    </LinearLayout>
 
 </LinearLayout>

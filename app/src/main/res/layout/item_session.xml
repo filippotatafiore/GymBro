@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- A finished session in the LAST SESSIONS list of the home page -->
+<!-- A finished session in the LAST SESSIONS list of the home page (also used in the window to
+     choose a session to publish, without the two buttons) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    style="@style/ListRowStyle">
+    style="@style/ListRowStyle"
+    android:foreground="@drawable/row_ripple">
 
     <ImageView
         android:id="@+id/sessionIcon"
@@ -30,12 +32,30 @@
             style="@style/RowSubtitleStyle"
             tools:text="Oct 10, 2026, 5:32 PM"/>
 
+        <!-- duration -->
+        <TextView
+            android:id="@+id/sessionDuration"
+            style="@style/RowValueStyle"
+            android:layout_marginStart="0dp"
+            android:layout_marginTop="2dp"
+            android:textSize="18sp"
+            tools:text="42:10"/>
+
     </LinearLayout>
 
-    <!-- duration -->
-    <TextView
-        android:id="@+id/sessionDuration"
-        style="@style/RowValueStyle"
-        tools:text="42:10"/>
+    <!-- publish on the profile (a check mark once published) -->
+    <ImageButton
+        android:id="@+id/publishSessionButton"
+        style="@style/SmallRoundIconButtonStyle"
+        android:layout_marginStart="8dp"
+        android:contentDescription="@string/publish_on_profile"
+        android:src="@drawable/publish_icon"/>
+
+    <ImageButton
+        android:id="@+id/deleteSessionButton"
+        style="@style/SmallRoundIconButtonStyle"
+        android:layout_marginStart="8dp"
+        android:contentDescription="@string/delete"
+        android:src="@drawable/delete_icon"/>
 
 </LinearLayout>

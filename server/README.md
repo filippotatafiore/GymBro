@@ -1,6 +1,6 @@
 # GymBro REST API
 
-Flask server that stores the app users (registration / login) and the results they publish,
+Flask server that stores the app users (registration / login) and the posts they publish,
 in a SQLite database (`gymbro.db`, created automatically on first start).
 
 | Method | Path                          | Auth | Description                          |
@@ -11,13 +11,22 @@ in a SQLite database (`gymbro.db`, created automatically on first start).
 | POST   | `/api/logout`                 | yes  | Invalidates the token                |
 | GET    | `/api/me`                     | yes  | Logged user                          |
 | PUT    | `/api/me/picture`             | yes  | Body: JPEG image                     |
-| POST   | `/api/me/results`             | yes  | `{title, value}`                     |
+| POST   | `/api/me/posts`               | yes  | Publish a post (see below)           |
+| DELETE | `/api/me/posts/<id>`          | yes  | Delete one of your posts             |
 | GET    | `/api/users/<id>`             |      | Public profile                       |
 | GET    | `/api/users/<id>/picture`     |      | Profile picture (404 if none)        |
-| GET    | `/api/users/<id>/results`     |      | Results published by the user        |
+| GET    | `/api/users/<id>/posts`       |      | Posts published by the user          |
 
 "Auth" endpoints need the header `Authorization: Bearer <token>` (the token is returned by
 register/login).
+
+Body of `POST /api/me/posts`, depending on the kind of post:
+
+- manual result: `{"kind": "manual", "title": "Deadlift", "metric": "weight" | "time",
+  "better": "higher" | "lower", "amount": 150, "notes": "optional"}` (amount: kg or seconds)
+- run session: `{"kind": "run", "duration_s": 3600, "distance_km": 10, "session_start": "2026-10-12T08:00:00Z"}`
+- gym session: `{"kind": "gym", "duration_s": 2700, "session_start": "...", "exercises":
+  [{"name": "Bench Press", "muscle_group": "Chest", "sets": 4, "reps": 8, "weight_kg": 60}]}`
 
 ## Run it on your PC (for the Android emulator)
 
@@ -33,7 +42,7 @@ python app.py
 The emulator reaches the PC at `http://10.0.2.2:5000` (already the app default).
 Check it in a browser on the PC: http://127.0.0.1:5000/api/health
 
-To see what is in the database (users, results, logins), from another terminal in the `server` folder:
+To see what is in the database (users, posts, logins), from another terminal in the `server` folder:
 
 ```
 .venv\Scripts\python show_db.py

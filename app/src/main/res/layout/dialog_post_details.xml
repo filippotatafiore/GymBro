@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window with the details of a post (opened by tapping it in the profile).
+     The content (detailsContent) is filled by ProfileActivity.showPostDetails, depending on the
+     kind of post. ConstraintLayout: the content grows up to a maximum height, then it scrolls. -->
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="24dp"
+    android:padding="24dp"
+    android:background="@drawable/modal_background">
+
+    <ImageView
+        android:id="@+id/detailsIcon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:importantForAccessibility="no"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:src="@drawable/shoe_icon"/>
+
+    <TextView
+        android:id="@+id/detailsTitle"
+        style="@style/ModalTitleStyle"
+        android:layout_width="0dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/detailsIcon"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="Run · 10 km"/>
+
+    <TextView
+        android:id="@+id/detailsSubtitle"
+        style="@style/ModalMessageStyle"
+        android:layout_width="0dp"
+        android:layout_marginTop="4dp"
+        android:textSize="14sp"
+        app:layout_constraintTop_toBottomOf="@id/detailsTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:text="Published on Oct 12, 2026"/>
+
+    <ScrollView
+        android:id="@+id/detailsScroll"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:layout_constrainedHeight="true"
+        app:layout_constraintHeight_max="420dp"
+        app:layout_constraintTop_toBottomOf="@id/detailsSubtitle"
+        app:layout_constraintBottom_toTopOf="@id/closeButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- rows: res/layout/item_detail_row.xml and, for gym sessions, item_exercise.xml -->
+        <LinearLayout
+            android:id="@+id/detailsContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"/>
+
+    </ScrollView>
+
+    <Button
+        android:id="@+id/closeButton"
+        style="@style/SecondaryButtonStyle"
+        android:layout_width="0dp"
+        android:layout_marginTop="20dp"
+        android:text="@string/close"
+        app:layout_constraintTop_toBottomOf="@id/detailsScroll"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
