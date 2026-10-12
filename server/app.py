@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS tokens (
 -- Posts published by the users on their profile. Three kinds:
 --   manual: a result added by hand, e.g. Deadlift - weight - 150 kg - higher is better
 --   gym:    a finished gym session (training time + exercises)
---   run:    a finished run session (training time + distance)
+--   run:    a finished run session (training time, distance, statistics and route followed)
 CREATE TABLE IF NOT EXISTS posts (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -63,7 +63,11 @@ CREATE TABLE IF NOT EXISTS posts (
     amount        REAL,              -- manual: seconds (time) or kg (weight)
     notes         TEXT,              -- manual, optional
     duration_s    INTEGER,           -- gym / run: training time in seconds
-    distance_km   REAL,              -- run
+    distance_km   REAL,              -- run: rounded to 0.1 km
+    kcal          REAL,              -- run: calories burned (estimated)
+    max_speed_kmh REAL,              -- run
+    goal_km       REAL,              -- run: goal distance (NULL = no goal)
+    route         TEXT,              -- run: JSON list of lines (Google encoded polylines)
     exercises     TEXT,              -- gym: JSON list of the exercises
     session_start TEXT,              -- gym / run: when the session was done
     created_at    TEXT    NOT NULL
@@ -74,10 +78,24 @@ DROP TABLE IF EXISTS results;
 """
 
 
+# Columns added to "posts" after its first version: added to the existing databases too
+# (the posts already published are kept, with these columns empty)
+NEW_POST_COLUMNS = {
+    "kcal": "REAL",
+    "max_speed_kmh": "REAL",
+    "goal_km": "REAL",
+    "route": "TEXT",
+}
+
+
 def init_db():
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     with sqlite3.connect(DB_PATH) as db:
         db.executescript(SCHEMA)
+        existing = {row[1] for row in db.execute("PRAGMA table_info(posts)")}
+        for column, sql_type in NEW_POST_COLUMNS.items():
+            if column not in existing:
+                db.execute(f"ALTER TABLE posts ADD COLUMN {column} {sql_type}")
 
 
 def get_db():
@@ -149,6 +167,10 @@ def post_json(post):
         "notes": post["notes"],
         "duration_s": post["duration_s"],
         "distance_km": post["distance_km"],
+        "kcal": post["kcal"],
+        "max_speed_kmh": post["max_speed_kmh"],
+        "goal_km": post["goal_km"],
+        "route": json.loads(post["route"]) if post["route"] else None,
         "exercises": json.loads(post["exercises"]) if post["exercises"] else None,
         "session_start": post["session_start"],
         "created_at": post["created_at"],
@@ -171,6 +193,27 @@ def session_start(data):
     except ValueError:
         return None
     return value
+
+
+def clean_route(route):
+    """The route of a run (list of encoded polylines), validated, or None if invalid."""
+    if not isinstance(route, list) or len(route) > 100:
+        return None
+    total = 0
+    for line in route:
+        # encoded polylines use only the characters from '?' (63) to '~' (126)
+        if not isinstance(line, str) or any(not 63 <= ord(c) <= 126 for c in line):
+            return None
+        total += len(line)
+    return route if total <= 500_000 else None
+
+
+def optional_number(data, key, minimum, maximum):
+    """(ok, value): value is None if the key is missing; ok is False if the value is invalid."""
+    if data.get(key) is None:
+        return True, None
+    value = number(data, key, minimum, maximum)
+    return value is not None, value
 
 
 def clean_exercises(exercises):
@@ -370,9 +413,19 @@ def publish_post():
         post["duration_s"] = int(post["duration_s"])
 
         if kind == "run":
-            post["distance_km"] = number(data, "distance_km", 0.001, 1000)
+            post["distance_km"] = number(data, "distance_km", 0, 1000)
             if post["distance_km"] is None:
                 return error(400, "Invalid distance")
+            # optional statistics (missing in the runs recorded before they existed)
+            for key, minimum, maximum in (("kcal", 0, 100_000), ("max_speed_kmh", 0, 200), ("goal_km", 0.01, 1000)):
+                ok, post[key] = optional_number(data, key, minimum, maximum)
+                if not ok:
+                    return error(400, f"Invalid {key}")
+            if data.get("route") is not None:
+                route = clean_route(data["route"])
+                if route is None:
+                    return error(400, "Invalid route")
+                post["route"] = json.dumps(route)
         else:
             exercises = clean_exercises(data.get("exercises"))
             if exercises is None:

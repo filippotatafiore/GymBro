@@ -39,3 +39,12 @@ fun formatDistance(km: Double): String = DecimalFormat("0.##").format(km) + " km
 // Average time per km, e.g. 3600 s for 10 km -> "06:00 /km"
 fun formatPace(durationSeconds: Long, km: Double): String =
     formatDuration((durationSeconds / km * 1000).toLong()) + " /km"
+
+// Distance during a run, with 2 decimals: e.g. 2.3149 -> "2.31"
+fun formatLiveDistance(km: Double): String = String.format(Locale.getDefault(), "%.2f", km)
+
+// e.g. 10.24 -> "10.2 km/h"
+fun formatSpeed(kmh: Double): String = String.format(Locale.getDefault(), "%.1f km/h", kmh)
+
+// e.g. 312.6 -> "313 kcal"
+fun formatKcal(kcal: Double): String = String.format(Locale.getDefault(), "%.0f kcal", kcal)

@@ -39,6 +39,27 @@ class PersonalBestsTest {
     }
 
     @Test
+    fun runs_groupedByMultiplesOfHalfKm() {
+        // 10 and 10.2 km count as 10 km; 10.3 and 10.7 km as 10.5 km; 10.8 km as 11 km
+        val best = PersonalBests.from(listOf(
+            run(10.0, 3000), run(10.2, 2900),
+            run(10.3, 3100), run(10.7, 3050),
+            run(10.8, 3200),
+        ))
+
+        assertEquals(
+            listOf(10.2 to 2900L, 10.7 to 3050L, 10.8 to 3200L),
+            best.map { it.distanceKm to it.durationSeconds }
+        )
+        assertEquals(listOf(10.0, 10.5, 11.0), best.map { PersonalBests.distanceGroupKm(it.distanceKm!!) })
+    }
+
+    @Test
+    fun runs_shorterThanAQuarterKm_areNotPersonalBests() {
+        assertEquals(emptyList<Post>(), PersonalBests.from(listOf(run(0.2, 60))))
+    }
+
+    @Test
     fun manual_higherIsBetter_highestResult() {
         val best = PersonalBests.from(listOf(
             manual("Deadlift", Metric.WEIGHT, Better.HIGHER, 140.0),

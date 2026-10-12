@@ -1,0 +1,13 @@
+<!-- Trophy: goal reached -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="64dp" android:viewportHeight="24" android:viewportWidth="24" android:width="64dp">
+
+    <!-- cup -->
+    <path android:fillColor="#00000000" android:pathData="M7,3.5H17V8.5A5,5 0,0 1,7 8.5Z" android:strokeColor="@color/successGreen" android:strokeLineJoin="round" android:strokeWidth="1.7"/>
+
+    <!-- handles -->
+    <path android:fillColor="#00000000" android:pathData="M7,5.5H4.5A2.5,2.5 0,0 0,7.3 10M17,5.5H19.5A2.5,2.5 0,0 1,16.7 10" android:strokeColor="@color/successGreen" android:strokeLineCap="round" android:strokeWidth="1.7"/>
+
+    <!-- stem and base -->
+    <path android:fillColor="#00000000" android:pathData="M12,13.5V17.5M8,20.5H16M9.5,17.5H14.5" android:strokeColor="@color/successGreen" android:strokeLineCap="round" android:strokeWidth="1.7"/>
+
+</vector>

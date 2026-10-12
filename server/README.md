@@ -24,7 +24,10 @@ Body of `POST /api/me/posts`, depending on the kind of post:
 
 - manual result: `{"kind": "manual", "title": "Deadlift", "metric": "weight" | "time",
   "better": "higher" | "lower", "amount": 150, "notes": "optional"}` (amount: kg or seconds)
-- run session: `{"kind": "run", "duration_s": 3600, "distance_km": 10, "session_start": "2026-10-12T08:00:00Z"}`
+- run session: `{"kind": "run", "duration_s": 3600, "distance_km": 10.4, "session_start": "2026-10-12T08:00:00Z",
+  "kcal": 780, "max_speed_kmh": 14.2, "goal_km": 10, "route": ["_p~iF~ps|U_ulLnnqC"]}`
+  (kcal, max_speed_kmh, goal_km and route are optional; route = the lines followed, as
+  [Google encoded polylines](https://developers.google.com/maps/documentation/utilities/polylinealgorithm))
 - gym session: `{"kind": "gym", "duration_s": 2700, "session_start": "...", "exercises":
   [{"name": "Bench Press", "muscle_group": "Chest", "sets": 4, "reps": 8, "weight_kg": 60}]}`
 

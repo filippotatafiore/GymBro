@@ -16,13 +16,18 @@ import com.example.gymbro.MainActivity
 import com.example.gymbro.R
 import com.example.gymbro.createModal
 import com.example.gymbro.data.TrainingSession
+import com.example.gymbro.formatDateTime
+import com.example.gymbro.formatDistance
 import com.example.gymbro.gymBroApp
 import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.session.SessionType
 import com.example.gymbro.session.publishSession
+import com.example.gymbro.session.toRunSummary
 import com.example.gymbro.showConfirmModal
+import com.example.gymbro.showGymDetails
+import com.example.gymbro.showRunDetails
 import kotlinx.coroutines.launch
 
 // Home shown when no session is in progress: start training button + last sessions of the logged user
@@ -43,7 +48,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
         val adapter = SessionHistoryAdapter(
             onPublish = { session -> publish(session) },
-            onDelete = { session -> confirmDelete(session) }
+            onDelete = { session -> confirmDelete(session) },
+            onClick = { session -> showDetails(session) }
         )
         val sessionList = view.findViewById<RecyclerView>(R.id.sessionList)
         sessionList.layoutManager = LinearLayoutManager(requireContext())
@@ -74,9 +80,27 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
         dialog.findViewById<View>(R.id.runOption).setOnClickListener {
             dialog.dismiss()
-            (requireActivity() as MainActivity).startSession(SessionType.RUN)
+            // before the run starts: permissions and goal (distance or route)
+            (requireActivity() as MainActivity).prepareRun()
         }
         dialog.show()
+    }
+
+    // Window with all the information of the session (see SessionDetails.kt):
+    // run: map with the path followed + final statistics; gym: time and exercises
+    private fun showDetails(session: TrainingSession) {
+        val date = formatDateTime(session.startTime)
+        when (session.type) {
+            SessionType.RUN -> showRunDetails(
+                requireContext(), viewLifecycleOwner,
+                getString(R.string.run_post_title, formatDistance(session.distanceKm ?: 0.0)), date,
+                session.toRunSummary()
+            )
+            SessionType.GYM -> showGymDetails(
+                requireContext(), viewLifecycleOwner, getString(R.string.gym_post_title), date,
+                session.durationMillis, session.exercises.orEmpty()
+            )
+        }
     }
 
     // Publishes the session on the profile (its button becomes a check mark)

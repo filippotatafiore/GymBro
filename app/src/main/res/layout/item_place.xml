@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A place found with the search bar of the route planner -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp"
+    android:background="@drawable/menu_item_background"
+    android:maxLines="2"
+    android:ellipsize="end"
+    android:textColor="@color/white"
+    android:textSize="15sp"
+    tools:text="Piazza del Duomo, 20122 Milano MI, Italy"/>

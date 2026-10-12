@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window shown before a run starts: goal distance or route, and body weight (calories) -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout style="@style/ModalCardStyle">
+
+        <TextView
+            style="@style/ModalTitleStyle"
+            android:text="@string/run_goal_title"/>
+
+        <TextView
+            style="@style/ModalMessageStyle"
+            android:text="@string/run_goal_message"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal">
+
+            <!-- a distance to reach -->
+            <LinearLayout
+                android:id="@+id/distanceGoalOption"
+                style="@style/TrainingOptionStyle">
+
+                <ImageView
+                    style="@style/TrainingOptionIconStyle"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:src="@drawable/ruler_icon"
+                    android:importantForAccessibility="no"/>
+
+                <TextView
+                    style="@style/TrainingOptionTextStyle"
+                    android:textSize="18sp"
+                    android:text="@string/goal_distance"/>
+
+            </LinearLayout>
+
+            <!-- spacer -->
+            <View
+                android:layout_width="16dp"
+                android:layout_height="match_parent"/>
+
+            <!-- a route to complete -->
+            <LinearLayout
+                android:id="@+id/routeGoalOption"
+                style="@style/TrainingOptionStyle">
+
+                <ImageView
+                    style="@style/TrainingOptionIconStyle"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:src="@drawable/flag_icon"
+                    android:importantForAccessibility="no"/>
+
+                <TextView
+                    style="@style/TrainingOptionTextStyle"
+                    android:textSize="18sp"
+                    android:text="@string/goal_route"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- body weight: needed to estimate the calories -->
+        <TextView
+            style="@style/FormLabelStyle"
+            android:layout_marginTop="20dp"
+            android:text="@string/body_weight_label"/>
+
+        <EditText
+            android:id="@+id/bodyWeightInput"
+            style="@style/InputStyle"
+            android:layout_marginTop="8dp"
+            android:hint="@string/weight_hint"
+            android:inputType="numberDecimal"
+            android:importantForAutofill="no"/>
+
+        <TextView
+            android:id="@+id/goalError"
+            style="@style/ErrorTextStyle"/>
+
+        <Button
+            android:id="@+id/noGoalOption"
+            style="@style/LinkButtonStyle"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:text="@string/run_without_goal"/>
+
+    </LinearLayout>
+
+</ScrollView>

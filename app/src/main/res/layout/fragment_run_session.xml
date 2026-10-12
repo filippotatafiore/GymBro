@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Run session in progress: map that follows the current GPS position -->
+<!-- Run session in progress: map that follows the current GPS position and draws the path
+     followed, with the statistics of the run below it -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".session.RunSessionFragment"
@@ -17,7 +18,6 @@
         android:layout_weight="1"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
-        android:layout_marginBottom="12dp"
         android:background="@drawable/list_row_background"
         android:clipToOutline="true">
 
@@ -61,5 +61,39 @@
             android:visibility="gone"/>
 
     </FrameLayout>
+
+    <!-- statistics in real time -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
+
+        <TextView
+            style="@style/SessionTitleStyle"
+            android:layout_marginStart="4dp"
+            android:text="@string/stat_distance"/>
+
+        <!-- distance / goal: red, green once the goal is reached (white without a goal) -->
+        <TextView
+            android:id="@+id/runDistance"
+            style="@style/SessionTimerStyle"
+            android:layout_marginStart="4dp"
+            android:textSize="30sp"
+            tools:text="2.31 / 5 km"
+            tools:textColor="@color/errorRed"/>
+
+        <!-- tiles: res/layout/item_stat.xml (StatGrid.kt) -->
+        <LinearLayout
+            android:id="@+id/liveStats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="vertical"/>
+
+    </LinearLayout>
 
 </LinearLayout>

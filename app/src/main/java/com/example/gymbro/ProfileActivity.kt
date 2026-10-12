@@ -1,11 +1,9 @@
 package com.example.gymbro
 
 import android.graphics.BitmapFactory
-import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
-import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -13,7 +11,6 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.RadioGroup
 import android.widget.Spinner
 import android.widget.TextView
@@ -22,7 +19,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
-import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -45,8 +41,9 @@ import com.example.gymbro.profile.displayTitle
 import com.example.gymbro.profile.displayValue
 import com.example.gymbro.profile.icon
 import com.example.gymbro.session.ActiveSession
-import com.example.gymbro.session.bindExerciseRow
+import com.example.gymbro.session.RunTrackingService
 import com.example.gymbro.session.publishSession
+import com.example.gymbro.session.toRunSummary
 import kotlinx.coroutines.launch
 
 import androidx.drawerlayout.widget.DrawerLayout
@@ -252,8 +249,10 @@ class ProfileActivity : ComponentActivity() {
         }
     }
 
-    // Back to the welcome page. The session in progress (if any) is kept for when this user logs in again.
+    // Back to the welcome page. The session in progress (if any) is kept for when this user logs in
+    // again; the GPS of a run in progress stops until then.
     private fun logout() {
+        RunTrackingService.stop(this)
         val token = UserSession.token
         UserSession.clear()
 
@@ -435,67 +434,33 @@ class ProfileActivity : ComponentActivity() {
         }
     }
 
-    // Modal window with all the information of a post
+    // Modal window with all the information of a post (see SessionDetails.kt):
+    // - run: map with the whole path followed and the final statistics
+    // - gym: training time and exercises
+    // - manual: the result and how it is evaluated
     private fun showPostDetails(post: Post) {
-        val dialog = createModal(this, R.layout.dialog_post_details, this)
-        dialog.findViewById<ImageView>(R.id.detailsIcon).setImageResource(post.icon())
-        dialog.findViewById<TextView>(R.id.detailsTitle).text = post.displayTitle(this)
-        dialog.findViewById<TextView>(R.id.detailsSubtitle).text =
-            getString(R.string.published_on, formatDate(post.createdAt))
-        dialog.findViewById<View>(R.id.closeButton).setOnClickListener { dialog.dismiss() }
-
-        val content = dialog.findViewById<LinearLayout>(R.id.detailsContent)
-        val sessionDate = post.sessionStart?.let { formatDateTime(it.toEpochMilli()) }
+        val title = post.displayTitle(this)
+        val published = getString(R.string.published_on, formatDate(post.createdAt))
+        // sessions: when the session was done
+        val sessionDate = post.sessionStart?.let { formatDateTime(it.toEpochMilli()) } ?: published
 
         when (post.kind) {
+            PostKind.RUN -> showRunDetails(this, this, title, sessionDate, post.toRunSummary())
+
+            PostKind.GYM -> showGymDetails(
+                this, this, title, sessionDate, (post.durationSeconds ?: 0L) * 1000, post.exercises.orEmpty()
+            )
+
             PostKind.MANUAL -> {
+                val (dialog, content) = detailsDialog(this, this, post.icon(), title, published)
                 addDetailRow(content, R.string.detail_result, post.displayValue())
                 addDetailRow(content, R.string.detail_measured_by,
                     getString(if (post.metric == Metric.TIME) R.string.metric_time else R.string.metric_weight))
                 addDetailRow(content, R.string.detail_better,
                     getString(if (post.better == Better.LOWER) R.string.better_lower else R.string.better_higher))
                 if (!post.notes.isNullOrBlank()) addDetailRow(content, R.string.detail_notes, post.notes)
-            }
-
-            PostKind.RUN -> {
-                val km = post.distanceKm ?: 0.0
-                val seconds = post.durationSeconds ?: 0L
-                addDetailRow(content, R.string.detail_distance, formatDistance(km))
-                addDetailRow(content, R.string.detail_time, post.displayValue())
-                if (km > 0) addDetailRow(content, R.string.detail_pace, formatPace(seconds, km))
-                sessionDate?.let { addDetailRow(content, R.string.detail_date, it) }
-            }
-
-            PostKind.GYM -> {
-                addDetailRow(content, R.string.detail_time, post.displayValue())
-                sessionDate?.let { addDetailRow(content, R.string.detail_date, it) }
-
-                // every exercise: sets x reps and weight
-                content.addView(TextView(this).apply {
-                    setText(R.string.detail_exercises)
-                    setTextColor(getColor(R.color.lighterBlue))
-                    setTypeface(typeface, Typeface.BOLD)
-                    textSize = 16f
-                    setPadding(0, (16 * resources.displayMetrics.density).toInt(), 0, 0)
-                })
-                post.exercises.orEmpty().forEach { exercise ->
-                    val row = layoutInflater.inflate(R.layout.item_exercise, content, false)
-                    bindExerciseRow(row, exercise)
-                    row.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                        marginStart = 0
-                        marginEnd = 0
-                    }
-                    content.addView(row)
-                }
+                dialog.show()
             }
         }
-        dialog.show()
-    }
-
-    private fun addDetailRow(content: LinearLayout, label: Int, value: String) {
-        val row = layoutInflater.inflate(R.layout.item_detail_row, content, false)
-        row.findViewById<TextView>(R.id.detailLabel).setText(label)
-        row.findViewById<TextView>(R.id.detailValue).text = value
-        content.addView(row)
     }
 }

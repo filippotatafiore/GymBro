@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Summary of a run: map with the whole path followed and the final statistics (RunSummaryView.kt).
+     Shown in the details of a run (LAST SESSIONS, posts) and in the window to stop a run. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- rounded frame: the map is added here by RunSummaryView -->
+    <FrameLayout
+        android:id="@+id/summaryMapContainer"
+        android:layout_width="match_parent"
+        android:layout_height="230dp"
+        android:background="@drawable/list_row_background"
+        android:clipToOutline="true">
+
+        <!-- runs recorded before the routes were saved -->
+        <TextView
+            android:id="@+id/noRouteText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:padding="24dp"
+            android:gravity="center"
+            android:textColor="@color/textSecondary"
+            android:textSize="15sp"
+            android:text="@string/no_route_recorded"
+            android:visibility="gone"/>
+
+    </FrameLayout>
+
+    <!-- tiles: res/layout/item_stat.xml -->
+    <LinearLayout
+        android:id="@+id/summaryStats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"/>
+
+    <!-- e.g. "Goal 5 km · reached" (green) or "not reached" (red) -->
+    <TextView
+        android:id="@+id/summaryGoal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:visibility="gone"
+        tools:text="Goal 5 km · reached"
+        tools:visibility="visible"/>
+
+</LinearLayout>

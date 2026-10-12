@@ -13,10 +13,3 @@ object WorkoutPlan {
         Exercise("Overhead Triceps Extension", "Triceps", 3, 12, 18.0),
     )
 }
-
-// Distance of a run session.
-// PLACEHOLDER: the real distance will be measured with the GPS positions of the run. For now a
-// random "standard" distance, so that the personal bests per distance can already be tested.
-object RunDistance {
-    fun placeholderKm(): Double = listOf(1.0, 3.0, 5.0, 10.0).random()
-}

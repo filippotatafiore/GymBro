@@ -21,8 +21,12 @@ import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.GymSessionFragment
-import com.example.gymbro.session.RunDistance
+import com.example.gymbro.session.RunMath
+import com.example.gymbro.session.RunPlan
 import com.example.gymbro.session.RunSessionFragment
+import com.example.gymbro.session.RunSetup
+import com.example.gymbro.session.RunTracker
+import com.example.gymbro.session.RunTrackingService
 import com.example.gymbro.session.SessionType
 import com.example.gymbro.session.WorkoutPlan
 import com.example.gymbro.session.publishSession
@@ -35,6 +39,9 @@ import kotlinx.coroutines.launch
 class MainActivity : FragmentActivity() {
 
     private lateinit var bottomNav: BottomNavBar
+
+    // Permissions and goal asked before a run starts
+    private val runSetup = RunSetup(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,6 +81,8 @@ class MainActivity : FragmentActivity() {
         super.onResume()
         showCurrentPage()
         bottomNav.refresh()
+        // a run in progress is tracked again if the app was closed meanwhile (or after a new login)
+        if (ActiveSession.type == SessionType.RUN) RunTrackingService.start(this)
     }
 
     override fun onPause() {
@@ -89,19 +98,46 @@ class MainActivity : FragmentActivity() {
         onSessionChanged()
     }
 
-    // Saves the session in the database (it appears in LAST SESSIONS of this user), publishes it on
-    // the profile if requested, and goes back to the home
-    fun stopAndSaveSession(publish: Boolean) {
-        val userId = UserSession.userId ?: return
-        val type = ActiveSession.type ?: return
-        val session = TrainingSession(
+    // Run: first the permissions and the goal (RunSetup), which then calls startRun
+    fun prepareRun() {
+        runSetup.begin()
+    }
+
+    // The timer starts now; the GPS positions are received by RunTrackingService
+    fun startRun(goalKm: Double?, plan: RunPlan?, weightKg: Double) {
+        RunTracker.start(goalKm, plan, weightKg)
+        ActiveSession.start(SessionType.RUN)
+        RunTrackingService.start(this)
+        onSessionChanged()
+    }
+
+    // The session in progress as it would be saved now (shown in the window to stop it)
+    fun finishedSession(): TrainingSession? {
+        val userId = UserSession.userId ?: return null
+        val type = ActiveSession.type ?: return null
+        val run = if (type == SessionType.RUN) RunTracker.current else null
+        return TrainingSession(
             userId = userId,
             type = type,
             startTime = ActiveSession.startTime,
             durationMillis = ActiveSession.elapsedMillis(),
-            distanceKm = if (type == SessionType.RUN) RunDistance.placeholderKm() else null,
+            // run: distance rounded to the nearest 0.1 km (the one used for the personal bests)
+            distanceKm = run?.let { RunMath.roundKm(it.distanceKm) },
+            kcal = run?.kcal,
+            maxSpeedKmh = run?.let { it.maxSpeedMps * 3.6 },
+            goalKm = if (run != null) RunTracker.goalKm else null,
+            route = run?.route?.filter { it.size >= 2 },
             exercises = if (type == SessionType.GYM) WorkoutPlan.exercises else null
         )
+    }
+
+    // Saves the session in the database (it appears in LAST SESSIONS of this user), publishes it on
+    // the profile if requested, and goes back to the home
+    fun saveSession(session: TrainingSession, publish: Boolean) {
+        if (session.type == SessionType.RUN) {
+            RunTrackingService.stop(this)
+            RunTracker.clear()
+        }
         ActiveSession.clear()
 
         // Saved (and published) in background: database and network must not block the app.

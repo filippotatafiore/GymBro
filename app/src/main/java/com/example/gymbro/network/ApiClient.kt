@@ -7,6 +7,8 @@ import com.example.gymbro.R
 import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.session.Exercise
 import com.example.gymbro.session.SessionType
+import com.example.gymbro.session.routeFromJson
+import com.example.gymbro.session.toJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -102,7 +104,7 @@ object ApiClient {
         return publish(token, body)
     }
 
-    // A finished gym or run session
+    // A finished gym or run session (run: distance, statistics and route followed)
     suspend fun publishSession(token: String, session: TrainingSession): Post {
         val body = JSONObject()
             .put("duration_s", session.durationMillis / 1000)
@@ -111,6 +113,10 @@ object ApiClient {
             SessionType.RUN -> body
                 .put("kind", PostKind.RUN.json)
                 .put("distance_km", session.distanceKm ?: 0.0)
+                .putOpt("kcal", session.kcal)                   // putOpt: not sent if null
+                .putOpt("max_speed_kmh", session.maxSpeedKmh)
+                .putOpt("goal_km", session.goalKm)
+                .putOpt("route", session.route?.toJson())
             SessionType.GYM -> body
                 .put("kind", PostKind.GYM.json)
                 .put("exercises", JSONArray(session.exercises.orEmpty().map { it.toJson() }))
@@ -191,7 +197,11 @@ object ApiClient {
         amount = if (json.isNull("amount")) null else json.getDouble("amount"),
         notes = json.stringOrNull("notes"),
         durationSeconds = if (json.isNull("duration_s")) null else json.getLong("duration_s"),
-        distanceKm = if (json.isNull("distance_km")) null else json.getDouble("distance_km"),
+        distanceKm = json.doubleOrNull("distance_km"),
+        kcal = json.doubleOrNull("kcal"),
+        maxSpeedKmh = json.doubleOrNull("max_speed_kmh"),
+        goalKm = json.doubleOrNull("goal_km"),
+        route = if (json.isNull("route")) null else routeFromJson(json.getJSONArray("route")),
         exercises = if (json.isNull("exercises")) null else json.getJSONArray("exercises").let { array ->
             (0 until array.length()).map { Exercise.fromJson(array.getJSONObject(it)) }
         },
@@ -201,4 +211,6 @@ object ApiClient {
 
     // null if the value is missing or null in the JSON
     private fun JSONObject.stringOrNull(key: String): String? = if (isNull(key)) null else getString(key)
+
+    private fun JSONObject.doubleOrNull(key: String): Double? = if (isNull(key)) null else getDouble(key)
 }

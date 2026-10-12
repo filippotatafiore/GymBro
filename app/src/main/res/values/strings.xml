@@ -42,8 +42,66 @@
     <string name="stop">Stop</string>
     <string name="sets_reps">%1$d × %2$d</string>
     <string name="location_permission_denied">Location permission is needed to show your position on the map</string>
+    <string name="location_needed_for_run">Location permission is needed to track your run</string>
     <string name="searching_position">Searching for your position…</string>
     <string name="maps_key_missing">Map unavailable: the Google Maps API key is missing.\n\nAdd MAPS_API_KEY to local.properties and rebuild the app.</string>
+
+    <!-- run in progress -->
+    <string name="run_progress">%1$s / %2$s</string>
+    <string name="live_distance_km">%1$s km</string>
+    <string name="no_pace">--:--</string>
+    <string name="stat_distance">DISTANCE</string>
+    <string name="stat_time">TIME</string>
+    <string name="stat_speed">SPEED</string>
+    <string name="stat_avg_speed">AVG SPEED</string>
+    <string name="stat_avg_pace">AVG PACE</string>
+    <string name="stat_max_speed">MAX SPEED</string>
+    <string name="stat_calories">CALORIES</string>
+    <string name="stat_to_go">TO GO</string>
+    <string name="marker_start">Start</string>
+    <string name="marker_end">End</string>
+    <string name="stop_marker">Stop</string>
+    <string name="run_in_progress">Run in progress</string>
+    <string name="channel_run_tracking">Run in progress</string>
+    <string name="channel_run_goal">Run goal reached</string>
+    <string name="goal_reached_title">Goal reached!</string>
+    <string name="goal_reached_message">You ran %1$s: your goal of %2$s is complete.</string>
+    <string name="goal_reached_notification">You completed your goal of %1$s</string>
+    <string name="keep_running">Keep running</string>
+    <string name="finish_run">Finish the run</string>
+
+    <!-- run goal (before the run starts) -->
+    <string name="run_goal_title">Your goal</string>
+    <string name="run_goal_message">Choose a distance to run or a route to complete</string>
+    <string name="goal_distance">Distance</string>
+    <string name="goal_route">Route</string>
+    <string name="body_weight_label">Your body weight, to estimate the calories</string>
+    <string name="run_without_goal">Just run, without a goal</string>
+    <string name="error_invalid_body_weight">Insert your body weight (30–300 kg)</string>
+    <string name="goal_distance_title">Goal distance</string>
+    <string name="goal_distance_hint">Distance</string>
+    <string name="unit_km">km</string>
+    <string name="unit_miles">miles</string>
+    <string name="start_run">Start run</string>
+    <string name="error_invalid_goal_distance">Insert a distance from 0.1 to 500 km</string>
+
+    <!-- route planner -->
+    <string name="search_place_hint">Search a place</string>
+    <string name="destination">Destination</string>
+    <string name="stop_on_the_way">Stop (optional)</string>
+    <string name="planner_hint_destination">Tap the map or search a place to set the destination</string>
+    <string name="planner_hint_stop">Tap the map or search a place to set a stop on the way</string>
+    <string name="planned_goal">Goal: %1$s</string>
+    <string name="calculating_route">Calculating the route…</string>
+    <string name="route_along_streets">Walking route by Google Maps</string>
+    <string name="route_straight_line">Straight line: walking route not available</string>
+    <string name="remove_stop">Remove the stop</string>
+    <string name="no_places_found">No places found</string>
+
+    <!-- run summary -->
+    <string name="no_route_recorded">No route recorded for this run</string>
+    <string name="goal_summary_reached">Goal %1$s · reached</string>
+    <string name="goal_summary_missed">Goal %1$s · not reached</string>
 
     <!-- stop session modal -->
     <string name="stop_session_title">Stop the session?</string>
@@ -109,9 +167,6 @@
     <string name="detail_better">Better result</string>
     <string name="detail_notes">Notes</string>
     <string name="detail_time">Time</string>
-    <string name="detail_distance">Distance</string>
-    <string name="detail_pace">Pace</string>
-    <string name="detail_date">Date</string>
     <string name="detail_exercises">EXERCISES</string>
     <string name="close">Close</string>
 

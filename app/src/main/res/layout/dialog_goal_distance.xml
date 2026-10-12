@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window to type the goal distance of a run, in km or miles -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/ModalCardStyle">
+
+    <TextView
+        style="@style/ModalTitleStyle"
+        android:text="@string/goal_distance_title"/>
+
+    <EditText
+        android:id="@+id/goalDistanceInput"
+        style="@style/InputStyle"
+        android:layout_marginTop="20dp"
+        android:hint="@string/goal_distance_hint"
+        android:inputType="numberDecimal"
+        android:importantForAutofill="no"/>
+
+    <!-- unit -->
+    <RadioGroup
+        android:id="@+id/unitGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal"
+        android:checkedButton="@+id/unitKm">
+
+        <RadioButton
+            android:id="@+id/unitKm"
+            style="@style/SegmentStyle"
+            android:layout_marginEnd="6dp"
+            android:text="@string/unit_km"/>
+
+        <RadioButton
+            android:id="@+id/unitMiles"
+            style="@style/SegmentStyle"
+            android:layout_marginStart="6dp"
+            android:text="@string/unit_miles"/>
+
+    </RadioGroup>
+
+    <TextView
+        android:id="@+id/goalDistanceError"
+        style="@style/ErrorTextStyle"/>
+
+    <Button
+        android:id="@+id/startRunButton"
+        style="@style/PrimaryButtonStyle"
+        android:layout_marginTop="24dp"
+        android:text="@string/start_run"/>
+
+    <Button
+        android:id="@+id/backButton"
+        style="@style/LinkButtonStyle"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:text="@string/back"/>
+
+</LinearLayout>

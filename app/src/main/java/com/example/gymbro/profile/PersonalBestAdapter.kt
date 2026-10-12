@@ -34,8 +34,10 @@ class PersonalBestAdapter(
     override fun onBindViewHolder(holder: BestViewHolder, position: Int) {
         val best = getItem(position)
         holder.icon.setImageResource(best.icon())
-        // runs: the distance (e.g. "10 km"); manual results: the exercise (e.g. "Deadlift")
-        holder.title.text = if (best.kind == PostKind.RUN) formatDistance(best.distanceKm ?: 0.0) else best.title
+        // runs: the distance group (e.g. "10.5 km" for a 10.3 km run); manual results: the exercise
+        holder.title.text =
+            if (best.kind == PostKind.RUN) formatDistance(PersonalBests.distanceGroupKm(best.distanceKm ?: 0.0))
+            else best.title
         holder.value.text = best.displayValue()
         holder.date.text = formatDate(best.sessionStart ?: best.createdAt)
 

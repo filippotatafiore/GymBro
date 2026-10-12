@@ -5,6 +5,7 @@ import android.view.View
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.annotation.LayoutRes
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -13,6 +14,7 @@ import com.example.gymbro.MainActivity
 import com.example.gymbro.R
 import com.example.gymbro.createModal
 import com.example.gymbro.formatDuration
+import com.google.android.gms.maps.MapView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -66,21 +68,36 @@ abstract class SessionFragment(@LayoutRes layout: Int) : Fragment(layout) {
         pauseButton.contentDescription = getString(if (paused) R.string.resume else R.string.pause)
     }
 
-    // Modal window asking to confirm: stop and save the session, and also publish it on the profile
-    private fun showStopDialog() {
-        val type = ActiveSession.type ?: return
-        val dialog = createModal(requireContext(), R.layout.dialog_stop_session, viewLifecycleOwner)
+    // Modal window asking to confirm: stop and save the session, and also publish it on the profile.
+    // Run sessions: summary of the run (map with the whole path followed + final statistics).
+    protected fun showStopDialog() {
+        val activity = requireActivity() as MainActivity
+        // what will be saved: the session as it is when the window opens
+        val session = activity.finishedSession() ?: return
+        var summaryMap: MapView? = null
+        val dialog = createModal(requireContext(), R.layout.dialog_stop_session, viewLifecycleOwner) {
+            summaryMap?.close()
+        }
 
-        dialog.findViewById<TextView>(R.id.stopSummary).text = getString(
-            R.string.session_summary, getString(type.label), formatDuration(ActiveSession.elapsedMillis())
-        )
+        val gymSummary = dialog.findViewById<TextView>(R.id.stopSummary)
+        if (session.type == SessionType.RUN) {
+            gymSummary.isVisible = false
+            val runSummary = dialog.findViewById<View>(R.id.runSummary)
+            runSummary.isVisible = true
+            summaryMap = RunSummaryView.show(runSummary, session.toRunSummary())
+        } else {
+            gymSummary.text = getString(
+                R.string.session_summary, getString(session.type.label), formatDuration(session.durationMillis)
+            )
+        }
+
         dialog.findViewById<View>(R.id.saveAndPublishButton).setOnClickListener {
             dialog.dismiss()
-            (requireActivity() as MainActivity).stopAndSaveSession(publish = true)
+            activity.saveSession(session, publish = true)
         }
         dialog.findViewById<View>(R.id.saveOnlyButton).setOnClickListener {
             dialog.dismiss()
-            (requireActivity() as MainActivity).stopAndSaveSession(publish = false)
+            activity.saveSession(session, publish = false)
         }
         dialog.findViewById<View>(R.id.cancelButton).setOnClickListener {
             dialog.dismiss()

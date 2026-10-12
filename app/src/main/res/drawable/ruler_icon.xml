@@ -1,0 +1,10 @@
+<!-- Ruler: goal distance -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="64dp" android:viewportHeight="24" android:viewportWidth="24" android:width="64dp">
+
+    <!-- body -->
+    <path android:fillColor="#00000000" android:pathData="M2,8.5H22V15.5H2Z" android:strokeColor="#ffffff" android:strokeLineJoin="round" android:strokeWidth="1.7"/>
+
+    <!-- marks -->
+    <path android:fillColor="#00000000" android:pathData="M6,8.5V11.5M10,8.5V13M14,8.5V11.5M18,8.5V13" android:strokeColor="#ffffff" android:strokeLineCap="round" android:strokeWidth="1.7"/>
+
+</vector>

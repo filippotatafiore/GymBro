@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window shown when the distance run reaches the goal -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/ModalCardStyle">
+
+    <ImageView
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_gravity="center_horizontal"
+        android:src="@drawable/trophy_icon"
+        android:importantForAccessibility="no"/>
+
+    <TextView
+        style="@style/ModalTitleStyle"
+        android:layout_marginTop="12dp"
+        android:textColor="@color/successGreen"
+        android:text="@string/goal_reached_title"/>
+
+    <!-- e.g. "You ran 5.02 km: your goal of 5 km is complete." -->
+    <TextView
+        android:id="@+id/goalReachedMessage"
+        style="@style/ModalMessageStyle"/>
+
+    <Button
+        android:id="@+id/keepRunningButton"
+        style="@style/PrimaryButtonStyle"
+        android:layout_marginTop="24dp"
+        android:text="@string/keep_running"/>
+
+    <Button
+        android:id="@+id/finishRunButton"
+        style="@style/SecondaryButtonStyle"
+        android:layout_marginTop="12dp"
+        android:text="@string/finish_run"/>
+
+</LinearLayout>

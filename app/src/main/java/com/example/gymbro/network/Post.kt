@@ -1,6 +1,7 @@
 package com.example.gymbro.network
 
 import com.example.gymbro.session.Exercise
+import com.example.gymbro.session.Route
 import java.time.Instant
 
 // `json` = how the value is written in the requests/answers of the REST API
@@ -22,7 +23,11 @@ data class Post(
     val amount: Double? = null,              // manual: seconds (time) or kg (weight)
     val notes: String? = null,               // manual
     val durationSeconds: Long? = null,       // gym / run: training time
-    val distanceKm: Double? = null,          // run
+    val distanceKm: Double? = null,          // run: rounded to 0.1 km
+    val kcal: Double? = null,                // run: calories burned (estimated)
+    val maxSpeedKmh: Double? = null,         // run
+    val goalKm: Double? = null,              // run: goal distance (null = no goal)
+    val route: Route? = null,                // run: path followed (null = not recorded)
     val exercises: List<Exercise>? = null,   // gym
     val sessionStart: Instant? = null,       // gym / run: when the session was done
     val createdAt: Instant
