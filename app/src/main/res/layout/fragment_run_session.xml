@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Run session in progress: map centered on the current GPS position -->
+<!-- Run session in progress: map that follows the current GPS position -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".session.RunSessionFragment"

@@ -5,7 +5,7 @@
     <!-- Internet: REST API (login, profile, results) and Google Maps -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- GPS: needed to center the map of the Run session on the current position -->
+    <!-- GPS: needed to show the current position on the map of the Run session -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 

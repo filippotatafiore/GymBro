@@ -20,12 +20,13 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.LocationSource
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapColorScheme
 
-// Run session in progress: map centered on the current GPS position
+// Run session in progress: map that follows the current GPS position
 class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMapReadyCallback {
 
     private val locationPermissions = arrayOf(
@@ -37,8 +38,15 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
     private lateinit var fusedLocation: FusedLocationProviderClient
     private lateinit var gpsStatus: View
 
-    // The map is centered on the user only at the first position: then the user can move it freely
-    private var centeredOnUser = false
+    // No position shown yet: the first one is shown with a close zoom, then the user's zoom is kept
+    private var firstPosition = true
+
+    // The camera follows the user while running. It stops when the user moves the map by hand,
+    // and starts again with the "my location" button of the map (top right).
+    private var followUser = true
+
+    // Moves the blue "my position" dot of the map (given by the map, see onMapReady)
+    private var dotListener: LocationSource.OnLocationChangedListener? = null
 
     // Receives the GPS positions while the page is visible
     private val locationCallback = object : LocationCallback() {
@@ -86,13 +94,38 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
 
     override fun onDestroyView() {
         map = null
-        centeredOnUser = false
+        dotListener = null
+        firstPosition = true
+        followUser = true
         super.onDestroyView()
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
         googleMap.mapColorScheme = MapColorScheme.DARK  // dark map, like the rest of the app
+
+        // The blue dot is moved with the same GPS positions that move the camera, so they always
+        // agree (otherwise the map would ask the GPS for its own positions, at a different pace)
+        googleMap.setLocationSource(object : LocationSource {
+            override fun activate(listener: LocationSource.OnLocationChangedListener) {
+                dotListener = listener
+            }
+
+            override fun deactivate() {
+                dotListener = null
+            }
+        })
+
+        // Moving the map by hand stops following the user...
+        googleMap.setOnCameraMoveStartedListener { reason ->
+            if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) followUser = false
+        }
+        // ...and the "my location" button starts following again
+        googleMap.uiSettings.isMyLocationButtonEnabled = true
+        googleMap.setOnMyLocationButtonClickListener {
+            followUser = true
+            false  // false: the map also moves to the current position, as usual
+        }
 
         if (hasLocationPermission()) {
             startLocationUpdates()
@@ -123,25 +156,30 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
         if (!hasLocationPermission()) return
 
         map.isMyLocationEnabled = true
-        if (!centeredOnUser) gpsStatus.isVisible = true
+        if (firstPosition) gpsStatus.isVisible = true
 
         // The last known position (if any) is shown immediately, while waiting for a fresh one
         fusedLocation.lastLocation.addOnSuccessListener { location ->
-            location?.let { showPosition(it) }
+            if (location != null && firstPosition) showPosition(location)
         }
 
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L).build()
         fusedLocation.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
     }
 
+    // Called at every new GPS position: moves the blue dot, and the camera if it follows the user
     private fun showPosition(location: Location) {
         val map = map ?: return  // the page was closed meanwhile
         gpsStatus.isVisible = false
+        dotListener?.onLocationChanged(location)
+        if (!followUser) return
 
-        if (!centeredOnUser) {
-            centeredOnUser = true
-            val position = LatLng(location.latitude, location.longitude)
+        val position = LatLng(location.latitude, location.longitude)
+        if (firstPosition) {
+            firstPosition = false
             map.animateCamera(CameraUpdateFactory.newLatLngZoom(position, 17f))
+        } else {
+            map.animateCamera(CameraUpdateFactory.newLatLng(position))
         }
     }
 }
