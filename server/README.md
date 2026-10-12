@@ -33,6 +33,15 @@ python app.py
 The emulator reaches the PC at `http://10.0.2.2:5000` (already the app default).
 Check it in a browser on the PC: http://127.0.0.1:5000/api/health
 
+To see what is in the database (users, results, logins), from another terminal in the `server` folder:
+
+```
+.venv\Scripts\python show_db.py
+```
+
+To start again with an empty database: stop the server (Ctrl+C), delete `gymbro.db` and the
+`uploads` folder, start the server again.
+
 ## Deploy it on PythonAnywhere
 
 1. Create a free account on https://www.pythonanywhere.com

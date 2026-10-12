@@ -4,7 +4,7 @@ GymBro REST API.
 A small Flask server that stores the users of the app and the results they publish
 in a SQL (SQLite) database.
 
-Run it locally (the Android emulator reaches it at http://10.0.2.2:5000):
+Run it locally (Android emulator reaches it at http://10.0.2.2:5000):
     python app.py
 
 On PythonAnywhere the WSGI file imports `app` from this module (see README.md).
