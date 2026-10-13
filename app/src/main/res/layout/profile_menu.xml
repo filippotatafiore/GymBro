@@ -37,10 +37,11 @@
         style="@style/ProfileMenuItemStyle"
         android:text="Option 2"/>
 
+    <!-- body data of the user: res/layout/account_menu.xml -->
     <Button
-        android:id="@+id/menu_option_3"
+        android:id="@+id/modifyAccountButton"
         style="@style/ProfileMenuItemStyle"
-        android:text="Modify account"/>
+        android:text="@string/modify_account"/>
 
     <Button
         android:id="@+id/menu_option_4"

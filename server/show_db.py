@@ -36,10 +36,13 @@ def main():
     with sqlite3.connect(DB_PATH) as db:
         print_table(
             db, "USERS",
-            "SELECT id, username, email, CASE has_picture WHEN 1 THEN 'yes' ELSE 'no' END, created_at, "
+            "SELECT id, username, email, CASE has_picture WHEN 1 THEN 'yes' ELSE 'no' END, "
+            "COALESCE(height_cm || ' cm', '-'), COALESCE(weight_kg || ' kg', '-'), "
+            "COALESCE(birth_year, '-'), COALESCE(sex, '-'), created_at, "
             "substr(password_hash, 1, 30) || '...' "
             "FROM users ORDER BY id",
-            ["id", "username", "email", "picture", "registered (UTC)", "password (only its hash is stored)"],
+            ["id", "username", "email", "picture", "height", "weight", "born", "sex", "registered (UTC)",
+             "password (only its hash is stored)"],
         )
         print_table(
             db, "POSTS",

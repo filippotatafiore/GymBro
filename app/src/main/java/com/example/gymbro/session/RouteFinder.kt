@@ -5,16 +5,11 @@ import android.content.pm.PackageManager
 import android.location.Address
 import android.location.Geocoder
 import android.util.Log
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
+import com.example.gymbro.network.ApiClient
+import com.example.gymbro.network.ApiException
+import com.example.gymbro.network.UserSession
+import com.example.gymbro.network.userMessage
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
-import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
-import java.security.MessageDigest
 import kotlin.coroutines.resume
 
 // Google Maps API key of the installed app (AndroidManifest.xml, from local.properties), or null
@@ -34,78 +29,29 @@ object RouteFinder {
 
     private const val TAG = "RouteFinder"
 
-    // alongStreets = false: straight lines, because the walking route was not available
-    class PlannedRoute(val distanceMeters: Double, val path: List<GeoPoint>, val alongStreets: Boolean)
-
-    // Walking route from the position of the user to the destination, through the stop (if any):
-    // its distance is the goal of the run. It is asked to the Google Routes API (Google Cloud);
-    // if that is not possible (API not enabled for the key, no internet...) the distance is
-    // measured along straight lines between the points.
-    suspend fun walkingRoute(context: Context, origin: GeoPoint, stop: GeoPoint?, destination: GeoPoint): PlannedRoute {
-        try {
-            return requestWalkingRoute(context, origin, stop, destination)
-        } catch (e: CancellationException) {
-            throw e  // the route is no longer needed (e.g. another destination was chosen)
-        } catch (e: Exception) {
-            Log.w(TAG, "Walking route not available, using straight lines: ${e.message}")
-        }
-        val path = listOfNotNull(origin, stop, destination)
-        return PlannedRoute(RunMath.lengthMeters(path), path, alongStreets = false)
-    }
-
-    // Google Routes API: https://developers.google.com/maps/documentation/routes/compute_route_directions
-    private suspend fun requestWalkingRoute(
-        context: Context, origin: GeoPoint, stop: GeoPoint?, destination: GeoPoint
-    ): PlannedRoute = withContext(Dispatchers.IO) {
-        val key = mapsApiKey(context) ?: throw IOException("Google Maps API key missing")
-        val body = JSONObject()
-            .put("origin", waypoint(origin))
-            .put("destination", waypoint(destination))
-            .put("travelMode", "WALK")
-        if (stop != null) body.put("intermediates", JSONArray().put(waypoint(stop)))
-
-        val connection = URL("https://routes.googleapis.com/directions/v2:computeRoutes").openConnection() as HttpURLConnection
-        try {
-            connection.requestMethod = "POST"
-            connection.connectTimeout = 10_000
-            connection.readTimeout = 15_000
-            connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.setRequestProperty("X-Goog-Api-Key", key)
-            // only the needed fields of the answer
-            connection.setRequestProperty("X-Goog-FieldMask", "routes.distanceMeters,routes.polyline.encodedPolyline")
-            // the key may be restricted to this app: Google checks its package name and signature
-            connection.setRequestProperty("X-Android-Package", context.packageName)
-            signatureSha1(context)?.let { connection.setRequestProperty("X-Android-Cert", it) }
-            connection.outputStream.use { it.write(body.toString().toByteArray()) }
-
-            val code = connection.responseCode
-            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-            val text = stream?.use { it.readBytes().decodeToString() }.orEmpty()
-            if (code !in 200..299) throw IOException("Routes API error $code: $text")
-
-            val route = JSONObject(text).optJSONArray("routes")?.optJSONObject(0)
-                ?: throw IOException("No walking route found")
-            val path = PolylineCodec.decode(route.getJSONObject("polyline").getString("encodedPolyline"))
-            PlannedRoute(route.optDouble("distanceMeters", 0.0), path, alongStreets = true)
-        } finally {
-            connection.disconnect()
-        }
-    }
-
-    private fun waypoint(point: GeoPoint) = JSONObject().put(
-        "location", JSONObject().put("latLng", JSONObject().put("latitude", point.lat).put("longitude", point.lng))
+    // alongStreets = false: straight lines, because the walking route was not available (problem: why)
+    class PlannedRoute(
+        val distanceMeters: Double,
+        val path: List<GeoPoint>,
+        val alongStreets: Boolean,
+        val problem: String? = null
     )
 
-    // SHA-1 of the certificate the app is signed with, e.g. "BB0D...A1" (as in the API key restrictions)
-    private fun signatureSha1(context: Context): String? {
-        val info = context.packageManager.getPackageInfo(
-            context.packageName,
-            PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNING_CERTIFICATES.toLong())
-        )
-        val certificate = info.signingInfo?.apkContentsSigners?.firstOrNull() ?: return null
-        return MessageDigest.getInstance("SHA-1").digest(certificate.toByteArray())
-            .joinToString("") { "%02X".format(it) }
+    // Walking route from the position of the user to the destination, through the stop (if any):
+    // its distance is the goal of the run. It is computed by the GymBro server with the Google
+    // Routes API (the Google key stays on the server). If that is not possible (server or Google
+    // not reachable, key not set up...) the distance is measured along straight lines.
+    suspend fun walkingRoute(context: Context, origin: GeoPoint, stop: GeoPoint?, destination: GeoPoint): PlannedRoute {
+        val problem = try {
+            val token = UserSession.token ?: throw ApiException(401, "Login required")
+            val route = ApiClient.walkingRoute(token, origin, stop, destination)
+            return PlannedRoute(route.distanceMeters, route.path, alongStreets = true)
+        } catch (e: ApiException) {
+            Log.w(TAG, "Walking route not available, using straight lines: ${e.message}")
+            e.userMessage(context)
+        }
+        val path = listOfNotNull(origin, stop, destination)
+        return PlannedRoute(RunMath.lengthMeters(path), path, alongStreets = false, problem = problem)
     }
 
     // Places matching a name or address (Android Geocoder, which uses the Google servers).

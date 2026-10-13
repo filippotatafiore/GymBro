@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A session in the small window of a day of the calendar (tap: details of the session) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:background="@drawable/menu_item_background">
+
+    <ImageView
+        android:id="@+id/daySessionIcon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:scaleType="fitCenter"
+        android:importantForAccessibility="no"
+        tools:src="@drawable/shoe_icon"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="10dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/daySessionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            tools:text="Run · 5.3 km"/>
+
+        <!-- e.g. "18:32 · 42:10" (start time · duration) -->
+        <TextView
+            android:id="@+id/daySessionTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            android:fontFeatureSettings="tnum"
+            tools:text="18:32 · 42:10"/>
+
+    </LinearLayout>
+
+</LinearLayout>

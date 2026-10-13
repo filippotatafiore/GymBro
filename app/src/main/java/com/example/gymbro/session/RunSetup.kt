@@ -13,12 +13,19 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.example.gymbro.MainActivity
 import com.example.gymbro.R
+import androidx.core.view.isVisible
 import com.example.gymbro.createModal
+import com.example.gymbro.gymBroApp
+import com.example.gymbro.network.ApiClient
+import com.example.gymbro.network.ApiException
+import com.example.gymbro.network.UserSession
+import com.example.gymbro.network.userMessage
 import com.example.gymbro.showError
-import java.text.DecimalFormat
+import kotlinx.coroutines.launch
 
 // Before a run starts (before the timer): permissions (location, notifications), then the goal:
 // a distance in km or miles, a route planned on the map (RoutePlannerActivity) or no goal.
+// The body weight (for the calories) comes from the profile: it is asked only if it is missing.
 // Created by MainActivity, which then starts the run (MainActivity.startRun).
 class RunSetup(private val activity: MainActivity) {
 
@@ -46,7 +53,7 @@ class RunSetup(private val activity: MainActivity) {
         val data = result.data
         if (result.resultCode == Activity.RESULT_OK && data != null) {
             val (goalKm, plan) = RoutePlannerActivity.readResult(data)
-            activity.startRun(goalKm, plan, RunTracker.bodyWeightKg ?: RunTracker.DEFAULT_WEIGHT_KG)
+            activity.startRun(goalKm, plan, UserSession.user?.weightKg ?: RunTracker.DEFAULT_WEIGHT_KG)
         }
     }
 
@@ -58,21 +65,26 @@ class RunSetup(private val activity: MainActivity) {
         if (missing.isEmpty()) showGoalChoice() else permissionRequest.launch(missing.toTypedArray())
     }
 
-    // Distance or route (or no goal), and the body weight for the calories
+    // Distance or route (or no goal); the body weight only if it is not in the profile yet
     private fun showGoalChoice() {
         val dialog = createModal(activity, R.layout.dialog_run_goal, activity)
         val weightInput = dialog.findViewById<EditText>(R.id.bodyWeightInput)
         val error = dialog.findViewById<TextView>(R.id.goalError)
-        RunTracker.bodyWeightKg?.let { weightInput.setText(DecimalFormat("0.#").format(it)) }
 
-        // The weight typed (remembered for the next runs), or null with an error if not valid
+        val profileWeight = UserSession.user?.weightKg
+        weightInput.isVisible = profileWeight == null
+        dialog.findViewById<View>(R.id.bodyWeightLabel).isVisible = profileWeight == null
+
+        // The weight of the profile, or the one typed (then saved in the profile);
+        // null with an error if not valid
         fun readWeight(): Double? {
+            if (profileWeight != null) return profileWeight
             val kg = weightInput.text.toString().replace(',', '.').toDoubleOrNull()
             if (kg == null || kg !in 30.0..300.0) {
                 error.showError(activity.getString(R.string.error_invalid_body_weight))
                 return null
             }
-            RunTracker.bodyWeightKg = kg
+            saveWeightInProfile(kg)
             return kg
         }
 
@@ -92,6 +104,23 @@ class RunSetup(private val activity: MainActivity) {
             routePlanner.launch(Intent(activity, RoutePlannerActivity::class.java))
         }
         dialog.show()
+    }
+
+    // The weight typed is saved in the profile of the user (phone and server): it is not asked again
+    private fun saveWeightInProfile(kg: Double) {
+        val user = UserSession.user ?: return
+        val token = UserSession.token ?: return
+        UserSession.updateUser(user.copy(weightKg = kg))
+
+        // applicationScope: the saving completes even if this page is closed meanwhile
+        val app = activity.gymBroApp
+        app.applicationScope.launch {
+            try {
+                UserSession.updateUser(ApiClient.updateProfile(token, user.heightCm, kg, user.birthYear, user.sex))
+            } catch (e: ApiException) {
+                Toast.makeText(app, app.getString(R.string.error_saving_profile, e.userMessage(app)), Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     // Goal distance typed by the user, in km or miles (saved in km)

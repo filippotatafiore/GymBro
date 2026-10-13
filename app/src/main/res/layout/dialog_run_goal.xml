@@ -66,8 +66,9 @@
 
         </LinearLayout>
 
-        <!-- body weight: needed to estimate the calories -->
+        <!-- body weight: needed to estimate the calories. Shown only if it is not in the profile -->
         <TextView
+            android:id="@+id/bodyWeightLabel"
             style="@style/FormLabelStyle"
             android:layout_marginTop="20dp"
             android:text="@string/body_weight_label"/>

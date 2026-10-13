@@ -19,3 +19,6 @@ server/.venv/
 server/gymbro.db
 server/uploads/
 __pycache__/
+
+# Google key of the walking routes (server only, never in git)
+server/routes_api_key.txt

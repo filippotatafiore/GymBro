@@ -12,10 +12,9 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.gymbro.R
 import com.example.gymbro.data.TrainingSession
+import com.example.gymbro.displayTitle
 import com.example.gymbro.formatDateTime
-import com.example.gymbro.formatDistance
 import com.example.gymbro.formatDuration
-import com.example.gymbro.session.SessionType
 
 // Fills a list of finished sessions: one row (res/layout/item_session.xml) per session.
 // - home page: with the "publish" and "delete" buttons (onPublish, onDelete)
@@ -45,10 +44,7 @@ class SessionHistoryAdapter(
         val context = holder.itemView.context
 
         holder.icon.setImageResource(session.type.icon)
-        holder.type.text = when (session.type) {
-            SessionType.RUN -> context.getString(R.string.run_post_title, formatDistance(session.distanceKm ?: 0.0))
-            SessionType.GYM -> context.getString(session.type.label)
-        }
+        holder.type.text = session.displayTitle(context)
         holder.date.text = formatDateTime(session.startTime)
         holder.duration.text = formatDuration(session.durationMillis)
 

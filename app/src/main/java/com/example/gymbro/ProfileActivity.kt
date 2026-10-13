@@ -4,6 +4,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -16,9 +17,11 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -29,9 +32,11 @@ import com.example.gymbro.network.Better
 import com.example.gymbro.network.Metric
 import com.example.gymbro.network.Post
 import com.example.gymbro.network.PostKind
+import com.example.gymbro.network.Sex
 import com.example.gymbro.network.User
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
+import com.example.gymbro.profile.BodyData
 import com.example.gymbro.profile.ManualExercises
 import com.example.gymbro.profile.PersonalBestAdapter
 import com.example.gymbro.profile.PersonalBests
@@ -48,6 +53,9 @@ import kotlinx.coroutines.launch
 
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.core.view.GravityCompat
+import java.text.DecimalFormat
+import java.time.Year
+import java.util.Locale
 import java.util.Stack
 
 class ProfileActivity : ComponentActivity() {
@@ -103,12 +111,24 @@ class ProfileActivity : ComponentActivity() {
             drawerLayout.openDrawer(GravityCompat.END)
         }
 
+        // Menu shown now: saved in menuHistory when another one is opened, to come back to it
+        var currentMenu = R.layout.profile_menu
+
         // Function to load profile menu and store previous state
         fun loadProfileMenu(layoutId: Int, storePrevious: Boolean = true) {
-            if (storePrevious) menuHistory.push(layoutId) // Store previous menu
+            if (storePrevious) menuHistory.push(currentMenu) // Store previous menu
+            currentMenu = layoutId
 
             menuContainer.removeAllViews()
             layoutInflater.inflate(layoutId, menuContainer, true)
+
+            // Handle the modify account button (if present in the current layout)
+            menuContainer.findViewById<Button>(R.id.modifyAccountButton)?.setOnClickListener {
+                loadProfileMenu(R.layout.account_menu) // Open the body data of the user
+            }
+
+            // Fill the form with the body data (if the current layout is the account menu)
+            if (layoutId == R.layout.account_menu) showAccountForm()
 
 
             // Handle the settings button (if present in the current layout)
@@ -127,7 +147,7 @@ class ProfileActivity : ComponentActivity() {
                     val previousMenu = menuHistory.pop() // Go back
                     loadProfileMenu(previousMenu, storePrevious = false)
                 } else {
-                    loadProfileMenu(R.layout.profile_menu) // Default fallback
+                    loadProfileMenu(R.layout.profile_menu, storePrevious = false) // Default fallback
                 }
             }
         }
@@ -135,13 +155,22 @@ class ProfileActivity : ComponentActivity() {
         // Load the initial profile menu
         loadProfileMenu(R.layout.profile_menu, storePrevious = false)
 
+        // The back button closes the menu (instead of the page) while it is open
+        val closeMenuOnBack = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() = drawerLayout.closeDrawer(GravityCompat.END)
+        }
+        onBackPressedDispatcher.addCallback(this, closeMenuOnBack)
+
         // Listen for drawer close event
         drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener {
             override fun onDrawerSlide(drawerView: View, slideOffset: Float) {}
 
-            override fun onDrawerOpened(drawerView: View) {}
+            override fun onDrawerOpened(drawerView: View) {
+                closeMenuOnBack.isEnabled = true
+            }
 
             override fun onDrawerClosed(drawerView: View) {
+                closeMenuOnBack.isEnabled = false
                 menuHistory.clear() // Clear history when menu closes
                 loadProfileMenu(R.layout.profile_menu, storePrevious = false)
             }
@@ -281,6 +310,85 @@ class ProfileActivity : ComponentActivity() {
                 Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
                 Toast.makeText(this@ProfileActivity, R.string.error_picture, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+
+    // --------------------------------------------------------- MODIFY ACCOUNT
+
+    // "Modify account" page of the menu: body data of the user (height, weight, year of birth,
+    // sex), saved on the server. The weight is used for the calories of the runs.
+    // An empty field = not set.
+    private fun showAccountForm() {
+        val user = UserSession.user ?: return
+        val heightInput = menuContainer.findViewById<EditText>(R.id.profileHeightInput)
+        val weightInput = menuContainer.findViewById<EditText>(R.id.profileWeightInput)
+        val birthYearInput = menuContainer.findViewById<EditText>(R.id.profileBirthYearInput)
+        val sexGroup = menuContainer.findViewById<RadioGroup>(R.id.profileSexGroup)
+        val bmiText = menuContainer.findViewById<TextView>(R.id.profileBmiText)
+        val error = menuContainer.findViewById<TextView>(R.id.profileError)
+        val save = menuContainer.findViewById<Button>(R.id.saveProfileButton)
+
+        val numberFormat = DecimalFormat("0.#")
+        user.heightCm?.let { heightInput.setText(numberFormat.format(it)) }
+        user.weightKg?.let { weightInput.setText(numberFormat.format(it)) }
+        user.birthYear?.let { birthYearInput.setText(String.format(Locale.ROOT, "%d", it)) }
+        when (user.sex) {
+            Sex.MALE -> sexGroup.check(R.id.sexMale)
+            Sex.FEMALE -> sexGroup.check(R.id.sexFemale)
+            Sex.OTHER -> sexGroup.check(R.id.sexOther)
+            null -> {}
+        }
+
+        fun EditText.number(): Double? = text.toString().trim().replace(',', '.').toDoubleOrNull()
+
+        // BMI, updated while typing height and weight
+        fun showBmi() {
+            val bmi = BodyData.bmi(heightInput.number(), weightInput.number())
+            bmiText.text =
+                if (bmi == null || bmi !in 5.0..100.0) getString(R.string.bmi_missing)
+                else getString(R.string.bmi_value, DecimalFormat("0.0").format(bmi), getString(BodyData.bmiCategory(bmi)))
+        }
+        heightInput.doAfterTextChanged { showBmi() }
+        weightInput.doAfterTextChanged { showBmi() }
+        showBmi()
+
+        save.setOnClickListener {
+            val height = heightInput.number()
+            val weight = weightInput.number()
+            val birthYear = birthYearInput.text.toString().trim().toIntOrNull()
+            val thisYear = Year.now().value
+            if (heightInput.text.isNotBlank() && (height == null || height !in 100.0..250.0)) {
+                return@setOnClickListener error.showError(getString(R.string.error_invalid_height))
+            }
+            if (weightInput.text.isNotBlank() && (weight == null || weight !in 30.0..300.0)) {
+                return@setOnClickListener error.showError(getString(R.string.error_invalid_body_weight))
+            }
+            if (birthYearInput.text.isNotBlank() && (birthYear == null || birthYear !in 1900..thisYear)) {
+                return@setOnClickListener error.showError(getString(R.string.error_invalid_birth_year, thisYear))
+            }
+            val sex = when (sexGroup.checkedRadioButtonId) {
+                R.id.sexMale -> Sex.MALE
+                R.id.sexFemale -> Sex.FEMALE
+                R.id.sexOther -> Sex.OTHER
+                else -> null
+            }
+            val token = UserSession.token ?: return@setOnClickListener
+            error.isVisible = false
+            getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(save.windowToken, 0)
+
+            lifecycleScope.launch {
+                save.isEnabled = false
+                try {
+                    UserSession.updateUser(ApiClient.updateProfile(token, height, weight, birthYear, sex))
+                    Toast.makeText(this@ProfileActivity, R.string.profile_saved, Toast.LENGTH_SHORT).show()
+                    drawerLayout.closeDrawer(GravityCompat.END)
+                } catch (e: ApiException) {
+                    error.showError(e.userMessage(this@ProfileActivity))
+                } finally {
+                    save.isEnabled = true
+                }
             }
         }
     }

@@ -18,6 +18,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
+        <!-- both options with 2 lines of text: same size, icons at the same height -->
         <LinearLayout
             android:id="@+id/publishSessionOption"
             style="@style/TrainingOptionStyle"
@@ -33,6 +34,7 @@
                 style="@style/TrainingOptionTextStyle"
                 android:gravity="center"
                 android:textSize="16sp"
+                android:lines="2"
                 android:text="@string/publish_from_session"/>
 
         </LinearLayout>
@@ -58,6 +60,7 @@
                 style="@style/TrainingOptionTextStyle"
                 android:gravity="center"
                 android:textSize="16sp"
+                android:lines="2"
                 android:text="@string/publish_manual"/>
 
         </LinearLayout>

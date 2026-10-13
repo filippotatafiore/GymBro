@@ -1,8 +1,10 @@
 """
 GymBro REST API.
 
-A small Flask server that stores the users of the app and the posts they publish
-(results of finished gym/run sessions or results added manually) in a SQL (SQLite) database.
+A small Flask server that stores the users of the app (with their body data) and the posts
+they publish (results of finished gym/run sessions or results added manually) in a SQL (SQLite)
+database. It also computes the walking routes of the runs with the Google Routes API, so that
+the Google key stays on the server.
 
 Run it locally (Android emulator reaches it at http://10.0.2.2:5000):
     python app.py
@@ -16,6 +18,8 @@ import os
 import re
 import secrets
 import sqlite3
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from functools import wraps
 
@@ -25,6 +29,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("GYMBRO_DB", os.path.join(BASE_DIR, "gymbro.db"))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+# Google API key for the Routes API (see README.md): environment variable or text file
+ROUTES_KEY_FILE = os.path.join(BASE_DIR, "routes_api_key.txt")
+ROUTES_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # biggest accepted request (profile pictures)
@@ -39,7 +46,12 @@ CREATE TABLE IF NOT EXISTS users (
     email         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
     password_hash TEXT    NOT NULL,
     has_picture   INTEGER NOT NULL DEFAULT 0,
-    created_at    TEXT    NOT NULL
+    created_at    TEXT    NOT NULL,
+    -- body data (optional): calories of the runs, BMI
+    height_cm     REAL,
+    weight_kg     REAL,
+    birth_year    INTEGER,
+    sex           TEXT              -- 'male', 'female' or 'other'
 );
 
 -- Login tokens: only their hash is stored, so a leaked database does not leak valid tokens
@@ -78,13 +90,21 @@ DROP TABLE IF EXISTS results;
 """
 
 
-# Columns added to "posts" after its first version: added to the existing databases too
-# (the posts already published are kept, with these columns empty)
-NEW_POST_COLUMNS = {
-    "kcal": "REAL",
-    "max_speed_kmh": "REAL",
-    "goal_km": "REAL",
-    "route": "TEXT",
+# Columns added to the tables after their first version: added to the existing databases too
+# (the users and posts already there are kept, with these columns empty)
+NEW_COLUMNS = {
+    "users": {
+        "height_cm": "REAL",
+        "weight_kg": "REAL",
+        "birth_year": "INTEGER",
+        "sex": "TEXT",
+    },
+    "posts": {
+        "kcal": "REAL",
+        "max_speed_kmh": "REAL",
+        "goal_km": "REAL",
+        "route": "TEXT",
+    },
 }
 
 
@@ -92,10 +112,11 @@ def init_db():
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     with sqlite3.connect(DB_PATH) as db:
         db.executescript(SCHEMA)
-        existing = {row[1] for row in db.execute("PRAGMA table_info(posts)")}
-        for column, sql_type in NEW_POST_COLUMNS.items():
-            if column not in existing:
-                db.execute(f"ALTER TABLE posts ADD COLUMN {column} {sql_type}")
+        for table, columns in NEW_COLUMNS.items():
+            existing = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+            for column, sql_type in columns.items():
+                if column not in existing:
+                    db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}")
 
 
 def get_db():
@@ -143,15 +164,20 @@ def create_token(user_id):
     return token
 
 
-def user_json(user, include_email=False):
+def user_json(user, private=False):
+    """private=True: also email and body data (only for the user themself)."""
     data = {
         "id": user["id"],
         "username": user["username"],
         "has_picture": bool(user["has_picture"]),
         "created_at": user["created_at"],
     }
-    if include_email:
+    if private:
         data["email"] = user["email"]
+        data["height_cm"] = user["height_cm"]
+        data["weight_kg"] = user["weight_kg"]
+        data["birth_year"] = user["birth_year"]
+        data["sex"] = user["sex"]
     return data
 
 
@@ -311,7 +337,7 @@ def register():
         return error(409, "Username or email already registered")
 
     user = db.execute("SELECT * FROM users WHERE id = ?", (cursor.lastrowid,)).fetchone()
-    return jsonify({"token": create_token(user["id"]), "user": user_json(user, include_email=True)}), 201
+    return jsonify({"token": create_token(user["id"]), "user": user_json(user, private=True)}), 201
 
 
 @app.post("/api/login")
@@ -324,7 +350,7 @@ def login():
     if user is None or not check_password_hash(user["password_hash"], password):
         return error(401, "Wrong email or password")
 
-    return jsonify({"token": create_token(user["id"]), "user": user_json(user, include_email=True)})
+    return jsonify({"token": create_token(user["id"]), "user": user_json(user, private=True)})
 
 
 @app.post("/api/logout")
@@ -339,7 +365,34 @@ def logout():
 @app.get("/api/me")
 @login_required
 def me():
-    return jsonify(user_json(g.user, include_email=True))
+    return jsonify(user_json(g.user, private=True))
+
+
+@app.put("/api/me/profile")
+@login_required
+def update_profile():
+    """Body data of the user. Every value is optional: missing or null = not set."""
+    data = request.get_json(silent=True) or {}
+    this_year = datetime.now(timezone.utc).year
+    profile = {}
+    for key, minimum, maximum in (("height_cm", 50, 260), ("weight_kg", 20, 400), ("birth_year", 1900, this_year)):
+        ok, profile[key] = optional_number(data, key, minimum, maximum)
+        if not ok:
+            return error(400, f"Invalid {key}")
+    if profile["birth_year"] is not None:
+        profile["birth_year"] = int(profile["birth_year"])
+    profile["sex"] = data.get("sex")
+    if profile["sex"] not in (None, "male", "female", "other"):
+        return error(400, "Invalid sex")
+
+    db = get_db()
+    db.execute(
+        "UPDATE users SET height_cm = ?, weight_kg = ?, birth_year = ?, sex = ? WHERE id = ?",
+        (profile["height_cm"], profile["weight_kg"], profile["birth_year"], profile["sex"], g.user["id"]),
+    )
+    db.commit()
+    user = db.execute("SELECT * FROM users WHERE id = ?", (g.user["id"],)).fetchone()
+    return jsonify(user_json(user, private=True))
 
 
 @app.put("/api/me/picture")
@@ -445,6 +498,87 @@ def publish_post():
     db.commit()
     row = db.execute("SELECT * FROM posts WHERE id = ?", (cursor.lastrowid,)).fetchone()
     return jsonify(post_json(row)), 201
+
+
+def routes_api_key():
+    """Google key for the Routes API: variable ROUTES_API_KEY or file routes_api_key.txt."""
+    key = os.environ.get("ROUTES_API_KEY", "").strip()
+    if not key and os.path.exists(ROUTES_KEY_FILE):
+        with open(ROUTES_KEY_FILE, encoding="utf-8") as file:
+            key = file.read().strip()
+    return key or None
+
+
+def route_point(data, key):
+    """A point of the request ({"lat": ..., "lng": ...}) in the format of the Routes API, or None."""
+    point = data.get(key)
+    if not isinstance(point, dict):
+        return None
+    lat = number(point, "lat", -90, 90)
+    lng = number(point, "lng", -180, 180)
+    if lat is None or lng is None:
+        return None
+    return {"location": {"latLng": {"latitude": lat, "longitude": lng}}}
+
+
+def google_error_message(http_error):
+    """The message of an error answer of a Google API."""
+    try:
+        message = json.loads(http_error.read().decode())["error"]["message"]
+    except (ValueError, KeyError, TypeError):
+        message = f"error {http_error.code}"
+    if http_error.code == 403:
+        # Routes API answers only "The caller does not have permission" also when the cause is
+        # the billing of the project
+        message += " (check in Google Cloud that billing is enabled for the project of the key)"
+    return message
+
+
+@app.post("/api/routes/walking")
+@login_required
+def walking_route():
+    """Walking route origin -> stop (optional) -> destination, from the Google Routes API.
+    Body: {"origin": {"lat": .., "lng": ..}, "stop": {...} or null, "destination": {...}}"""
+    data = request.get_json(silent=True) or {}
+    origin = route_point(data, "origin")
+    destination = route_point(data, "destination")
+    stop = route_point(data, "stop")
+    if origin is None or destination is None or (data.get("stop") is not None and stop is None):
+        return error(400, "Invalid points")
+
+    key = routes_api_key()
+    if key is None:
+        return error(503, "Walking routes are not set up on the server (routes_api_key.txt missing)")
+
+    body = {"origin": origin, "destination": destination, "travelMode": "WALK"}
+    if stop is not None:
+        body["intermediates"] = [stop]
+    google_request = urllib.request.Request(
+        ROUTES_URL,
+        data=json.dumps(body).encode(),
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": key,
+            # only the needed fields of the answer
+            "X-Goog-FieldMask": "routes.distanceMeters,routes.polyline.encodedPolyline",
+        },
+    )
+    try:
+        with urllib.request.urlopen(google_request, timeout=15) as response:
+            answer = json.load(response)
+    except urllib.error.HTTPError as e:
+        return error(502, "Google Routes API: " + google_error_message(e))
+    except (urllib.error.URLError, TimeoutError):
+        return error(502, "Google Routes API not reachable")
+
+    routes = answer.get("routes") or []
+    if not routes:
+        return error(404, "No walking route found between these points")
+    return jsonify({
+        "distance_m": routes[0].get("distanceMeters", 0),
+        "polyline": routes[0].get("polyline", {}).get("encodedPolyline", ""),
+    })
 
 
 @app.delete("/api/me/posts/<int:post_id>")

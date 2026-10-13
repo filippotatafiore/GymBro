@@ -18,6 +18,7 @@ data class RunPlan(val destination: GeoPoint, val stop: GeoPoint?, val path: Lis
 // is not lost when the app is closed. All the functions must be called from the main thread.
 object RunTracker {
 
+    // used only if the weight is unknown (e.g. runs restored from an older version of the app)
     const val DEFAULT_WEIGHT_KG = 70.0
 
     private const val KEY_GOAL_KM = "goal_km"
@@ -27,7 +28,6 @@ object RunTracker {
     private const val KEY_DESTINATION = "plan_destination"
     private const val KEY_STOP = "plan_stop"
     private const val KEY_PATH = "plan_path"
-    private const val KEY_BODY_WEIGHT = "body_weight_kg"
 
     private lateinit var appContext: Context
 
@@ -40,10 +40,6 @@ object RunTracker {
     // Goal and plan of the run in progress (e.g. "run_3")
     private val prefs: SharedPreferences
         get() = appContext.getSharedPreferences("run_$userId", Context.MODE_PRIVATE)
-
-    // Settings of the user kept between runs (e.g. "run_settings_3")
-    private val settings: SharedPreferences
-        get() = appContext.getSharedPreferences("run_settings_$userId", Context.MODE_PRIVATE)
 
     // Positions of the run in progress: one line "lat,lng,time" per position, "-" = new line
     private val trackFile: File get() = File(appContext.filesDir, "run_track_$userId.txt")
@@ -89,11 +85,6 @@ object RunTracker {
             val path = PolylineCodec.decode(prefs.getString(KEY_PATH, "") ?: "")
             return RunPlan(destination, stop, path)
         }
-
-    // Body weight of the user (for the calories), remembered for the next runs
-    var bodyWeightKg: Double?
-        get() = settings.getString(KEY_BODY_WEIGHT, null)?.toDoubleOrNull()
-        set(value) = settings.edit { putString(KEY_BODY_WEIGHT, value?.toString()) }
 
     // A new run starts: the previous data are deleted
     fun start(goalKm: Double?, plan: RunPlan?, weightKg: Double) {

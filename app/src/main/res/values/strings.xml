@@ -75,7 +75,8 @@
     <string name="run_goal_message">Choose a distance to run or a route to complete</string>
     <string name="goal_distance">Distance</string>
     <string name="goal_route">Route</string>
-    <string name="body_weight_label">Your body weight, to estimate the calories</string>
+    <string name="body_weight_label">Your body weight, to estimate the calories (it will be saved in your profile)</string>
+    <string name="error_saving_profile">Weight not saved in your profile: %1$s</string>
     <string name="run_without_goal">Just run, without a goal</string>
     <string name="error_invalid_body_weight">Insert your body weight (30–300 kg)</string>
     <string name="goal_distance_title">Goal distance</string>
@@ -94,7 +95,7 @@
     <string name="planned_goal">Goal: %1$s</string>
     <string name="calculating_route">Calculating the route…</string>
     <string name="route_along_streets">Walking route by Google Maps</string>
-    <string name="route_straight_line">Straight line: walking route not available</string>
+    <string name="route_straight_line">Straight line. Walking route not available: %1$s</string>
     <string name="remove_stop">Remove the stop</string>
     <string name="no_places_found">No places found</string>
 
@@ -137,6 +138,35 @@
     <string name="gym_post_title">Gym session</string>
     <string name="delete_post_title">Delete the post?</string>
     <string name="delete_post_message">The post will be removed from your profile and your personal bests will be updated.</string>
+
+    <!-- modify account (menu of the profile) -->
+    <string name="modify_account">Modify account</string>
+    <string name="height_label">Height (cm)</string>
+    <string name="height_hint">e.g. 175</string>
+    <string name="weight_label">Weight (kg)</string>
+    <string name="birth_year_label">Year of birth</string>
+    <string name="birth_year_hint">e.g. 2001</string>
+    <string name="sex_label">Sex</string>
+    <string name="sex_male">Male</string>
+    <string name="sex_female">Female</string>
+    <string name="sex_other">Other</string>
+    <string name="bmi_value">BMI %1$s · %2$s</string>
+    <string name="bmi_missing">Insert height and weight to see your BMI</string>
+    <string name="bmi_underweight">underweight</string>
+    <string name="bmi_normal">normal weight</string>
+    <string name="bmi_overweight">overweight</string>
+    <string name="bmi_obese">obesity</string>
+    <string name="account_hint">The weight is used to estimate the calories of your runs. Only you can see these data.</string>
+    <string name="save">Save</string>
+    <string name="profile_saved">Profile saved</string>
+    <string name="error_invalid_height">Insert a height from 100 to 250 cm</string>
+    <string name="error_invalid_birth_year">Insert a year of birth from 1900 to %1$d</string>
+
+    <!-- calendar (home) -->
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
+    <string name="calendar_hint">A green dot: at least one session that day. Tap the day to see its sessions.</string>
+    <string name="day_session_time">%1$s · %2$s</string>
 
     <!-- publish modal -->
     <string name="publish_result_title">Publish a result</string>

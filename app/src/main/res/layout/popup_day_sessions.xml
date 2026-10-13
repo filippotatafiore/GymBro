@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Small window over the green dot of a day: the sessions of that day (CalendarDrawer.kt) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="10dp"
+    android:background="@drawable/modal_background">
+
+    <TextView
+        android:id="@+id/popupDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingBottom="4dp"
+        android:textStyle="bold"
+        android:textColor="@color/lighterBlue"
+        android:textSize="14sp"
+        tools:text="Oct 12, 2026"/>
+
+    <ScrollView
+        android:id="@+id/popupScroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- rows: res/layout/item_day_session.xml -->
+        <LinearLayout
+            android:id="@+id/popupSessions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"/>
+
+    </ScrollView>
+
+</LinearLayout>

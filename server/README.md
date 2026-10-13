@@ -1,7 +1,8 @@
 # GymBro REST API
 
-Flask server that stores the app users (registration / login) and the posts they publish,
-in a SQLite database (`gymbro.db`, created automatically on first start).
+Flask server that stores the app users (registration / login, body data) and the posts they
+publish, in a SQLite database (`gymbro.db`, created automatically on first start). It also computes
+the walking routes of the runs with the Google Routes API (the Google key stays on the server).
 
 | Method | Path                          | Auth | Description                          |
 |--------|-------------------------------|------|--------------------------------------|
@@ -9,10 +10,12 @@ in a SQLite database (`gymbro.db`, created automatically on first start).
 | POST   | `/api/register`               |      | `{username, email, password}`        |
 | POST   | `/api/login`                  |      | `{email, password}`                  |
 | POST   | `/api/logout`                 | yes  | Invalidates the token                |
-| GET    | `/api/me`                     | yes  | Logged user                          |
+| GET    | `/api/me`                     | yes  | Logged user (with email, body data)  |
+| PUT    | `/api/me/profile`             | yes  | Body data (see below)                |
 | PUT    | `/api/me/picture`             | yes  | Body: JPEG image                     |
 | POST   | `/api/me/posts`               | yes  | Publish a post (see below)           |
 | DELETE | `/api/me/posts/<id>`          | yes  | Delete one of your posts             |
+| POST   | `/api/routes/walking`         | yes  | Walking route (see below)            |
 | GET    | `/api/users/<id>`             |      | Public profile                       |
 | GET    | `/api/users/<id>/picture`     |      | Profile picture (404 if none)        |
 | GET    | `/api/users/<id>/posts`       |      | Posts published by the user          |
@@ -30,6 +33,25 @@ Body of `POST /api/me/posts`, depending on the kind of post:
   [Google encoded polylines](https://developers.google.com/maps/documentation/utilities/polylinealgorithm))
 - gym session: `{"kind": "gym", "duration_s": 2700, "session_start": "...", "exercises":
   [{"name": "Bench Press", "muscle_group": "Chest", "sets": 4, "reps": 8, "weight_kg": 60}]}`
+
+Body of `PUT /api/me/profile` (every value optional, null = not set):
+`{"height_cm": 180, "weight_kg": 72.5, "birth_year": 2001, "sex": "male" | "female" | "other"}`
+
+Body of `POST /api/routes/walking`: `{"origin": {"lat": 45.46, "lng": 9.19}, "stop": null,
+"destination": {"lat": 45.47, "lng": 9.18}}` (stop optional) -> `{"distance_m": 1234, "polyline": "..."}`
+
+## Google key for the walking routes
+
+The server calls the Google Routes API with its own key, read from the file
+`server/routes_api_key.txt` (or from the environment variable `ROUTES_API_KEY`). The file is
+ignored by git: never publish the key. Without it the app measures the planned routes in a straight line.
+
+In Google Cloud console > APIs & Services > Credentials > Create credentials > API key:
+- Application restrictions: None (on PythonAnywhere it can stay so: its servers have no fixed IP)
+- API restrictions: Restrict key > Routes API
+
+The key of the app (MAPS_API_KEY, restricted to the Android app) cannot be used here: the Android
+restriction works for the Maps SDK, not for the web services such as the Routes API.
 
 ## Run it on your PC (for the Android emulator)
 

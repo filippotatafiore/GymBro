@@ -13,15 +13,36 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.LifecycleOwner
+import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.session.Exercise
 import com.example.gymbro.session.RunSummary
+import com.example.gymbro.session.SessionType
 import com.example.gymbro.session.addRunSummary
 import com.example.gymbro.session.bindExerciseRow
 import com.example.gymbro.session.close
+import com.example.gymbro.session.toRunSummary
 import com.google.android.gms.maps.MapView
 
 // Windows with all the information of a finished session (tap it in LAST SESSIONS) or of a post
 // (tap it in the profile). Layout: res/layout/dialog_post_details.xml
+
+// e.g. "Run · 5.3 km", "Gym" (lists of sessions: LAST SESSIONS, calendar)
+fun TrainingSession.displayTitle(context: Context): String = when (type) {
+    SessionType.RUN -> context.getString(R.string.run_post_title, formatDistance(distanceKm ?: 0.0))
+    SessionType.GYM -> context.getString(type.label)
+}
+
+// Details of a saved session (tap it in LAST SESSIONS or in the calendar)
+fun showSessionDetails(context: Context, owner: LifecycleOwner, session: TrainingSession) {
+    val date = formatDateTime(session.startTime)
+    when (session.type) {
+        SessionType.RUN -> showRunDetails(context, owner, session.displayTitle(context), date, session.toRunSummary())
+        SessionType.GYM -> showGymDetails(
+            context, owner, context.getString(R.string.gym_post_title), date,
+            session.durationMillis, session.exercises.orEmpty()
+        )
+    }
+}
 
 // Run: fixed map showing the whole path followed, with the final statistics below it
 fun showRunDetails(context: Context, owner: LifecycleOwner, title: String, subtitle: String, summary: RunSummary) {

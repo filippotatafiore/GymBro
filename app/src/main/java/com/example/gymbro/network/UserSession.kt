@@ -13,6 +13,10 @@ object UserSession {
     private const val KEY_USERNAME = "username"
     private const val KEY_EMAIL = "email"
     private const val KEY_HAS_PICTURE = "has_picture"
+    private const val KEY_HEIGHT = "height_cm"
+    private const val KEY_WEIGHT = "weight_kg"
+    private const val KEY_BIRTH_YEAR = "birth_year"
+    private const val KEY_SEX = "sex"
 
     private lateinit var prefs: SharedPreferences
 
@@ -35,7 +39,11 @@ object UserSession {
             id = prefs.getLong(KEY_ID, 0L),
             username = prefs.getString(KEY_USERNAME, "").orEmpty(),
             email = prefs.getString(KEY_EMAIL, "").orEmpty(),
-            hasPicture = prefs.getBoolean(KEY_HAS_PICTURE, false)
+            hasPicture = prefs.getBoolean(KEY_HAS_PICTURE, false),
+            heightCm = prefs.getString(KEY_HEIGHT, null)?.toDoubleOrNull(),
+            weightKg = prefs.getString(KEY_WEIGHT, null)?.toDoubleOrNull(),
+            birthYear = prefs.getString(KEY_BIRTH_YEAR, null)?.toIntOrNull(),
+            sex = prefs.getString(KEY_SEX, null)?.let { value -> Sex.entries.firstOrNull { it.name == value } }
         )
 
     fun save(token: String, user: User) {
@@ -49,6 +57,11 @@ object UserSession {
             putString(KEY_USERNAME, user.username)
             putString(KEY_EMAIL, user.email)
             putBoolean(KEY_HAS_PICTURE, user.hasPicture)
+            // body data: saved as texts, null = not set
+            putString(KEY_HEIGHT, user.heightCm?.toString())
+            putString(KEY_WEIGHT, user.weightKg?.toString())
+            putString(KEY_BIRTH_YEAR, user.birthYear?.toString())
+            putString(KEY_SEX, user.sex?.name)
         }
     }
 

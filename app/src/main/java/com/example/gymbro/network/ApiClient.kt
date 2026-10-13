@@ -6,6 +6,8 @@ import android.graphics.BitmapFactory
 import com.example.gymbro.R
 import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.session.Exercise
+import com.example.gymbro.session.GeoPoint
+import com.example.gymbro.session.PolylineCodec
 import com.example.gymbro.session.SessionType
 import com.example.gymbro.session.routeFromJson
 import com.example.gymbro.session.toJson
@@ -20,7 +22,23 @@ import java.net.URL
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-data class User(val id: Long, val username: String, val email: String, val hasPicture: Boolean)
+// `json` = how the value is written in the requests/answers of the REST API
+enum class Sex(val json: String) { MALE("male"), FEMALE("female"), OTHER("other") }
+
+// A user of the app. Body data (null = not set): see the "Modify account" menu of the profile.
+data class User(
+    val id: Long,
+    val username: String,
+    val email: String,
+    val hasPicture: Boolean,
+    val heightCm: Double? = null,
+    val weightKg: Double? = null,   // used to estimate the calories of the runs
+    val birthYear: Int? = null,
+    val sex: Sex? = null
+)
+
+// A walking route computed by the server (Google Routes API)
+class WalkingRoute(val distanceMeters: Double, val path: List<GeoPoint>)
 
 data class AuthResult(val token: String, val user: User)
 
@@ -64,6 +82,33 @@ object ApiClient {
 
     suspend fun getMe(token: String): User =
         parseUser(JSONObject(request("GET", "/api/me", token = token).decodeToString()))
+
+    // Body data of the logged user (null = not set); returns the updated user
+    suspend fun updateProfile(token: String, heightCm: Double?, weightKg: Double?, birthYear: Int?, sex: Sex?): User {
+        val body = JSONObject()
+            .put("height_cm", heightCm ?: JSONObject.NULL)
+            .put("weight_kg", weightKg ?: JSONObject.NULL)
+            .put("birth_year", birthYear ?: JSONObject.NULL)
+            .put("sex", sex?.json ?: JSONObject.NULL)
+        return parseUser(JSONObject(request("PUT", "/api/me/profile", token = token, json = body).decodeToString()))
+    }
+
+    // Walking route origin -> stop (optional) -> destination, computed by the server with the
+    // Google Routes API
+    suspend fun walkingRoute(token: String, origin: GeoPoint, stop: GeoPoint?, destination: GeoPoint): WalkingRoute {
+        fun point(p: GeoPoint) = JSONObject().put("lat", p.lat).put("lng", p.lng)
+        val body = JSONObject()
+            .put("origin", point(origin))
+            .put("stop", stop?.let { point(it) } ?: JSONObject.NULL)
+            .put("destination", point(destination))
+        val answer = request("POST", "/api/routes/walking", token = token, json = body).decodeToString()
+        return try {
+            val json = JSONObject(answer)
+            WalkingRoute(json.getDouble("distance_m"), PolylineCodec.decode(json.getString("polyline")))
+        } catch (e: JSONException) {
+            throw ApiException(500, "Invalid answer of the server")
+        }
+    }
 
     suspend fun uploadPicture(token: String, jpeg: ByteArray) {
         request("PUT", "/api/me/picture", token = token, jpeg = jpeg)
@@ -185,7 +230,11 @@ object ApiClient {
         id = json.getLong("id"),
         username = json.getString("username"),
         email = json.optString("email"),
-        hasPicture = json.getBoolean("has_picture")
+        hasPicture = json.getBoolean("has_picture"),
+        heightCm = json.doubleOrNull("height_cm"),
+        weightKg = json.doubleOrNull("weight_kg"),
+        birthYear = if (json.isNull("birth_year")) null else json.getInt("birth_year"),
+        sex = json.stringOrNull("sex")?.let { value -> Sex.entries.firstOrNull { it.json == value } }
     )
 
     private fun parsePost(json: JSONObject) = Post(

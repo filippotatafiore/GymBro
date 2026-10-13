@@ -203,7 +203,10 @@ class RoutePlannerActivity : FragmentActivity(), OnMapReadyCallback {
                 R.string.planned_goal,
                 getString(R.string.live_distance_km, formatLiveDistance(route.distanceMeters / 1000))
             )
-            routeKindText.setText(if (route.alongStreets) R.string.route_along_streets else R.string.route_straight_line)
+            // straight lines: also why the walking route is not available (e.g. key not set up on the server)
+            routeKindText.text =
+                if (route.alongStreets) getString(R.string.route_along_streets)
+                else getString(R.string.route_straight_line, route.problem.orEmpty())
             routeKindText.isVisible = true
             setStartEnabled(route.distanceMeters >= 100)
 

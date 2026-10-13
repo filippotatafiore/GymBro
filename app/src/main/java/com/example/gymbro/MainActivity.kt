@@ -15,6 +15,7 @@ import com.example.gymbro.ui.theme.GymBroTheme
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import com.example.gymbro.data.TrainingSession
+import com.example.gymbro.home.CalendarDrawer
 import com.example.gymbro.home.HomeFragment
 import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserSession
@@ -39,6 +40,9 @@ import kotlinx.coroutines.launch
 class MainActivity : FragmentActivity() {
 
     private lateinit var bottomNav: BottomNavBar
+
+    // Calendar sliding from the left (calendar button of the home)
+    private lateinit var calendar: CalendarDrawer
 
     // Permissions and goal asked before a run starts
     private val runSetup = RunSetup(this)
@@ -75,6 +79,15 @@ class MainActivity : FragmentActivity() {
         // --------------------------------------------------------- NAVBAR
 
         bottomNav = BottomNavBar(this, BottomNavBar.Page.HOME)
+
+
+        // --------------------------------------------------------- CALENDAR
+
+        calendar = CalendarDrawer(this)
+    }
+
+    fun openCalendar() {
+        calendar.open()
     }
 
     override fun onResume() {
