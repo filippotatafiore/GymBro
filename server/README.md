@@ -2,7 +2,8 @@
 
 Flask server that stores the app users (registration / login, body data) and the posts they
 publish, in a SQLite database (`gymbro.db`, created automatically on first start). It also computes
-the walking routes of the runs with the Google Routes API (the Google key stays on the server).
+the walking routes of the runs with OpenRouteService or the Google Routes API (their keys stay on
+the server).
 
 | Method | Path                          | Auth | Description                          |
 |--------|-------------------------------|------|--------------------------------------|
@@ -38,20 +39,27 @@ Body of `PUT /api/me/profile` (every value optional, null = not set):
 `{"height_cm": 180, "weight_kg": 72.5, "birth_year": 2001, "sex": "male" | "female" | "other"}`
 
 Body of `POST /api/routes/walking`: `{"origin": {"lat": 45.46, "lng": 9.19}, "stop": null,
-"destination": {"lat": 45.47, "lng": 9.18}}` (stop optional) -> `{"distance_m": 1234, "polyline": "..."}`
+"destination": {"lat": 45.47, "lng": 9.18}}` (stop optional) -> `{"distance_m": 1234, "polyline": "...",
+"provider": "OpenRouteService", "attribution": "..."}`
 
-## Google key for the walking routes
+## Keys for the walking routes
 
-The server calls the Google Routes API with its own key, read from the file
-`server/routes_api_key.txt` (or from the environment variable `ROUTES_API_KEY`). The file is
-ignored by git: never publish the key. Without it the app measures the planned routes in a straight line.
+The server asks the walking routes (the goal distance of the planned runs) to these services, in
+this order, until one answers (the services with a key only if the key is set up). The key files are
+ignored by git: never publish them. If no service answers, the app measures the planned routes in a
+straight line and shows why.
 
-In Google Cloud console > APIs & Services > Credentials > Create credentials > API key:
-- Application restrictions: None (on PythonAnywhere it can stay so: its servers have no fixed IP)
-- API restrictions: Restrict key > Routes API
-
-The key of the app (MAPS_API_KEY, restricted to the Android app) cannot be used here: the Android
-restriction works for the Maps SDK, not for the web services such as the Routes API.
+1. **OpenRouteService** (free, OpenStreetMap data, 2000 routes per day, non-commercial use):
+   file `server/ors_api_key.txt` (or environment variable `ORS_API_KEY`).
+   Free key: sign up at https://account.heigit.org (HeiGIT, the institute behind openrouteservice),
+   then create an API key of the free Standard plan in the dashboard.
+2. **OSRM of FOSSGIS** (https://routing.openstreetmap.de, free, no key, fair use: at most 1 request
+   per second): always used if OpenRouteService is not set up or does not answer.
+3. **Google Routes API** (optional, needs billing enabled on the Google Cloud project):
+   file `server/routes_api_key.txt` (or environment variable `ROUTES_API_KEY`).
+   Google Cloud console > APIs & Services > Credentials > Create credentials > API key, with
+   Application restrictions: None, API restrictions: Routes API. (The key of the app, restricted
+   to the Android app, cannot be used: that restriction works for the Maps SDK, not for web services.)
 
 ## Run it on your PC (for the Android emulator)
 

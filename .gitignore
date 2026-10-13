@@ -20,5 +20,6 @@ server/gymbro.db
 server/uploads/
 __pycache__/
 
-# Google key of the walking routes (server only, never in git)
+# Keys of the walking routes (server only, never in git)
 server/routes_api_key.txt
+server/ors_api_key.txt

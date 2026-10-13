@@ -204,9 +204,14 @@ class RoutePlannerActivity : FragmentActivity(), OnMapReadyCallback {
                 getString(R.string.live_distance_km, formatLiveDistance(route.distanceMeters / 1000))
             )
             // straight lines: also why the walking route is not available (e.g. key not set up on the server)
+            // walking route: also the service used and the credits it requires (OpenStreetMap)
             routeKindText.text =
-                if (route.alongStreets) getString(R.string.route_along_streets)
-                else getString(R.string.route_straight_line, route.problem.orEmpty())
+                if (route.alongStreets) {
+                    listOfNotNull(getString(R.string.route_along_streets, route.provider.orEmpty()), route.attribution)
+                        .joinToString("\n")
+                } else {
+                    getString(R.string.route_straight_line, route.problem.orEmpty())
+                }
             routeKindText.isVisible = true
             setStartEnabled(route.distanceMeters >= 100)
 

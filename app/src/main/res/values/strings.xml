@@ -94,7 +94,7 @@
     <string name="planner_hint_stop">Tap the map or search a place to set a stop on the way</string>
     <string name="planned_goal">Goal: %1$s</string>
     <string name="calculating_route">Calculating the route…</string>
-    <string name="route_along_streets">Walking route by Google Maps</string>
+    <string name="route_along_streets">Walking route by %1$s</string>
     <string name="route_straight_line">Straight line. Walking route not available: %1$s</string>
     <string name="remove_stop">Remove the stop</string>
     <string name="no_places_found">No places found</string>

@@ -37,8 +37,9 @@ data class User(
     val sex: Sex? = null
 )
 
-// A walking route computed by the server (Google Routes API)
-class WalkingRoute(val distanceMeters: Double, val path: List<GeoPoint>)
+// A walking route computed by the server. provider: the service used (e.g. "OpenRouteService");
+// attribution: the credits that the service requires to show with its results (null if none)
+class WalkingRoute(val distanceMeters: Double, val path: List<GeoPoint>, val provider: String, val attribution: String?)
 
 data class AuthResult(val token: String, val user: User)
 
@@ -93,18 +94,25 @@ object ApiClient {
         return parseUser(JSONObject(request("PUT", "/api/me/profile", token = token, json = body).decodeToString()))
     }
 
-    // Walking route origin -> stop (optional) -> destination, computed by the server with the
-    // Google Routes API
+    // Walking route origin -> stop (optional) -> destination, computed by the server with
+    // OpenRouteService or the Google Routes API
     suspend fun walkingRoute(token: String, origin: GeoPoint, stop: GeoPoint?, destination: GeoPoint): WalkingRoute {
         fun point(p: GeoPoint) = JSONObject().put("lat", p.lat).put("lng", p.lng)
         val body = JSONObject()
             .put("origin", point(origin))
             .put("stop", stop?.let { point(it) } ?: JSONObject.NULL)
             .put("destination", point(destination))
-        val answer = request("POST", "/api/routes/walking", token = token, json = body).decodeToString()
+        // the server may try more than one routing service: it can take longer than the other requests
+        val answer = request("POST", "/api/routes/walking", token = token, json = body, readTimeoutMs = 30_000)
+            .decodeToString()
         return try {
             val json = JSONObject(answer)
-            WalkingRoute(json.getDouble("distance_m"), PolylineCodec.decode(json.getString("polyline")))
+            WalkingRoute(
+                distanceMeters = json.getDouble("distance_m"),
+                path = PolylineCodec.decode(json.getString("polyline")),
+                provider = json.optString("provider", "Google Maps"),
+                attribution = json.stringOrNull("attribution")
+            )
         } catch (e: JSONException) {
             throw ApiException(500, "Invalid answer of the server")
         }
@@ -185,13 +193,14 @@ object ApiClient {
         path: String,
         token: String? = null,
         json: JSONObject? = null,
-        jpeg: ByteArray? = null
+        jpeg: ByteArray? = null,
+        readTimeoutMs: Int = 15_000
     ): ByteArray = withContext(Dispatchers.IO) {
         val connection = URL(baseUrl + path).openConnection() as HttpURLConnection
         try {
             connection.requestMethod = method
             connection.connectTimeout = 10_000
-            connection.readTimeout = 15_000
+            connection.readTimeout = readTimeoutMs
             token?.let { connection.setRequestProperty("Authorization", "Bearer $it") }
 
             val body = json?.toString()?.toByteArray() ?: jpeg

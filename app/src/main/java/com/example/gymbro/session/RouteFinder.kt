@@ -29,23 +29,30 @@ object RouteFinder {
 
     private const val TAG = "RouteFinder"
 
-    // alongStreets = false: straight lines, because the walking route was not available (problem: why)
+    // alongStreets = false: straight lines, because the walking route was not available (problem: why).
+    // provider and attribution: the service that computed the walking route and its credits.
     class PlannedRoute(
         val distanceMeters: Double,
         val path: List<GeoPoint>,
         val alongStreets: Boolean,
-        val problem: String? = null
+        val problem: String? = null,
+        val provider: String? = null,
+        val attribution: String? = null
     )
 
     // Walking route from the position of the user to the destination, through the stop (if any):
-    // its distance is the goal of the run. It is computed by the GymBro server with the Google
-    // Routes API (the Google key stays on the server). If that is not possible (server or Google
-    // not reachable, key not set up...) the distance is measured along straight lines.
+    // its distance is the goal of the run. It is computed by the GymBro server with
+    // OpenRouteService (free, OpenStreetMap data) or the Google Routes API: their keys stay on the
+    // server. If that is not possible (server not reachable, keys not set up...) the distance is
+    // measured along straight lines.
     suspend fun walkingRoute(context: Context, origin: GeoPoint, stop: GeoPoint?, destination: GeoPoint): PlannedRoute {
         val problem = try {
             val token = UserSession.token ?: throw ApiException(401, "Login required")
             val route = ApiClient.walkingRoute(token, origin, stop, destination)
-            return PlannedRoute(route.distanceMeters, route.path, alongStreets = true)
+            return PlannedRoute(
+                route.distanceMeters, route.path, alongStreets = true,
+                provider = route.provider, attribution = route.attribution
+            )
         } catch (e: ApiException) {
             Log.w(TAG, "Walking route not available, using straight lines: ${e.message}")
             e.userMessage(context)

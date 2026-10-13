@@ -3,8 +3,8 @@ GymBro REST API.
 
 A small Flask server that stores the users of the app (with their body data) and the posts
 they publish (results of finished gym/run sessions or results added manually) in a SQL (SQLite)
-database. It also computes the walking routes of the runs with the Google Routes API, so that
-the Google key stays on the server.
+database. It also computes the walking routes of the runs with OpenRouteService (or the Google
+Routes API), so that the keys of these services stay on the server.
 
 Run it locally (Android emulator reaches it at http://10.0.2.2:5000):
     python app.py
@@ -29,9 +29,15 @@ from werkzeug.security import check_password_hash, generate_password_hash
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("GYMBRO_DB", os.path.join(BASE_DIR, "gymbro.db"))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-# Google API key for the Routes API (see README.md): environment variable or text file
-ROUTES_KEY_FILE = os.path.join(BASE_DIR, "routes_api_key.txt")
-ROUTES_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
+# Walking routes of the runs (see README.md): keys in environment variables or text files
+ORS_KEY_FILE = os.path.join(BASE_DIR, "ors_api_key.txt")                # OpenRouteService (free)
+ORS_URL = "https://api.openrouteservice.org/v2/directions/foot-walking"
+GOOGLE_ROUTES_KEY_FILE = os.path.join(BASE_DIR, "routes_api_key.txt")   # Google (needs billing)
+GOOGLE_ROUTES_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
+# Public OSRM server of FOSSGIS (OpenStreetMap data, no key): used if the services above fail
+OSRM_FOOT_URL = "https://routing.openstreetmap.de/routed-foot/route/v1/foot/"
+# Maximum wait for each service: the app waits 30 s for the whole answer of the server
+SERVICE_TIMEOUT_S = 8
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # biggest accepted request (profile pictures)
@@ -500,17 +506,18 @@ def publish_post():
     return jsonify(post_json(row)), 201
 
 
-def routes_api_key():
-    """Google key for the Routes API: variable ROUTES_API_KEY or file routes_api_key.txt."""
-    key = os.environ.get("ROUTES_API_KEY", "").strip()
-    if not key and os.path.exists(ROUTES_KEY_FILE):
-        with open(ROUTES_KEY_FILE, encoding="utf-8") as file:
+def api_key(variable, file_path):
+    """A key of an external service: environment variable or text file (None if missing)."""
+    key = os.environ.get(variable, "").strip()
+    if not key and os.path.exists(file_path):
+        # utf-8-sig: also files saved with a BOM (e.g. by some Windows editors)
+        with open(file_path, encoding="utf-8-sig") as file:
             key = file.read().strip()
     return key or None
 
 
 def route_point(data, key):
-    """A point of the request ({"lat": ..., "lng": ...}) in the format of the Routes API, or None."""
+    """A point of the request ({"lat": ..., "lng": ...}) as (lat, lng), or None."""
     point = data.get(key)
     if not isinstance(point, dict):
         return None
@@ -518,26 +525,123 @@ def route_point(data, key):
     lng = number(point, "lng", -180, 180)
     if lat is None or lng is None:
         return None
-    return {"location": {"latLng": {"latitude": lat, "longitude": lng}}}
+    return lat, lng
 
 
-def google_error_message(http_error):
-    """The message of an error answer of a Google API."""
+class RouteError(Exception):
+    """A walking route service could not give the route (the message says why)."""
+
+
+def call_service(url, service, body=None, headers=None):
+    """Request to an external service (POST of a JSON body, or GET if there is no body).
+    Returns its JSON answer, or raises RouteError."""
+    service_request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode() if body is not None else None,
+        method="POST" if body is not None else "GET",
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            # the public services ask to say who is calling
+            "User-Agent": "GymBro/1.0 (university project)",
+            **(headers or {}),
+        },
+    )
     try:
-        message = json.loads(http_error.read().decode())["error"]["message"]
-    except (ValueError, KeyError, TypeError):
-        message = f"error {http_error.code}"
-    if http_error.code == 403:
-        # Routes API answers only "The caller does not have permission" also when the cause is
-        # the billing of the project
-        message += " (check in Google Cloud that billing is enabled for the project of the key)"
-    return message
+        with urllib.request.urlopen(service_request, timeout=SERVICE_TIMEOUT_S) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as e:
+        raise RouteError(f"{service}: {error_message(e)}")
+    except (urllib.error.URLError, TimeoutError, OSError):
+        raise RouteError(f"{service} not reachable (no answer in {SERVICE_TIMEOUT_S} s)")
+
+
+def error_message(http_error):
+    """The message of an error answer: {"error": "..."} or {"error": {"message": "..."}}."""
+    try:
+        message = json.loads(http_error.read().decode()).get("error")
+    except (ValueError, AttributeError):
+        message = None
+    if isinstance(message, dict):
+        message = message.get("message")
+    return str(message) if message else f"error {http_error.code}"
+
+
+def route_openrouteservice(key, points):
+    """Walking route with OpenRouteService (free, OpenStreetMap data): (meters, encoded polyline).
+    https://giscience.github.io/openrouteservice/api-reference/endpoints/directions/"""
+    # OpenRouteService wants the points as [longitude, latitude]
+    body = {"coordinates": [[lng, lat] for lat, lng in points]}
+    answer = call_service(ORS_URL, "OpenRouteService", body, {"Authorization": key})
+    routes = answer.get("routes") or []
+    if not routes:
+        raise RouteError("OpenRouteService: no walking route found")
+    # geometry: Google encoded polyline (the same format used by the app)
+    return routes[0].get("summary", {}).get("distance", 0), routes[0].get("geometry", "")
+
+
+def route_google(key, points):
+    """Walking route with the Google Routes API (needs billing enabled): (meters, encoded polyline)."""
+    def waypoint(point):
+        return {"location": {"latLng": {"latitude": point[0], "longitude": point[1]}}}
+
+    body = {"origin": waypoint(points[0]), "destination": waypoint(points[-1]), "travelMode": "WALK"}
+    if len(points) > 2:
+        body["intermediates"] = [waypoint(p) for p in points[1:-1]]
+    headers = {
+        "X-Goog-Api-Key": key,
+        # only the needed fields of the answer
+        "X-Goog-FieldMask": "routes.distanceMeters,routes.polyline.encodedPolyline",
+    }
+    try:
+        answer = call_service(GOOGLE_ROUTES_URL, "Google Routes API", body, headers)
+    except RouteError as e:
+        # the Routes API answers only "The caller does not have permission" also when the cause
+        # is the billing of the project
+        if "permission" in str(e):
+            raise RouteError(f"{e} (check in Google Cloud that billing is enabled for the project of the key)")
+        raise
+    routes = answer.get("routes") or []
+    if not routes:
+        raise RouteError("Google Routes API: no walking route found")
+    return routes[0].get("distanceMeters", 0), routes[0].get("polyline", {}).get("encodedPolyline", "")
+
+
+def route_osrm(_key, points):
+    """Walking route with the public OSRM server of FOSSGIS (free, no key, OpenStreetMap data):
+    (meters, encoded polyline). Fair use: at most 1 request per second, no heavy usage.
+    https://routing.openstreetmap.de/about.html"""
+    # OSRM wants the points as "longitude,latitude;longitude,latitude"
+    coordinates = ";".join(f"{lng},{lat}" for lat, lng in points)
+    answer = call_service(f"{OSRM_FOOT_URL}{coordinates}?overview=full&geometries=polyline", "OSRM (FOSSGIS)")
+    routes = answer.get("routes") or []
+    if answer.get("code") != "Ok" or not routes:
+        raise RouteError(f"OSRM (FOSSGIS): {answer.get('message', 'no walking route found')}")
+    # geometry: Google encoded polyline (the same format used by the app)
+    return routes[0].get("distance", 0), routes[0].get("geometry", "")
+
+
+# Walking route services, in order of preference: (name shown in the app, key, function, attribution).
+# The services with a key are used only if their key is set up; OSRM (FOSSGIS) needs no key.
+def route_services():
+    services = []
+    ors_key = api_key("ORS_API_KEY", ORS_KEY_FILE)
+    if ors_key:
+        services.append(("OpenRouteService", ors_key, route_openrouteservice,
+                         "© openrouteservice.org by HeiGIT · Map data © OpenStreetMap contributors"))
+    services.append(("OpenStreetMap (FOSSGIS)", None, route_osrm,
+                     "Routing © FOSSGIS (routing.openstreetmap.de) · Map data © OpenStreetMap contributors"))
+    google_key = api_key("ROUTES_API_KEY", GOOGLE_ROUTES_KEY_FILE)
+    if google_key:
+        services.append(("Google Maps", google_key, route_google, None))
+    return services
 
 
 @app.post("/api/routes/walking")
 @login_required
 def walking_route():
-    """Walking route origin -> stop (optional) -> destination, from the Google Routes API.
+    """Walking route origin -> stop (optional) -> destination, from the first service that answers:
+    OpenRouteService, OSRM of FOSSGIS, Google Routes API. The keys of the services stay on the server.
     Body: {"origin": {"lat": .., "lng": ..}, "stop": {...} or null, "destination": {...}}"""
     data = request.get_json(silent=True) or {}
     origin = route_point(data, "origin")
@@ -545,40 +649,17 @@ def walking_route():
     stop = route_point(data, "stop")
     if origin is None or destination is None or (data.get("stop") is not None and stop is None):
         return error(400, "Invalid points")
+    points = [origin] + ([stop] if stop is not None else []) + [destination]
 
-    key = routes_api_key()
-    if key is None:
-        return error(503, "Walking routes are not set up on the server (routes_api_key.txt missing)")
-
-    body = {"origin": origin, "destination": destination, "travelMode": "WALK"}
-    if stop is not None:
-        body["intermediates"] = [stop]
-    google_request = urllib.request.Request(
-        ROUTES_URL,
-        data=json.dumps(body).encode(),
-        method="POST",
-        headers={
-            "Content-Type": "application/json",
-            "X-Goog-Api-Key": key,
-            # only the needed fields of the answer
-            "X-Goog-FieldMask": "routes.distanceMeters,routes.polyline.encodedPolyline",
-        },
-    )
-    try:
-        with urllib.request.urlopen(google_request, timeout=15) as response:
-            answer = json.load(response)
-    except urllib.error.HTTPError as e:
-        return error(502, "Google Routes API: " + google_error_message(e))
-    except (urllib.error.URLError, TimeoutError):
-        return error(502, "Google Routes API not reachable")
-
-    routes = answer.get("routes") or []
-    if not routes:
-        return error(404, "No walking route found between these points")
-    return jsonify({
-        "distance_m": routes[0].get("distanceMeters", 0),
-        "polyline": routes[0].get("polyline", {}).get("encodedPolyline", ""),
-    })
+    problems = []
+    for name, key, compute, attribution in route_services():
+        try:
+            meters, polyline = compute(key, points)
+        except RouteError as e:
+            problems.append(str(e))
+            continue
+        return jsonify({"distance_m": meters, "polyline": polyline, "provider": name, "attribution": attribution})
+    return error(502, "; ".join(problems))
 
 
 @app.delete("/api/me/posts/<int:post_id>")
