@@ -1,19 +1,28 @@
 # GymBro REST API
 
-Flask server that stores the app users (registration / login, body data) and the posts they
-publish, in a SQLite database (`gymbro.db`, created automatically on first start). It also computes
-the walking routes of the runs with OpenRouteService or the Google Routes API (their keys stay on
-the server).
+Flask server that stores the app users (registration / login, body data, profile pictures) and
+the posts they publish in **Cloud Firestore**, the database of Firebase. It also computes the
+walking routes of the runs with OpenRouteService or the Google Routes API (their keys stay on the
+server).
+
+It runs online for free, always reachable, without your PC:
+
+- **Server**: [Vercel](https://vercel.com) (Hobby plan, free, no credit card). Every push to
+  GitHub updates it.
+- **Database**: Firebase, Cloud Firestore (Spark plan, free, no credit card).
+
+(Firebase could also run the server, with Cloud Functions, but they need the Blaze plan, with a
+billing account linked to the project.)
 
 | Method | Path                          | Auth | Description                          |
 |--------|-------------------------------|------|--------------------------------------|
-| GET    | `/api/health`                 |      | Check that the server is running     |
+| GET    | `/api/health`                 |      | Server running and database reachable|
 | POST   | `/api/register`               |      | `{username, email, password}`        |
 | POST   | `/api/login`                  |      | `{email, password}`                  |
 | POST   | `/api/logout`                 | yes  | Invalidates the token                |
 | GET    | `/api/me`                     | yes  | Logged user (with email, body data)  |
 | PUT    | `/api/me/profile`             | yes  | Body data (see below)                |
-| PUT    | `/api/me/picture`             | yes  | Body: JPEG image                     |
+| PUT    | `/api/me/picture`             | yes  | Body: JPEG image (max 900 KB)        |
 | POST   | `/api/me/posts`               | yes  | Publish a post (see below)           |
 | DELETE | `/api/me/posts/<id>`          | yes  | Delete one of your posts             |
 | POST   | `/api/routes/walking`         | yes  | Walking route (see below)            |
@@ -42,28 +51,56 @@ Body of `POST /api/routes/walking`: `{"origin": {"lat": 45.46, "lng": 9.19}, "st
 "destination": {"lat": 45.47, "lng": 9.18}}` (stop optional) -> `{"distance_m": 1234, "polyline": "...",
 "provider": "OpenRouteService", "attribution": "..."}`
 
-## Keys for the walking routes
+## Data in Firestore
 
-The server asks the walking routes (the goal distance of the planned runs) to these services, in
-this order, until one answers (the services with a key only if the key is set up). The key files are
-ignored by git: never publish them. If no service answers, the app measures the planned routes in a
-straight line and shows why.
+The collections (the "tables" of Firestore) are described at the top of `app.py`: `users`, `posts`,
+`tokens`, `pictures`, plus `usernames` and `emails` (they keep usernames and emails unique) and
+`counters` (the ids 1, 2, 3... of users and posts). To see the data: Firebase console >
+your project > **Firestore Database** > **Data**.
 
-1. **OpenRouteService** (free, OpenStreetMap data, 2000 routes per day, non-commercial use):
-   file `server/ors_api_key.txt` (or environment variable `ORS_API_KEY`).
-   Free key: sign up at https://account.heigit.org (HeiGIT, the institute behind openrouteservice),
-   then create an API key of the free Standard plan in the dashboard.
+## Keys (never in git)
+
+| What | On Vercel (Settings > Environment Variables) | On your PC (files in this folder) |
+|------|----------------------------------------------|-----------------------------------|
+| Firebase service account (database) | `FIREBASE_SERVICE_ACCOUNT` = the whole content of the JSON file | `firebase_key.json` |
+| OpenRouteService (walking routes) | `ORS_API_KEY` | `ors_api_key.txt` |
+| Google Routes API (optional, needs billing) | `ROUTES_API_KEY` | `routes_api_key.txt` |
+
+The files are ignored by git. The Firebase key gives full access to the database: never publish it.
+
+Firebase key: Firebase console > ⚙ **Project settings** > **Service accounts** >
+**Generate new private key**.
+
+Walking routes: the server asks them to these services, in this order, until one answers (the
+services with a key only if the key is set up). If no service answers, the app measures the planned
+routes in a straight line and shows why.
+
+1. **OpenRouteService** (free, OpenStreetMap data, 2000 routes per day, non-commercial use).
+   Free key: sign up at https://account.heigit.org, then create an API key of the free Standard plan.
 2. **OSRM of FOSSGIS** (https://routing.openstreetmap.de, free, no key, fair use: at most 1 request
-   per second): always used if OpenRouteService is not set up or does not answer.
-3. **Google Routes API** (optional, needs billing enabled on the Google Cloud project):
-   file `server/routes_api_key.txt` (or environment variable `ROUTES_API_KEY`).
-   Google Cloud console > APIs & Services > Credentials > Create credentials > API key, with
-   Application restrictions: None, API restrictions: Routes API. (The key of the app, restricted
-   to the Android app, cannot be used: that restriction works for the Maps SDK, not for web services.)
+   per second): used if OpenRouteService is not set up or does not answer.
+3. **Google Routes API** (optional, needs billing enabled on the Google Cloud project). Key with
+   Application restrictions: None, API restrictions: Routes API.
 
-## Run it on your PC (for the Android emulator)
+## Deploy on Vercel
 
-From the `server` folder:
+1. Push the project to GitHub.
+2. On https://vercel.com: sign up with GitHub (Hobby plan), then **Add New... > Project** and
+   import the GymBro repository.
+3. **Root Directory**: `server`. The Framework Preset becomes **Flask** (`app.py` defines `app`).
+4. **Environment Variables**: `FIREBASE_SERVICE_ACCOUNT` and `ORS_API_KEY` (see above).
+5. **Deploy**. Then open `https://<project>.vercel.app/api/health`: it must answer
+   `{"database": "ok", "status": "ok"}`.
+6. In the Android project, add to `local.properties`: `API_BASE_URL=https://<project>.vercel.app/`
+   and run the app again.
+
+`vercel.json` runs the server in Frankfurt (`fra1`), close to the database (create it in Europe).
+Use the production domain shown in **Domains** (`<project>.vercel.app`): the other URLs of the
+single deployments ask for a Vercel login.
+
+## Run it on your PC (optional, to try changes before pushing them)
+
+From the `server` folder, with `firebase_key.json` in it (it uses the same online database):
 
 ```
 python -m venv .venv
@@ -72,31 +109,17 @@ pip install -r requirements.txt
 python app.py
 ```
 
-The emulator reaches the PC at `http://10.0.2.2:5000` (already the app default).
-Check it in a browser on the PC: http://127.0.0.1:5000/api/health
+The emulator reaches the PC at `http://10.0.2.2:5000`: remove `API_BASE_URL` from
+`local.properties` (it is the default) and run the app again.
 
-To see what is in the database (users, posts, logins), from another terminal in the `server` folder:
+## Copy the old SQLite database (once)
+
+`migrate_to_firestore.py` copies `gymbro.db` and the `uploads` folder of the old server into
+Firestore, with the same ids (users, passwords, logins, posts, pictures). With `firebase_key.json`
+in this folder and the virtual environment above:
 
 ```
-.venv\Scripts\python show_db.py
+.venv\Scripts\python migrate_to_firestore.py
 ```
 
-To start again with an empty database: stop the server (Ctrl+C), delete `gymbro.db` and the
-`uploads` folder, start the server again.
-
-## Deploy it on PythonAnywhere
-
-1. Create a free account on https://www.pythonanywhere.com
-2. Open a **Bash console** and upload the code, e.g. `git clone <your repo url>`
-   (or upload `app.py` and `requirements.txt` from the **Files** tab into `~/gymbro`).
-3. In the console: `pip install --user -r <path to>/server/requirements.txt`
-4. **Web** tab > **Add a new web app** > **Manual configuration** > Python 3.x.
-5. In the **WSGI configuration file** replace everything with (adjust the path):
-   ```python
-   import sys
-   sys.path.insert(0, "/home/<your username>/GymBro/server")
-   from app import app as application
-   ```
-6. Click **Reload**, then open `https://<your username>.pythonanywhere.com/api/health`.
-7. In the Android project, add to `local.properties`:
-   `API_BASE_URL=https://<your username>.pythonanywhere.com/` and rebuild the app.
+Then `gymbro.db`, `uploads` and `migrate_to_firestore.py` can be deleted.

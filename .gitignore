@@ -14,10 +14,12 @@
 .cxx
 local.properties
 
-# REST API server: local virtualenv, database and uploaded pictures
+# REST API server: local virtualenv, key of the Firebase database, old SQLite database and pictures
 server/.venv/
+server/firebase_key.json
 server/gymbro.db
 server/uploads/
+server/.vercel/
 __pycache__/
 
 # Keys of the walking routes (server only, never in git)

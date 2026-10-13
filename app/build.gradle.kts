@@ -20,9 +20,13 @@ if (mapsApiKey.isBlank()) {
     logger.warn("MAPS_API_KEY not found in local.properties: the map of the Run page will not load.")
 }
 
-// Address of the GymBro REST API (server/ folder). 10.0.2.2 is the PC as seen from the emulator.
-// Set API_BASE_URL in local.properties to use the server deployed on PythonAnywhere.
+// Address of the GymBro REST API (server/ folder): API_BASE_URL in local.properties, the server
+// online on Vercel (e.g. https://gymbro.vercel.app/). Without it: the server started on this PC
+// (10.0.2.2 is the PC as seen from the emulator).
 val apiBaseUrl: String = localProperties.getProperty("API_BASE_URL", "http://10.0.2.2:5000/")
+if (localProperties.getProperty("API_BASE_URL").isNullOrBlank()) {
+    logger.warn("API_BASE_URL not found in local.properties: the app will use the server started on this PC.")
+}
 
 android {
     namespace = "com.example.gymbro"

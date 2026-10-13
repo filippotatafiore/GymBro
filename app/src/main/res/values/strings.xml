@@ -125,7 +125,7 @@
     <string name="error_fill_all">Please fill in all the fields</string>
     <string name="error_invalid_email">Invalid email address</string>
     <string name="error_short_password">The password must be at least 6 characters</string>
-    <string name="error_server_unreachable">Cannot reach the GymBro server. Is it running?</string>
+    <string name="error_server_unreachable">Cannot reach the GymBro server. Check your internet connection.</string>
     <string name="error_picture">Unable to read the selected picture</string>
 
     <!-- profile -->

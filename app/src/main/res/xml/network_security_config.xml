@@ -2,7 +2,7 @@
 
 <!-- Plain HTTP (not encrypted) is allowed only towards the development server running on this PC:
      10.0.2.2 is the PC as seen from the Android emulator. Everything else must use HTTPS
-     (e.g. the server deployed on PythonAnywhere). -->
+     (e.g. the server online on Vercel). -->
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">10.0.2.2</domain>

@@ -51,7 +51,8 @@ fun ApiException.userMessage(context: Context): String =
     if (code == 0) context.getString(R.string.error_server_unreachable) else message.orEmpty()
 
 
-// Calls to the GymBro REST API (server/ folder of the project). The functions are "suspend":
+// Calls to the GymBro REST API (server/ folder of the project, online on Vercel with the data in
+// Firebase Cloud Firestore). The functions are "suspend":
 // the network operations run in background (Dispatchers.IO), never blocking the app.
 object ApiClient {
 

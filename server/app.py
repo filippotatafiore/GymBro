@@ -2,14 +2,13 @@
 GymBro REST API.
 
 A small Flask server that stores the users of the app (with their body data) and the posts
-they publish (results of finished gym/run sessions or results added manually) in a SQL (SQLite)
-database. It also computes the walking routes of the runs with OpenRouteService (or the Google
-Routes API), so that the keys of these services stay on the server.
+they publish (results of finished gym/run sessions or results added manually) in Cloud Firestore,
+the database of Firebase. It also computes the walking routes of the runs with OpenRouteService
+(or the Google Routes API), so that the keys of these services stay on the server.
 
-Run it locally (Android emulator reaches it at http://10.0.2.2:5000):
+It runs online on Vercel, always reachable (see README.md). To run it on this PC instead
+(the Android emulator reaches it at http://10.0.2.2:5000):
     python app.py
-
-On PythonAnywhere the WSGI file imports `app` from this module (see README.md).
 """
 
 import hashlib
@@ -17,18 +16,21 @@ import json
 import os
 import re
 import secrets
-import sqlite3
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from functools import wraps
 
-from flask import Flask, g, jsonify, request, send_file
+from flask import Flask, Response, g, jsonify, request
+from google.api_core.exceptions import GoogleAPIError
+from google.auth.exceptions import GoogleAuthError
+from google.cloud import firestore
 from werkzeug.security import check_password_hash, generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.environ.get("GYMBRO_DB", os.path.join(BASE_DIR, "gymbro.db"))
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+# Key of the Firebase service account, which lets the server use the database (see README.md):
+# environment variable FIREBASE_SERVICE_ACCOUNT (on Vercel) or this file (on this PC)
+FIREBASE_KEY_FILE = os.path.join(BASE_DIR, "firebase_key.json")
 # Walking routes of the runs (see README.md): keys in environment variables or text files
 ORS_KEY_FILE = os.path.join(BASE_DIR, "ors_api_key.txt")                # OpenRouteService (free)
 ORS_URL = "https://api.openrouteservice.org/v2/directions/foot-walking"
@@ -38,107 +40,131 @@ GOOGLE_ROUTES_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
 OSRM_FOOT_URL = "https://routing.openstreetmap.de/routed-foot/route/v1/foot/"
 # Maximum wait for each service: the app waits 30 s for the whole answer of the server
 SERVICE_TIMEOUT_S = 8
+# Biggest profile picture: a Firestore document holds at most 1 MiB (the app sends ~50-150 KB)
+MAX_PICTURE_BYTES = 900_000
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # biggest accepted request (profile pictures)
+app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # biggest accepted request (Vercel: at most 4.5 MB)
 
 
-# ------------------------------------------------------------------ DATABASE
+# ------------------------------------------------------------------ DATABASE (Cloud Firestore)
+#
+# Firestore stores "documents" (similar to the rows of a SQL table) in "collections":
+#
+#   users/{id}       a user: id, username, email, password_hash, has_picture, created_at and the
+#                    body data (null = not set): height_cm, weight_kg, birth_year,
+#                    sex ('male', 'female' or 'other')
+#   usernames/{key}  {user_id}: one for each username (key = hash of the username in lowercase).
+#   emails/{key}     {user_id}: the same for the emails. They keep usernames and emails unique,
+#                    also ignoring upper/lower case, and let the login find the user of an email.
+#   tokens/{hash}    {user_id, created_at}: one for each logged-in device. Only the hash of the
+#                    token is stored, so a leaked database does not leak valid tokens.
+#   posts/{id}       a post published by a user on their profile: id, user_id, kind, title,
+#                    created_at and, depending on the kind:
+#                      manual: a result added by hand, e.g. Deadlift - weight - 150 kg - higher is
+#                              better: metric ('time' or 'weight'), better ('higher' or 'lower'),
+#                              amount (seconds or kg), notes
+#                      gym:    a finished gym session: duration_s, session_start, exercises
+#                      run:    a finished run session: duration_s, session_start, distance_km
+#                              (rounded to 0.1 km) and, if known, kcal, max_speed_kmh, goal_km,
+#                              route (list of lines, as Google encoded polylines)
+#   pictures/{id}    {jpeg, updated_at}: the profile picture of the user with that id
+#   counters/{name}  {last}: last id given to the users / posts. The ids are numbers 1, 2, 3...
+#                    (like AUTOINCREMENT in SQL), the same ids used by the app.
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS users (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    username      TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-    email         TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-    password_hash TEXT    NOT NULL,
-    has_picture   INTEGER NOT NULL DEFAULT 0,
-    created_at    TEXT    NOT NULL,
-    -- body data (optional): calories of the runs, BMI
-    height_cm     REAL,
-    weight_kg     REAL,
-    birth_year    INTEGER,
-    sex           TEXT              -- 'male', 'female' or 'other'
-);
-
--- Login tokens: only their hash is stored, so a leaked database does not leak valid tokens
-CREATE TABLE IF NOT EXISTS tokens (
-    token_hash TEXT    PRIMARY KEY,
-    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TEXT    NOT NULL
-);
-
--- Posts published by the users on their profile. Three kinds:
---   manual: a result added by hand, e.g. Deadlift - weight - 150 kg - higher is better
---   gym:    a finished gym session (training time + exercises)
---   run:    a finished run session (training time, distance, statistics and route followed)
-CREATE TABLE IF NOT EXISTS posts (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    kind          TEXT    NOT NULL CHECK (kind IN ('manual', 'gym', 'run')),
-    title         TEXT    NOT NULL,  -- exercise/activity (manual), 'Gym session' or 'Run'
-    metric        TEXT,              -- manual: 'time' or 'weight'
-    better        TEXT,              -- manual: 'higher' or 'lower' (which result is better)
-    amount        REAL,              -- manual: seconds (time) or kg (weight)
-    notes         TEXT,              -- manual, optional
-    duration_s    INTEGER,           -- gym / run: training time in seconds
-    distance_km   REAL,              -- run: rounded to 0.1 km
-    kcal          REAL,              -- run: calories burned (estimated)
-    max_speed_kmh REAL,              -- run
-    goal_km       REAL,              -- run: goal distance (NULL = no goal)
-    route         TEXT,              -- run: JSON list of lines (Google encoded polylines)
-    exercises     TEXT,              -- gym: JSON list of the exercises
-    session_start TEXT,              -- gym / run: when the session was done
-    created_at    TEXT    NOT NULL
-);
-
--- Old format of the published results, replaced by "posts"
-DROP TABLE IF EXISTS results;
-"""
+class DatabaseNotSetUp(Exception):
+    """The key of the Firebase service account is missing or invalid."""
 
 
-# Columns added to the tables after their first version: added to the existing databases too
-# (the users and posts already there are kept, with these columns empty)
-NEW_COLUMNS = {
-    "users": {
-        "height_cm": "REAL",
-        "weight_kg": "REAL",
-        "birth_year": "INTEGER",
-        "sex": "TEXT",
-    },
-    "posts": {
-        "kcal": "REAL",
-        "max_speed_kmh": "REAL",
-        "goal_km": "REAL",
-        "route": "TEXT",
-    },
-}
+_database = None
 
 
-def init_db():
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    with sqlite3.connect(DB_PATH) as db:
-        db.executescript(SCHEMA)
-        for table, columns in NEW_COLUMNS.items():
-            existing = {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
-            for column, sql_type in columns.items():
-                if column not in existing:
-                    db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {sql_type}")
+def database():
+    """The Firestore database: connected at the first request, then reused."""
+    global _database
+    if _database is None:
+        if os.environ.get("FIRESTORE_EMULATOR_HOST"):
+            # tests on this PC with the Firestore emulator of Firebase: no key needed
+            _database = firestore.Client(project=os.environ.get("GOOGLE_CLOUD_PROJECT", "demo-gymbro"))
+        else:
+            try:
+                _database = firestore.Client.from_service_account_info(service_account())
+            except ValueError as e:
+                raise DatabaseNotSetUp(f"invalid key of the Firebase service account: {e}")
+    return _database
 
 
-def get_db():
-    """One database connection per request."""
-    if "db" not in g:
-        g.db = sqlite3.connect(DB_PATH)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys = ON")
-    return g.db
+def service_account():
+    """The key of the Firebase service account (the JSON downloaded from the Firebase console)."""
+    text = os.environ.get("FIREBASE_SERVICE_ACCOUNT", "").strip()
+    if not text and os.path.exists(FIREBASE_KEY_FILE):
+        # utf-8-sig: also files saved with a BOM (e.g. by some Windows editors)
+        with open(FIREBASE_KEY_FILE, encoding="utf-8-sig") as file:
+            text = file.read()
+    if not text:
+        raise DatabaseNotSetUp("FIREBASE_SERVICE_ACCOUNT / firebase_key.json missing")
+    try:
+        return json.loads(text)
+    except ValueError:
+        raise DatabaseNotSetUp("the key of the Firebase service account is not valid JSON")
 
 
-@app.teardown_appcontext
-def close_db(_exception):
-    db = g.pop("db", None)
-    if db is not None:
-        db.close()
+def lookup_key(value):
+    """Id of the usernames/emails documents: hash of the value in lowercase (any character is
+    allowed, also '/', which Firestore ids cannot contain)."""
+    return hashlib.sha256(value.lower().encode()).hexdigest()
+
+
+def new_id(transaction, counter):
+    """Next id of the users or posts. Inside a transaction: two requests arriving at the same time
+    never get the same id."""
+    ref = database().collection("counters").document(counter)
+    snapshot = ref.get(transaction=transaction)
+    last = snapshot.to_dict().get("last", 0) if snapshot.exists else 0
+    transaction.set(ref, {"last": last + 1})
+    return last + 1
+
+
+def get_user(user_id):
+    """The user with this id (a dict), or None."""
+    snapshot = database().collection("users").document(str(user_id)).get()
+    return snapshot.to_dict() if snapshot.exists else None
+
+
+@firestore.transactional
+def create_user(transaction, username, email, password_hash):
+    """The new user, or None if the username or the email are already registered. A transaction:
+    the checks and the writes happen together."""
+    db = database()
+    username_ref = db.collection("usernames").document(lookup_key(username))
+    email_ref = db.collection("emails").document(lookup_key(email))
+    if username_ref.get(transaction=transaction).exists or email_ref.get(transaction=transaction).exists:
+        return None
+
+    user_id = new_id(transaction, "users")
+    user = {
+        "id": user_id,
+        "username": username,
+        "email": email,
+        "password_hash": password_hash,
+        "has_picture": False,
+        "created_at": now_iso(),
+        "height_cm": None,
+        "weight_kg": None,
+        "birth_year": None,
+        "sex": None,
+    }
+    transaction.set(db.collection("users").document(str(user_id)), user)
+    transaction.set(username_ref, {"user_id": user_id})
+    transaction.set(email_ref, {"user_id": user_id})
+    return user
+
+
+@firestore.transactional
+def insert_post(transaction, post):
+    post["id"] = new_id(transaction, "posts")
+    transaction.set(database().collection("posts").document(str(post["id"])), post)
+    return post
 
 
 # ------------------------------------------------------------------ HELPERS
@@ -161,12 +187,9 @@ def hash_token(token):
 
 def create_token(user_id):
     token = secrets.token_urlsafe(32)
-    db = get_db()
-    db.execute(
-        "INSERT INTO tokens (token_hash, user_id, created_at) VALUES (?, ?, ?)",
-        (hash_token(token), user_id, now_iso()),
+    database().collection("tokens").document(hash_token(token)).set(
+        {"user_id": user_id, "created_at": now_iso()}
     )
-    db.commit()
     return token
 
 
@@ -175,38 +198,24 @@ def user_json(user, private=False):
     data = {
         "id": user["id"],
         "username": user["username"],
-        "has_picture": bool(user["has_picture"]),
+        "has_picture": bool(user.get("has_picture")),
         "created_at": user["created_at"],
     }
     if private:
         data["email"] = user["email"]
-        data["height_cm"] = user["height_cm"]
-        data["weight_kg"] = user["weight_kg"]
-        data["birth_year"] = user["birth_year"]
-        data["sex"] = user["sex"]
+        data["height_cm"] = user.get("height_cm")
+        data["weight_kg"] = user.get("weight_kg")
+        data["birth_year"] = user.get("birth_year")
+        data["sex"] = user.get("sex")
     return data
 
 
 def post_json(post):
-    return {
-        "id": post["id"],
-        "user_id": post["user_id"],
-        "kind": post["kind"],
-        "title": post["title"],
-        "metric": post["metric"],
-        "better": post["better"],
-        "amount": post["amount"],
-        "notes": post["notes"],
-        "duration_s": post["duration_s"],
-        "distance_km": post["distance_km"],
-        "kcal": post["kcal"],
-        "max_speed_kmh": post["max_speed_kmh"],
-        "goal_km": post["goal_km"],
-        "route": json.loads(post["route"]) if post["route"] else None,
-        "exercises": json.loads(post["exercises"]) if post["exercises"] else None,
-        "session_start": post["session_start"],
-        "created_at": post["created_at"],
-    }
+    keys = ("id", "user_id", "kind", "title", "metric", "better", "amount", "notes", "duration_s",
+            "distance_km", "kcal", "max_speed_kmh", "goal_km", "route", "exercises", "session_start",
+            "created_at")
+    # the values not stored (e.g. the distance of a gym session) are null
+    return {key: post.get(key) for key in keys}
 
 
 def number(data, key, minimum, maximum):
@@ -274,10 +283,6 @@ def clean_exercises(exercises):
     return cleaned
 
 
-def picture_path(user_id):
-    return os.path.join(UPLOAD_DIR, f"{user_id}.jpg")
-
-
 def login_required(view):
     """Lets the request through only with a valid 'Authorization: Bearer <token>' header."""
 
@@ -287,11 +292,8 @@ def login_required(view):
         if not header.startswith("Bearer "):
             return error(401, "Login required")
         token_hash = hash_token(header[len("Bearer "):])
-        user = get_db().execute(
-            "SELECT users.* FROM tokens JOIN users ON users.id = tokens.user_id "
-            "WHERE tokens.token_hash = ?",
-            (token_hash,),
-        ).fetchone()
+        token = database().collection("tokens").document(token_hash).get()
+        user = get_user(token.get("user_id")) if token.exists else None
         if user is None:
             return error(401, "Your session expired, please log in again")
         g.user = user
@@ -308,14 +310,33 @@ def not_found(_e):
 
 @app.errorhandler(413)
 def too_large(_e):
-    return error(413, "The file is too big (max 5 MB)")
+    return error(413, "The file is too big (max 4 MB)")
+
+
+@app.errorhandler(DatabaseNotSetUp)
+def database_not_set_up(e):
+    return error(503, f"The database is not set up on the server: {e} (see server/README.md)")
+
+
+@app.errorhandler(GoogleAPIError)
+@app.errorhandler(GoogleAuthError)
+def database_error(e):
+    # e.g. Firestore not reachable, database not created, key of a deleted service account
+    return error(503, f"Database error: {e}")
+
+
+@app.errorhandler(500)
+def server_error(_e):
+    return error(500, "Server error")
 
 
 # ------------------------------------------------------------------ ENDPOINTS
 
 @app.get("/api/health")
 def health():
-    return jsonify({"status": "ok"})
+    """Also checks the connection to the database (e.g. after setting up the key on Vercel)."""
+    database().collection("counters").document("users").get()
+    return jsonify({"status": "ok", "database": "ok"})
 
 
 @app.post("/api/register")
@@ -332,17 +353,10 @@ def register():
     if len(password) < 6:
         return error(400, "The password must be at least 6 characters")
 
-    db = get_db()
-    try:
-        cursor = db.execute(
-            "INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-            (username, email, generate_password_hash(password, method="pbkdf2:sha256"), now_iso()),
-        )
-        db.commit()
-    except sqlite3.IntegrityError:
+    password_hash = generate_password_hash(password, method="pbkdf2:sha256")
+    user = create_user(database().transaction(), username, email, password_hash)
+    if user is None:
         return error(409, "Username or email already registered")
-
-    user = db.execute("SELECT * FROM users WHERE id = ?", (cursor.lastrowid,)).fetchone()
     return jsonify({"token": create_token(user["id"]), "user": user_json(user, private=True)}), 201
 
 
@@ -352,7 +366,8 @@ def login():
     email = str(data.get("email", "")).strip()
     password = str(data.get("password", ""))
 
-    user = get_db().execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    email_doc = database().collection("emails").document(lookup_key(email)).get()
+    user = get_user(email_doc.get("user_id")) if email_doc.exists else None
     if user is None or not check_password_hash(user["password_hash"], password):
         return error(401, "Wrong email or password")
 
@@ -362,9 +377,7 @@ def login():
 @app.post("/api/logout")
 @login_required
 def logout():
-    db = get_db()
-    db.execute("DELETE FROM tokens WHERE token_hash = ?", (g.token_hash,))
-    db.commit()
+    database().collection("tokens").document(g.token_hash).delete()
     return "", 204
 
 
@@ -391,14 +404,8 @@ def update_profile():
     if profile["sex"] not in (None, "male", "female", "other"):
         return error(400, "Invalid sex")
 
-    db = get_db()
-    db.execute(
-        "UPDATE users SET height_cm = ?, weight_kg = ?, birth_year = ?, sex = ? WHERE id = ?",
-        (profile["height_cm"], profile["weight_kg"], profile["birth_year"], profile["sex"], g.user["id"]),
-    )
-    db.commit()
-    user = db.execute("SELECT * FROM users WHERE id = ?", (g.user["id"],)).fetchone()
-    return jsonify(user_json(user, private=True))
+    database().collection("users").document(str(g.user["id"])).update(profile)
+    return jsonify(user_json({**g.user, **profile}, private=True))
 
 
 @app.put("/api/me/picture")
@@ -408,18 +415,20 @@ def upload_picture():
     is_jpeg = image.startswith(b"\xff\xd8\xff")
     if not is_jpeg:
         return error(400, "The picture must be a JPEG image")
+    if len(image) > MAX_PICTURE_BYTES:
+        return error(413, "The picture is too big (max 900 KB)")
 
-    with open(picture_path(g.user["id"]), "wb") as file:
-        file.write(image)
-    db = get_db()
-    db.execute("UPDATE users SET has_picture = 1 WHERE id = ?", (g.user["id"],))
-    db.commit()
+    db = database()
+    batch = db.batch()  # both writes or none
+    batch.set(db.collection("pictures").document(str(g.user["id"])), {"jpeg": image, "updated_at": now_iso()})
+    batch.update(db.collection("users").document(str(g.user["id"])), {"has_picture": True})
+    batch.commit()
     return "", 204
 
 
 @app.get("/api/users/<int:user_id>")
 def public_profile(user_id):
-    user = get_db().execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    user = get_user(user_id)
     if user is None:
         return error(404, "User not found")
     return jsonify(user_json(user))
@@ -427,18 +436,19 @@ def public_profile(user_id):
 
 @app.get("/api/users/<int:user_id>/picture")
 def get_picture(user_id):
-    path = picture_path(user_id)
-    if not os.path.exists(path):
+    picture = database().collection("pictures").document(str(user_id)).get()
+    if not picture.exists:
         return error(404, "No profile picture")
-    return send_file(path, mimetype="image/jpeg", max_age=0)
+    return Response(picture.get("jpeg"), mimetype="image/jpeg", headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/api/users/<int:user_id>/posts")
 def user_posts(user_id):
-    rows = get_db().execute(
-        "SELECT * FROM posts WHERE user_id = ? ORDER BY created_at DESC, id DESC", (user_id,)
-    ).fetchall()
-    return jsonify([post_json(row) for row in rows])
+    documents = database().collection("posts").where(filter=firestore.FieldFilter("user_id", "==", user_id)).stream()
+    # newest first (sorted here: sorting in the query would need a composite index in Firestore)
+    posts = sorted((document.to_dict() for document in documents),
+                   key=lambda post: (post["created_at"], post["id"]), reverse=True)
+    return jsonify([post_json(post) for post in posts])
 
 
 @app.post("/api/me/posts")
@@ -481,29 +491,22 @@ def publish_post():
                 if not ok:
                     return error(400, f"Invalid {key}")
             if data.get("route") is not None:
-                route = clean_route(data["route"])
-                if route is None:
+                post["route"] = clean_route(data["route"])
+                if post["route"] is None:
                     return error(400, "Invalid route")
-                post["route"] = json.dumps(route)
         else:
-            exercises = clean_exercises(data.get("exercises"))
-            if exercises is None:
+            post["exercises"] = clean_exercises(data.get("exercises"))
+            if post["exercises"] is None:
                 return error(400, "Invalid exercises")
-            post["exercises"] = json.dumps(exercises)
 
     else:
         return error(400, "The kind of post must be 'manual', 'gym' or 'run'")
 
     post["user_id"] = g.user["id"]
     post["created_at"] = now_iso()
-    columns = ", ".join(post)
-    placeholders = ", ".join("?" for _ in post)
-
-    db = get_db()
-    cursor = db.execute(f"INSERT INTO posts ({columns}) VALUES ({placeholders})", tuple(post.values()))
-    db.commit()
-    row = db.execute("SELECT * FROM posts WHERE id = ?", (cursor.lastrowid,)).fetchone()
-    return jsonify(post_json(row)), 201
+    # only the known values are stored (e.g. no kcal for the runs recorded before they existed)
+    post = {key: value for key, value in post.items() if value is not None}
+    return jsonify(post_json(insert_post(database().transaction(), post))), 201
 
 
 def api_key(variable, file_path):
@@ -665,16 +668,13 @@ def walking_route():
 @app.delete("/api/me/posts/<int:post_id>")
 @login_required
 def delete_post(post_id):
-    db = get_db()
-    cursor = db.execute("DELETE FROM posts WHERE id = ? AND user_id = ?", (post_id, g.user["id"]))
-    db.commit()
-    if cursor.rowcount == 0:
+    ref = database().collection("posts").document(str(post_id))
+    post = ref.get()
+    if not post.exists or post.get("user_id") != g.user["id"]:
         return error(404, "Post not found")
+    ref.delete()
     return "", 204
 
-
-# Create the tables when the module is loaded (also on PythonAnywhere)
-init_db()
 
 if __name__ == "__main__":
     # 127.0.0.1: reachable only from this PC (and from the Android emulator, as 10.0.2.2)
