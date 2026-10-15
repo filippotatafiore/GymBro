@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.example.gymbro.R
+import com.example.gymbro.data.ChatMessage
 import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.session.Exercise
 import com.example.gymbro.session.GeoPoint
@@ -40,6 +41,10 @@ data class User(
 // A walking route computed by the server. provider: the service used (e.g. "OpenRouteService");
 // attribution: the credits that the service requires to show with its results (null if none)
 class WalkingRoute(val distanceMeters: Double, val path: List<GeoPoint>, val provider: String, val attribution: String?)
+
+// An answer of the AI coach. model: the AI model that wrote it (e.g. "openai/gpt-oss-120b");
+// provider: the service of the model (e.g. "Groq")
+class CoachReply(val text: String, val model: String, val provider: String)
 
 data class AuthResult(val token: String, val user: User)
 
@@ -114,6 +119,24 @@ object ApiClient {
                 provider = json.optString("provider", "Google Maps"),
                 attribution = json.stringOrNull("attribution")
             )
+        } catch (e: JSONException) {
+            throw ApiException(500, "Invalid answer of the server")
+        }
+    }
+
+    // Answer of the AI coach to the conversation (oldest message first, the last one written by the
+    // user). The server asks it to an AI model (Groq or Gemini): the whole conversation is sent, so
+    // the model knows what was said before.
+    suspend fun askCoach(token: String, conversation: List<ChatMessage>): CoachReply {
+        val messages = JSONArray(conversation.map { message ->
+            JSONObject().put("role", message.role.json).put("content", message.text)
+        })
+        // the server may try more than one model: it can take longer than the other requests
+        val answer = request("POST", "/api/chat", token = token, json = JSONObject().put("messages", messages),
+            readTimeoutMs = 60_000).decodeToString()
+        return try {
+            val json = JSONObject(answer)
+            CoachReply(json.getString("reply"), json.optString("model"), json.optString("provider"))
         } catch (e: JSONException) {
             throw ApiException(500, "Invalid answer of the server")
         }

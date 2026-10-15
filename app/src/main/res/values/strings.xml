@@ -190,6 +190,25 @@
     <string name="error_invalid_weight">Insert a valid weight</string>
     <string name="error_invalid_time">Insert a valid time (seconds from 0 to 59)</string>
 
+    <!-- chat with the AI coach -->
+    <string name="coach_title">GymBro Coach</string>
+    <string name="new_chat">New chat</string>
+    <string name="new_chat_title">Start a new chat?</string>
+    <string name="new_chat_message">The current conversation with the coach will be deleted from this phone.</string>
+    <string name="coach_welcome_title">Ask your coach</string>
+    <string name="coach_welcome_message">Exercise technique, workout plans, running, recovery: ask anything about your training.</string>
+    <string name="coach_try_asking">TRY ASKING</string>
+    <string name="coach_suggestion_1">How do I do a squat correctly?</string>
+    <string name="coach_suggestion_2">How many times a week should I train?</string>
+    <string name="coach_suggestion_3">Create a full-body workout for a beginner</string>
+    <string name="coach_suggestion_4">How can I improve my 5 km time?</string>
+    <string name="coach_disclaimer">The coach is an AI: it can make mistakes and it does not replace a doctor.</string>
+    <string name="chat_input_hint">Ask your coach…</string>
+    <string name="send">Send</string>
+    <string name="coach_typing">The coach is writing</string>
+    <string name="coach_no_answer">The answer of the coach did not arrive.</string>
+    <string name="tap_to_retry">Tap to retry</string>
+
     <!-- post details modal -->
     <string name="published_on">Published on %1$s</string>
     <string name="detail_result">Result</string>

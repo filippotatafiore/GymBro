@@ -19,11 +19,11 @@ import kotlinx.coroutines.SupervisorJob
 // before any activity: holds what is shared by the whole app
 class GymBroApp : Application() {
 
-    // Local database (Room) with the finished training sessions
+    // Local database (Room) with the finished training sessions and the chat with the AI coach
     val database: AppDatabase by lazy {
         Room.databaseBuilder(this, AppDatabase::class.java, "gymbro.db")
             // Converts the saved sessions to the new structure of the tables
-            .addMigrations(AppDatabase.MIGRATION_2_3)
+            .addMigrations(AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
             // While developing: for older structures without a migration, the local database is
             // recreated empty instead of being converted
             .fallbackToDestructiveMigration()

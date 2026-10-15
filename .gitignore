@@ -22,6 +22,8 @@ server/uploads/
 server/.vercel/
 __pycache__/
 
-# Keys of the walking routes (server only, never in git)
+# Keys of the walking routes and of the AI coach (server only, never in git)
 server/routes_api_key.txt
 server/ors_api_key.txt
+server/groq_api_key.txt
+server/gemini_api_key.txt

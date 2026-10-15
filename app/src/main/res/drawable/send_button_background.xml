@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Send button of the chat: bright blue circle, grey while there is nothing to send -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:state_enabled="false">
+        <shape android:shape="oval">
+            <solid android:color="@color/lighterGrey"/>
+        </shape>
+    </item>
+
+    <item>
+        <ripple android:color="#40FFFFFF">
+            <item>
+                <shape android:shape="oval">
+                    <solid android:color="@color/lighterBlue"/>
+                </shape>
+            </item>
+        </ripple>
+    </item>
+
+</selector>

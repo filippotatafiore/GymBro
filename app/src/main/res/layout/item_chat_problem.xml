@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- The answer of the coach did not arrive (ChatAdapter): the reason, tap to try again -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginTop="6dp"
+    android:layout_marginBottom="6dp"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="12dp"
+    android:foreground="@drawable/row_ripple">
+
+    <TextView
+        android:id="@+id/chatProblemText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/errorRed"
+        android:textSize="14sp"
+        tools:text="Cannot reach the GymBro server. Check your internet connection."/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textStyle="bold"
+        android:textColor="@color/lighterBlue"
+        android:textSize="14sp"
+        android:text="@string/tap_to_retry"/>
+
+</LinearLayout>

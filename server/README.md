@@ -2,8 +2,8 @@
 
 Flask server that stores the app users (registration / login, body data, profile pictures) and
 the posts they publish in **Cloud Firestore**, the database of Firebase. It also computes the
-walking routes of the runs with OpenRouteService or the Google Routes API (their keys stay on the
-server).
+walking routes of the runs with OpenRouteService or the Google Routes API, and answers the chat with
+the AI coach with the language models of Groq or Google Gemini (their keys stay on the server).
 
 It runs online for free, always reachable, without your PC:
 
@@ -26,6 +26,7 @@ billing account linked to the project.)
 | POST   | `/api/me/posts`               | yes  | Publish a post (see below)           |
 | DELETE | `/api/me/posts/<id>`          | yes  | Delete one of your posts             |
 | POST   | `/api/routes/walking`         | yes  | Walking route (see below)            |
+| POST   | `/api/chat`                   | yes  | Answer of the AI coach (see below)   |
 | GET    | `/api/users/<id>`             |      | Public profile                       |
 | GET    | `/api/users/<id>/picture`     |      | Profile picture (404 if none)        |
 | GET    | `/api/users/<id>/posts`       |      | Posts published by the user          |
@@ -51,6 +52,11 @@ Body of `POST /api/routes/walking`: `{"origin": {"lat": 45.46, "lng": 9.19}, "st
 "destination": {"lat": 45.47, "lng": 9.18}}` (stop optional) -> `{"distance_m": 1234, "polyline": "...",
 "provider": "OpenRouteService", "attribution": "..."}`
 
+Body of `POST /api/chat`: the whole conversation, oldest message first, the last one of the user:
+`{"messages": [{"role": "user", "content": "How do I do a squat?"}, {"role": "assistant", "content": "..."},
+{"role": "user", "content": "And the deadlift?"}]}` -> `{"reply": "...", "model": "openai/gpt-oss-120b",
+"provider": "Groq"}`. 429 if all the models have used up their free limits.
+
 ## Data in Firestore
 
 The collections (the "tables" of Firestore) are described at the top of `app.py`: `users`, `posts`,
@@ -65,6 +71,8 @@ your project > **Firestore Database** > **Data**.
 | Firebase service account (database) | `FIREBASE_SERVICE_ACCOUNT` = the whole content of the JSON file | `firebase_key.json` |
 | OpenRouteService (walking routes) | `ORS_API_KEY` | `ors_api_key.txt` |
 | Google Routes API (optional, needs billing) | `ROUTES_API_KEY` | `routes_api_key.txt` |
+| Groq (AI coach) | `GROQ_API_KEY` | `groq_api_key.txt` |
+| Google Gemini (optional, AI coach when the Groq models are busy) | `GEMINI_API_KEY` | `gemini_api_key.txt` |
 
 The files are ignored by git. The Firebase key gives full access to the database: never publish it.
 
@@ -82,13 +90,34 @@ routes in a straight line and shows why.
 3. **Google Routes API** (optional, needs billing enabled on the Google Cloud project). Key with
    Application restrictions: None, API restrictions: Routes API.
 
+## AI coach (chat page of the app)
+
+The app sends the whole conversation (saved only on the phone) to `POST /api/chat`; the server adds
+the instructions of the coach (`COACH_INSTRUCTIONS` in `app.py`) and asks the answer to these
+models, in this order, until one answers:
+
+1. **Groq** (free, no credit card): `openai/gpt-oss-120b`, `qwen/qwen3.8-27b`, `openai/gpt-oss-20b`.
+   Each model has its own free limits (about 1000 requests and 200,000 tokens per day, 8000 tokens
+   per minute): when one has used them up (error 429) the next one answers, with the same
+   conversation. Key: https://console.groq.com > **API Keys** > **Create API Key**.
+2. **Google Gemini** (optional, free): `gemini-3.8-flash`, `gemini-3.5-flash-lite`, used only if all
+   the Groq models are busy. Key: https://aistudio.google.com > **Get API key**. On the free plan
+   Google may use the messages to improve its products.
+
+Only the newest messages that fit in about 3000 tokens are sent to the model (`CHAT_HISTORY_CHARS`),
+so the free tokens per minute are enough. The models change over time (e.g. Groq turned off the
+Llama models in August 2026): to use other models, set the environment variables `GROQ_MODELS` /
+`GEMINI_MODELS` on Vercel (names separated by commas, as in https://console.groq.com/docs/models),
+without changing the code. The errors of the models are in Vercel > project > **Logs**.
+
 ## Deploy on Vercel
 
 1. Push the project to GitHub.
 2. On https://vercel.com: sign up with GitHub (Hobby plan), then **Add New... > Project** and
    import the GymBro repository.
 3. **Root Directory**: `server`. The Framework Preset becomes **Flask** (`app.py` defines `app`).
-4. **Environment Variables**: `FIREBASE_SERVICE_ACCOUNT` and `ORS_API_KEY` (see above).
+4. **Environment Variables**: `FIREBASE_SERVICE_ACCOUNT`, `ORS_API_KEY` and `GROQ_API_KEY`
+   (optional: `GEMINI_API_KEY`), see above.
 5. **Deploy**. Then open `https://<project>.vercel.app/api/health`: it must answer
    `{"database": "ok", "status": "ok"}`.
 6. In the Android project, add to `local.properties`: `API_BASE_URL=https://<project>.vercel.app/`

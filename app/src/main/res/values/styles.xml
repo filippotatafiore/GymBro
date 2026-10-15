@@ -275,6 +275,34 @@
 
 
 
+    <!-- ************************************ Chat page ************************************ -->
+    <!-- Text of a message of the chat, in its bubble -->
+    <style name="ChatBubbleTextStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:lineSpacingMultiplier">1.15</item>
+    </style>
+
+    <!-- Example question of the welcome of the chat: tap it to ask it -->
+    <style name="ChatSuggestionStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:padding">14dp</item>
+        <item name="android:background">@drawable/list_row_background</item>
+        <item name="android:foreground">@drawable/row_ripple</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+
+
     <!-- ************************************ Modal windows ************************************ -->
     <!-- Theme of the modal windows: transparent window (the card is drawn by the layout),
          dimmed background and custom enter/exit animations -->

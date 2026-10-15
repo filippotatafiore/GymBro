@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Chat page: conversation with the AI coach (logic in ChatActivity.kt).
+    Before the first message it shows a welcome with some example questions (chatWelcome).
+    While the keyboard is open the bottom strip is hidden and the text field stays above the keyboard.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/chatRoot"
+    tools:context=".ChatActivity"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/lightGrey">
+
+    <!-- spacer (status bar) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="50dp"/>
+
+    <!--************************************** top strip **************************************-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="12dp">
+
+        <TextView
+            style="@style/SectionTitleStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="@string/coach_title"/>
+
+        <ImageButton
+            android:id="@+id/newChatButton"
+            style="@style/RoundIconButtonStyle"
+            android:contentDescription="@string/new_chat"
+            android:src="@drawable/new_chat_icon"/>
+
+    </LinearLayout>
+    <!--************************************** top strip **************************************-->
+
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- messages: res/layout/item_chat_*.xml (ChatAdapter) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/chatList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:clipToPadding="false"
+            tools:listitem="@layout/item_chat_coach"/>
+
+        <!-- welcome, before the first message: tap an example to ask it -->
+        <ScrollView
+            android:id="@+id/chatWelcome"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp">
+
+                <ImageView
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:src="@drawable/chat_icon"
+                    android:importantForAccessibility="no"
+                    android:tint="@color/lighterBlue"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:textSize="22sp"
+                    android:text="@string/coach_welcome_title"/>
+
+                <TextView
+                    style="@style/ModalMessageStyle"
+                    android:layout_marginTop="8dp"
+                    android:textSize="15sp"
+                    android:text="@string/coach_welcome_message"/>
+
+                <TextView
+                    style="@style/FormLabelStyle"
+                    android:layout_marginTop="28dp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:text="@string/coach_try_asking"/>
+
+                <TextView
+                    android:id="@+id/suggestion1"
+                    style="@style/ChatSuggestionStyle"
+                    android:text="@string/coach_suggestion_1"/>
+
+                <TextView
+                    android:id="@+id/suggestion2"
+                    style="@style/ChatSuggestionStyle"
+                    android:text="@string/coach_suggestion_2"/>
+
+                <TextView
+                    android:id="@+id/suggestion3"
+                    style="@style/ChatSuggestionStyle"
+                    android:text="@string/coach_suggestion_3"/>
+
+                <TextView
+                    android:id="@+id/suggestion4"
+                    style="@style/ChatSuggestionStyle"
+                    android:text="@string/coach_suggestion_4"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:gravity="center"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="12sp"
+                    android:text="@string/coach_disclaimer"/>
+
+            </LinearLayout>
+
+        </ScrollView>
+
+    </FrameLayout>
+
+
+    <!--************************************** text field **************************************-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="bottom"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
+
+        <EditText
+            android:id="@+id/chatInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="48dp"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:background="@drawable/chat_input_background"
+            android:hint="@string/chat_input_hint"
+            android:importantForAutofill="no"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLength="2000"
+            android:maxLines="5"
+            android:textColor="@color/white"
+            android:textColorHint="@color/textSecondary"
+            android:textCursorDrawable="@null"
+            android:textSize="16sp"/>
+
+        <ImageButton
+            android:id="@+id/sendButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:padding="12dp"
+            android:scaleType="fitCenter"
+            android:background="@drawable/send_button_background"
+            android:contentDescription="@string/send"
+            android:enabled="false"
+            android:src="@drawable/send_icon"/>
+
+    </LinearLayout>
+
+
+    <!--************************************** bottom strip **************************************-->
+    <include
+        android:id="@+id/bottomNav"
+        layout="@layout/bottom_nav"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+</LinearLayout>

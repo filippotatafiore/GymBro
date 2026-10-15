@@ -4,7 +4,8 @@ GymBro REST API.
 A small Flask server that stores the users of the app (with their body data) and the posts
 they publish (results of finished gym/run sessions or results added manually) in Cloud Firestore,
 the database of Firebase. It also computes the walking routes of the runs with OpenRouteService
-(or the Google Routes API), so that the keys of these services stay on the server.
+(or the Google Routes API) and answers the chat with the AI coach with a language model of Groq
+(or Google Gemini), so that the keys of these services stay on the server.
 
 It runs online on Vercel, always reachable (see README.md). To run it on this PC instead
 (the Android emulator reaches it at http://10.0.2.2:5000):
@@ -16,6 +17,7 @@ import json
 import os
 import re
 import secrets
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -40,6 +42,24 @@ GOOGLE_ROUTES_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
 OSRM_FOOT_URL = "https://routing.openstreetmap.de/routed-foot/route/v1/foot/"
 # Maximum wait for each service: the app waits 30 s for the whole answer of the server
 SERVICE_TIMEOUT_S = 8
+# Chat with the AI coach (see README.md): OpenAI-compatible chat APIs, keys in environment variables
+# or text files. Models tried in this order until one answers: each model has its own free limits.
+# The environment variables GROQ_MODELS / GEMINI_MODELS (names separated by commas) replace them.
+GROQ_KEY_FILE = os.path.join(BASE_DIR, "groq_api_key.txt")              # Groq (free, no card)
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODELS = "openai/gpt-oss-120b,qwen/qwen3.8-27b,openai/gpt-oss-20b"
+GEMINI_KEY_FILE = os.path.join(BASE_DIR, "gemini_api_key.txt")          # Google Gemini (optional, free)
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+GEMINI_MODELS = "gemini-3.8-flash,gemini-3.5-flash-lite"
+# The app waits 60 s for the answer: no new model is tried after CHAT_DEADLINE_S
+CHAT_TIMEOUT_S = 25
+CHAT_DEADLINE_S = 45
+# Only the last messages of the conversation are sent to the model (about 3000 tokens):
+# a longer request would exceed the free tokens per minute of the models
+CHAT_HISTORY_CHARS = 10_000
+MAX_CHAT_MESSAGE_CHARS = 12_000   # an answer of MAX_ANSWER_TOKENS tokens fits
+# Longest answer (reasoning included, for the models that reason before answering)
+MAX_ANSWER_TOKENS = 1_500
 # Biggest profile picture: a Firestore document holds at most 1 MiB (the app sends ~50-150 KB)
 MAX_PICTURE_BYTES = 900_000
 
@@ -674,6 +694,191 @@ def delete_post(post_id):
         return error(404, "Post not found")
     ref.delete()
     return "", 204
+
+
+# ------------------------------------------------------------------ AI COACH (chat page of the app)
+
+# Instructions given to the model before the conversation (the "system prompt")
+COACH_INSTRUCTIONS = """You are GymBro Coach, the personal trainer inside GymBro, an app for gym training and running.
+You help the user with:
+- how to perform the exercises correctly: step-by-step execution, breathing, common mistakes, safety tips
+- which exercises to choose for a muscle group, a goal or the available equipment, and their alternatives
+- how to organize the training: weekly frequency, splits, sets, reps, rest, progression, warm-up, deload
+- running: pace, distances, training plans, technique, warm-up and cool-down
+- recovery, sleep, and general nutrition and hydration for training
+
+Rules:
+- Always answer in the language of the last message of the user.
+- Be practical and concise: short paragraphs and lists. If important information is missing (level, goal, days per week, equipment, injuries), give a useful general answer and ask for it.
+- Formatting: plain text, with only **bold**, "- " bullet lists and "1. " numbered lists. No tables, no titles with #, no code.
+- You are not a doctor: for pain, injuries, illnesses, pregnancy, medicines or eating disorders give only general information and suggest seeing a doctor or a physiotherapist. Never suggest doping, steroids or extreme diets.
+- If the request has nothing to do with training, sport, health or nutrition, kindly say that you can help only with training and running.
+- You cannot see the data of the user in the app: ask for them if you need them."""
+
+
+class ChatError(Exception):
+    """A model could not answer (the message says why).
+    rate_limited: its free limits are used up for now (retry_after: seconds to wait, if known).
+    bad_key: the key of the service is not valid, so its other models would fail too."""
+
+    def __init__(self, message, rate_limited=False, retry_after=None, bad_key=False):
+        super().__init__(message)
+        self.rate_limited = rate_limited
+        self.retry_after = retry_after
+        self.bad_key = bad_key
+
+
+def chat_providers():
+    """The chat services that are set up, in order of use: (name, key, url, models)."""
+    providers = []
+    for name, key_variable, key_file, url, models_variable, default_models in (
+        ("Groq", "GROQ_API_KEY", GROQ_KEY_FILE, GROQ_URL, "GROQ_MODELS", GROQ_MODELS),
+        ("Gemini", "GEMINI_API_KEY", GEMINI_KEY_FILE, GEMINI_URL, "GEMINI_MODELS", GEMINI_MODELS),
+    ):
+        key = api_key(key_variable, key_file)
+        if key:
+            models = os.environ.get(models_variable, "").strip() or default_models
+            providers.append((name, key, url, [model.strip() for model in models.split(",") if model.strip()]))
+    return providers
+
+
+def reasoning_options(model):
+    """Options of the models that reason before answering: little reasoning (faster answers, fewer
+    tokens used) and not included in the answer."""
+    if model.startswith("openai/gpt-oss"):
+        return {"reasoning_effort": "low", "include_reasoning": False}
+    if model.startswith("qwen/"):
+        return {"reasoning_effort": "none", "reasoning_format": "hidden"}
+    if model.startswith("gemini-"):
+        return {"reasoning_effort": "low"}
+    return {}
+
+
+def ask_model(provider, key, url, model, messages, timeout):
+    """The answer of one model to the conversation (OpenAI-compatible chat API), or raises ChatError."""
+    body = {"model": model, "messages": messages, "max_tokens": MAX_ANSWER_TOKENS, **reasoning_options(model)}
+    service_request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode(),
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {key}",
+            "User-Agent": "GymBro/1.0 (university project)",
+        },
+    )
+    try:
+        with urllib.request.urlopen(service_request, timeout=timeout) as response:
+            answer = json.load(response)
+    except urllib.error.HTTPError as e:
+        message = f"{provider} {model}: {error_message(e)}"
+        if e.code == 429:
+            raise ChatError(message, rate_limited=True, retry_after=retry_seconds(e.headers.get("Retry-After")))
+        raise ChatError(message, bad_key=e.code in (401, 403))
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+        raise ChatError(f"{provider} {model}: not reachable or no answer in {timeout:.0f} s")
+
+    try:
+        choice = answer["choices"][0]
+        text = choice["message"].get("content") or ""
+    except (KeyError, IndexError, TypeError, AttributeError):
+        raise ChatError(f"{provider} {model}: invalid answer")
+    # some models write their reasoning between <think> tags before the answer (removed, also if
+    # the answer was cut before the closing tag)
+    text = re.sub(r"<think>.*?(</think>|$)", "", text, flags=re.DOTALL).strip()
+    if not text:
+        raise ChatError(f"{provider} {model}: empty answer ({choice.get('finish_reason')})")
+    return text
+
+
+def retry_seconds(value):
+    """The Retry-After header of a 429 answer, in seconds (None if missing)."""
+    try:
+        return max(1, round(float(value)))
+    except (TypeError, ValueError):
+        return None
+
+
+def wait_text(seconds):
+    if seconds is None:
+        return "in a few minutes"
+    if seconds < 90:
+        return f"in {seconds} seconds"
+    if seconds < 90 * 60:
+        return f"in {round(seconds / 60)} minutes"
+    return f"in {round(seconds / 3600)} hours"
+
+
+def clean_conversation(messages):
+    """The conversation sent by the app, validated (None if invalid) and limited to its newest
+    messages that fit in CHAT_HISTORY_CHARS characters. It must end with a message of the user."""
+    if not isinstance(messages, list) or not 1 <= len(messages) <= 200:
+        return None
+    cleaned = []
+    for message in messages:
+        if not isinstance(message, dict) or message.get("role") not in ("user", "assistant"):
+            return None
+        content = message.get("content")
+        if not isinstance(content, str) or not content.strip() or len(content) > MAX_CHAT_MESSAGE_CHARS:
+            return None
+        cleaned.append({"role": message["role"], "content": content.strip()})
+    if cleaned[-1]["role"] != "user":
+        return None
+
+    kept = []
+    total = 0
+    for message in reversed(cleaned):
+        total += len(message["content"])
+        if kept and total > CHAT_HISTORY_CHARS:
+            break
+        kept.insert(0, message)
+    # the conversation given to the model starts with a message of the user
+    while kept[0]["role"] != "user":
+        kept.pop(0)
+    return kept
+
+
+@app.post("/api/chat")
+@login_required
+def chat():
+    """Answer of the AI coach: the first model that answers, among the models of Groq and then of
+    Gemini (see chat_providers). When a model has used up its free limits, the next one answers.
+    The conversation is saved only on the phone: the app sends it every time, so any model can
+    continue it.
+    Body: {"messages": [{"role": "user" | "assistant", "content": "..."}, ...]}
+    -> {"reply": "...", "model": "openai/gpt-oss-120b", "provider": "Groq"}"""
+    data = request.get_json(silent=True) or {}
+    conversation = clean_conversation(data.get("messages"))
+    if conversation is None:
+        return error(400, "Invalid messages")
+    providers = chat_providers()
+    if not providers:
+        return error(503, "The AI coach is not set up on the server: GROQ_API_KEY missing (see server/README.md)")
+
+    messages = [{"role": "system", "content": COACH_INSTRUCTIONS}] + conversation
+    deadline = time.monotonic() + CHAT_DEADLINE_S
+    problems = []
+    for provider, key, url, models in providers:
+        for model in models:
+            remaining = deadline - time.monotonic()
+            if remaining < 5:
+                break
+            try:
+                reply = ask_model(provider, key, url, model, messages, min(CHAT_TIMEOUT_S, remaining))
+            except ChatError as e:
+                # visible in the logs of Vercel (project > Logs)
+                app.logger.warning("Chat: %s", e)
+                problems.append(e)
+                if e.bad_key:
+                    break
+                continue
+            return jsonify({"reply": reply, "model": model, "provider": provider})
+
+    if problems and all(problem.rate_limited for problem in problems):
+        waits = [problem.retry_after for problem in problems if problem.retry_after]
+        return error(429, "The coach is very busy: the free limits of the AI models are used up. "
+                          f"Try again {wait_text(min(waits) if waits else None)}.")
+    return error(502, "The AI coach is not available: " + "; ".join(str(problem) for problem in problems))
 
 
 if __name__ == "__main__":

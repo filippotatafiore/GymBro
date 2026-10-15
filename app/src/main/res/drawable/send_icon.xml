@@ -1,0 +1,6 @@
+<!-- Arrow up (send a message in the chat) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="24dp" android:viewportHeight="24" android:viewportWidth="24" android:width="24dp">
+
+    <path android:fillColor="#00000000" android:pathData="M12,19V5M5.5,11.5L12,5L18.5,11.5" android:strokeColor="#ffffff" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2.5"/>
+
+</vector>
