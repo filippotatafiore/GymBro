@@ -6,6 +6,9 @@ import android.graphics.BitmapFactory
 import com.example.gymbro.R
 import com.example.gymbro.data.ChatMessage
 import com.example.gymbro.data.TrainingSession
+import com.example.gymbro.plan.Plan
+import com.example.gymbro.plan.PlanGoal
+import com.example.gymbro.plan.PlanLevel
 import com.example.gymbro.session.Exercise
 import com.example.gymbro.session.GeoPoint
 import com.example.gymbro.session.PolylineCodec
@@ -43,8 +46,20 @@ data class User(
 class WalkingRoute(val distanceMeters: Double, val path: List<GeoPoint>, val provider: String, val attribution: String?)
 
 // An answer of the AI coach. model: the AI model that wrote it (e.g. "openai/gpt-oss-120b");
-// provider: the service of the model (e.g. "Groq")
-class CoachReply(val text: String, val model: String, val provider: String)
+// provider: the service of the model (e.g. "Groq"); plan: in the chat about a plan, the plan
+// changed by the coach (already saved on the server), null if not changed
+class CoachReply(val text: String, val model: String, val provider: String, val plan: Plan? = null)
+
+// What the user asks when the coach creates a workout plan. preferences: e.g. "no squat, more free
+// weights"; language: of the phone (e.g. "Italian"), the plan is written in it
+class PlanRequest(
+    val goal: PlanGoal,
+    val level: PlanLevel,
+    val daysPerWeek: Int,
+    val minutesPerSession: Int,
+    val preferences: String,
+    val language: String
+)
 
 data class AuthResult(val token: String, val user: User)
 
@@ -63,6 +78,9 @@ object ApiClient {
 
     // Address of the server: API_BASE_URL in local.properties (see app/build.gradle.kts)
     private lateinit var baseUrl: String
+
+    // When the coach writes a plan the answer is long: the server can take up to 75 s
+    private const val PLAN_TIMEOUT_MS = 90_000
 
     fun init(context: Context) {
         baseUrl = context.getString(R.string.api_base_url).trimEnd('/')
@@ -126,20 +144,64 @@ object ApiClient {
 
     // Answer of the AI coach to the conversation (oldest message first, the last one written by the
     // user). The server asks it to an AI model (Groq or Gemini): the whole conversation is sent, so
-    // the model knows what was said before.
-    suspend fun askCoach(token: String, conversation: List<ChatMessage>): CoachReply {
+    // the model knows what was said before. planId: chat about that workout plan, which the coach
+    // sees (as it is now on the server) and can change.
+    suspend fun askCoach(token: String, conversation: List<ChatMessage>, planId: Long? = null): CoachReply {
         val messages = JSONArray(conversation.map { message ->
             JSONObject().put("role", message.role.json).put("content", message.text)
         })
+        val body = JSONObject().put("messages", messages).putOpt("plan_id", planId)
         // the server may try more than one model: it can take longer than the other requests
-        val answer = request("POST", "/api/chat", token = token, json = JSONObject().put("messages", messages),
-            readTimeoutMs = 60_000).decodeToString()
+        // (even more when the coach writes a plan)
+        val answer = request("POST", "/api/chat", token = token, json = body,
+            readTimeoutMs = if (planId == null) 60_000 else PLAN_TIMEOUT_MS).decodeToString()
+        return parse(answer) { json ->
+            CoachReply(
+                json.getString("reply"), json.optString("model"), json.optString("provider"),
+                plan = if (json.isNull("plan")) null else Plan.fromJson(json.getJSONObject("plan"))
+            )
+        }
+    }
+
+
+    // --------------------------------------------------------- WORKOUT PLANS
+
+    // Plans of the logged user, the last changed first
+    suspend fun getPlans(token: String): List<Plan> {
+        val answer = request("GET", "/api/me/plans", token = token).decodeToString()
         return try {
-            val json = JSONObject(answer)
-            CoachReply(json.getString("reply"), json.optString("model"), json.optString("provider"))
+            val array = JSONArray(answer)
+            (0 until array.length()).map { Plan.fromJson(array.getJSONObject(it)) }
         } catch (e: JSONException) {
             throw ApiException(500, "Invalid answer of the server")
         }
+    }
+
+    suspend fun getPlan(token: String, planId: Long): Plan =
+        parse(request("GET", "/api/me/plans/$planId", token = token).decodeToString()) { Plan.fromJson(it) }
+
+    // A new plan written by the AI coach from the body data of the profile and the request
+    // (it can take some seconds)
+    suspend fun createPlan(token: String, plan: PlanRequest): Plan {
+        val body = JSONObject()
+            .put("goal", plan.goal.json)
+            .put("level", plan.level.json)
+            .put("days_per_week", plan.daysPerWeek)
+            .put("minutes_per_session", plan.minutesPerSession)
+            .put("preferences", plan.preferences)
+            .put("language", plan.language)
+        val answer = request("POST", "/api/me/plans", token = token, json = body, readTimeoutMs = PLAN_TIMEOUT_MS)
+        return parse(answer.decodeToString()) { Plan.fromJson(it) }
+    }
+
+    // Saves the changes made by the user (name, days, exercises); returns the saved plan
+    suspend fun updatePlan(token: String, plan: Plan): Plan =
+        parse(request("PUT", "/api/me/plans/${plan.id}", token = token, json = plan.toJson()).decodeToString()) {
+            Plan.fromJson(it)
+        }
+
+    suspend fun deletePlan(token: String, planId: Long) {
+        request("DELETE", "/api/me/plans/$planId", token = token)
     }
 
     suspend fun uploadPicture(token: String, jpeg: ByteArray) {
@@ -245,6 +307,14 @@ object ApiClient {
             connection.disconnect()
         }
     }
+
+    // A JSON object answered by the server, read by [read]
+    private fun <T> parse(answer: String, read: (JSONObject) -> T): T =
+        try {
+            read(JSONObject(answer))
+        } catch (e: JSONException) {
+            throw ApiException(500, "Invalid answer of the server")
+        }
 
     // The server answers errors as {"error": "message"}
     private fun parseErrorMessage(response: ByteArray, code: Int): String =

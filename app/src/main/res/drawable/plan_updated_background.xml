@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- "Plan updated" under an answer of the coach (chat about a plan): green pill, ripple when tapped -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#264CD97B">
+
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#1F4CD97B"/>
+            <corners android:radius="16dp"/>
+        </shape>
+    </item>
+
+</ripple>

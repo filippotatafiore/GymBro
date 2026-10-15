@@ -27,6 +27,11 @@ billing account linked to the project.)
 | DELETE | `/api/me/posts/<id>`          | yes  | Delete one of your posts             |
 | POST   | `/api/routes/walking`         | yes  | Walking route (see below)            |
 | POST   | `/api/chat`                   | yes  | Answer of the AI coach (see below)   |
+| GET    | `/api/me/plans`               | yes  | Your workout plans                   |
+| POST   | `/api/me/plans`               | yes  | New plan written by the coach        |
+| GET    | `/api/me/plans/<id>`          | yes  | One of your plans                    |
+| PUT    | `/api/me/plans/<id>`          | yes  | Save your changes to a plan          |
+| DELETE | `/api/me/plans/<id>`          | yes  | Delete one of your plans             |
 | GET    | `/api/users/<id>`             |      | Public profile                       |
 | GET    | `/api/users/<id>/picture`     |      | Profile picture (404 if none)        |
 | GET    | `/api/users/<id>/posts`       |      | Posts published by the user          |
@@ -56,6 +61,16 @@ Body of `POST /api/chat`: the whole conversation, oldest message first, the last
 `{"messages": [{"role": "user", "content": "How do I do a squat?"}, {"role": "assistant", "content": "..."},
 {"role": "user", "content": "And the deadlift?"}]}` -> `{"reply": "...", "model": "openai/gpt-oss-120b",
 "provider": "Groq"}`. 429 if all the models have used up their free limits.
+With `"plan_id": 3` in the body: chat about that workout plan (see below); the answer also has
+`"plan"`: the plan changed by the coach (already saved), or `null`.
+
+Body of `POST /api/me/plans`: `{"goal": "lose_weight" | "build_muscle" | "gain_mass" | "strength" |
+"fitness", "level": "beginner" | "intermediate" | "advanced", "days_per_week": 3,
+"minutes_per_session": 60, "preferences": "no squat, more free weights", "language": "Italian"}`
+-> the plan: `{"id", "name", "notes", "days": [{"name": "Day 1 · Push", "exercises": [{"name":
+"Bench Press", "muscle_group": "Chest", "sets": 4, "reps": "8-10", "rest_s": 90, "notes": ""}]}],
+"goal", "level", "days_per_week", "minutes_per_session", "preferences", "created_at", "updated_at"}`.
+Body of `PUT /api/me/plans/<id>`: `{"name", "notes", "days"}` as above (`rest_s` can be null).
 
 ## Data in Firestore
 
@@ -109,6 +124,18 @@ so the free tokens per minute are enough. The models change over time (e.g. Groq
 Llama models in August 2026): to use other models, set the environment variables `GROQ_MODELS` /
 `GEMINI_MODELS` on Vercel (names separated by commas, as in https://console.groq.com/docs/models),
 without changing the code. The errors of the models are in Vercel > project > **Logs**.
+
+### Workout plans
+
+The coach writes a gym plan (`POST /api/me/plans`) from the goal, level, days, minutes and
+preferences chosen in the app and from the body data of the profile (height, weight, BMI, age,
+sex: never the username, the email or the password). The models answer with a JSON object that must
+follow a schema (`PLAN_SCHEMA` in `app.py`, "structured outputs" of Groq); an answer that is not a
+valid plan is discarded and the next model is asked. The plan is saved in Firestore (`plans`).
+In the chat about a plan (`/api/chat` with `plan_id`) the coach sees the plan as it is in the
+database, also after the changes made by hand in the app, and answers with a reply and, if asked,
+the whole changed plan, which is saved. A plan is a long answer: up to 75 seconds are allowed
+(Vercel Hobby with Fluid compute, the default, allows 300 seconds).
 
 ## Deploy on Vercel
 

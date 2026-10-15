@@ -39,6 +39,18 @@
         <!--************************************** top strip **************************************-->
 
 
+        <!-- the page scrolls: personal bests, workout plans and results can all be long -->
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="8dp">
+
         <!-- tap it to change the picture -->
         <ImageView
             android:id="@+id/profilePicture"
@@ -105,6 +117,57 @@
         </FrameLayout>
 
 
+        <!-- ************************* workout plans (written by the AI coach) ************************* -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="16dp">
+
+            <TextView
+                style="@style/SectionTitleStyle"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="@string/workout_plans"/>
+
+            <!-- the coach creates a new plan -->
+            <Button
+                android:id="@+id/newPlanButton"
+                style="@style/SmallButtonStyle"
+                android:drawableStart="@drawable/plus_icon"
+                android:text="@string/new_plan"/>
+
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp">
+
+            <!-- horizontal list: each card is res/layout/item_plan.xml -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/planList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:clipToPadding="false"
+                tools:listitem="@layout/item_plan"
+                tools:orientation="horizontal"/>
+
+            <TextView
+                android:id="@+id/emptyPlansText"
+                style="@style/EmptyListTextStyle"
+                android:padding="12dp"
+                android:text="@string/no_plans_yet"
+                android:visibility="gone"/>
+
+        </FrameLayout>
+
+
         <!-- ************************* my results ************************* -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -131,17 +194,16 @@
 
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="wrap_content"
             android:layout_marginTop="8dp">
 
-            <!-- each row is res/layout/item_post.xml -->
+            <!-- each row is res/layout/item_post.xml. It does not scroll by itself: the whole
+                 page scrolls -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/postList"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:paddingBottom="8dp"
-                android:clipToPadding="false"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
                 tools:listitem="@layout/item_post"/>
 
             <TextView
@@ -152,6 +214,10 @@
                 android:visibility="gone"/>
 
         </FrameLayout>
+
+        </LinearLayout>
+
+        </androidx.core.widget.NestedScrollView>
 
 
         <!--************************************** bottom strip **************************************-->

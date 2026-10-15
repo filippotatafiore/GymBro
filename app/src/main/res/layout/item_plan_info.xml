@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- First card of the page of a plan: what the user asked (goal, level, days, minutes,
+     preferences: rows added by PlanActivity) and the advice of the coach -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginTop="6dp"
+    android:layout_marginBottom="6dp"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/list_row_background">
+
+    <!-- rows: res/layout/item_detail_row.xml -->
+    <LinearLayout
+        android:id="@+id/planInfoRows"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"/>
+
+    <TextView
+        android:id="@+id/planNotesTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textStyle="bold"
+        android:textColor="@color/lighterBlue"
+        android:textSize="14sp"
+        android:letterSpacing="0.05"
+        android:text="@string/plan_coach_advice"/>
+
+    <TextView
+        android:id="@+id/planNotes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:lineSpacingMultiplier="1.15"
+        tools:text="Warm up 10 minutes before every session. Increase the weights when you can do all the reps."/>
+
+    <TextView
+        android:id="@+id/planUpdatedText"
+        style="@style/RowSubtitleStyle"
+        android:layout_marginTop="12dp"
+        android:textSize="12sp"
+        tools:text="Updated Oct 15, 2026"/>
+
+</LinearLayout>

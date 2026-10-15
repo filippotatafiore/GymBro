@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!-- An answer of the coach in the chat (ChatAdapter): grey bubble on the left, with the AI model
-     that wrote it under it -->
+     that wrote it under it and, in the chat about a plan, "Plan updated" if the coach changed the plan -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -17,6 +17,28 @@
         style="@style/ChatBubbleTextStyle"
         android:background="@drawable/chat_bubble_coach"
         tools:text="1. Feet shoulder-width apart\n2. Chest up, core tight\n3. Sit back and down"/>
+
+    <!-- the coach changed the plan: tap it to see the plan -->
+    <TextView
+        android:id="@+id/chatPlanUpdated"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="14dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:background="@drawable/plan_updated_background"
+        android:drawableStart="@drawable/check_icon"
+        android:drawablePadding="6dp"
+        android:drawableTint="@color/successGreen"
+        android:gravity="center_vertical"
+        android:textStyle="bold"
+        android:textColor="@color/successGreen"
+        android:textSize="13sp"
+        android:text="@string/plan_updated"
+        android:visibility="gone"
+        tools:visibility="visible"/>
 
     <TextView
         android:id="@+id/chatModelText"

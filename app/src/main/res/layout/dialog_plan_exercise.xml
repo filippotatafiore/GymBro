@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window to change (or replace) an exercise of a plan, or to add one to a day
+     (PlanActivity.showExerciseDialog). ScrollView: the window can scroll when the keyboard is open. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout style="@style/ModalCardStyle">
+
+        <TextView
+            android:id="@+id/exerciseDialogTitle"
+            style="@style/ModalTitleStyle"
+            android:text="@string/edit_exercise"/>
+
+        <!-- changing an exercise only -->
+        <TextView
+            android:id="@+id/exerciseDialogHint"
+            style="@style/ModalMessageStyle"
+            android:layout_marginTop="6dp"
+            android:textSize="14sp"
+            android:text="@string/edit_exercise_hint"/>
+
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/exercise"/>
+
+        <EditText
+            android:id="@+id/planExerciseNameInput"
+            style="@style/InputStyle"
+            android:layout_marginTop="8dp"
+            android:inputType="textCapWords"
+            android:maxLength="60"
+            android:importantForAutofill="no"/>
+
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/muscle_group_label"/>
+
+        <EditText
+            android:id="@+id/planExerciseMuscleInput"
+            style="@style/InputStyle"
+            android:layout_marginTop="8dp"
+            android:inputType="textCapWords"
+            android:maxLength="30"
+            android:importantForAutofill="no"/>
+
+        <!-- sets, reps, rest -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/FormLabelStyle"
+                    android:text="@string/sets_label"/>
+
+                <EditText
+                    android:id="@+id/planExerciseSetsInput"
+                    style="@style/InputStyle"
+                    android:layout_marginTop="8dp"
+                    android:inputType="number"
+                    android:maxLength="2"
+                    android:importantForAutofill="no"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/FormLabelStyle"
+                    android:text="@string/reps_label"/>
+
+                <!-- a text: e.g. 10, 8-12, 30 s -->
+                <EditText
+                    android:id="@+id/planExerciseRepsInput"
+                    style="@style/InputStyle"
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/reps_hint"
+                    android:inputType="text"
+                    android:maxLength="20"
+                    android:importantForAutofill="no"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/FormLabelStyle"
+                    android:text="@string/rest_label"/>
+
+                <EditText
+                    android:id="@+id/planExerciseRestInput"
+                    style="@style/InputStyle"
+                    android:layout_marginTop="8dp"
+                    android:inputType="number"
+                    android:maxLength="3"
+                    android:importantForAutofill="no"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/notes_hint"/>
+
+        <EditText
+            android:id="@+id/planExerciseNotesInput"
+            style="@style/InputStyle"
+            android:layout_marginTop="8dp"
+            android:inputType="textCapSentences"
+            android:maxLength="200"
+            android:importantForAutofill="no"/>
+
+        <TextView
+            android:id="@+id/planExerciseError"
+            style="@style/ErrorTextStyle"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal">
+
+            <!-- changing an exercise only -->
+            <Button
+                android:id="@+id/deleteExerciseButton"
+                style="@style/DangerButtonStyle"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="12dp"
+                android:text="@string/delete"/>
+
+            <Button
+                android:id="@+id/saveExerciseButton"
+                style="@style/PrimaryButtonStyle"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="@string/save"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

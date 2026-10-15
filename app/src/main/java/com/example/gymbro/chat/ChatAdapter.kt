@@ -27,18 +27,22 @@ val ChatItem.key: Any
 
 // Fills the list of the chat page:
 // - messages of the user: blue bubbles on the right (res/layout/item_chat_user.xml)
-// - answers of the coach: grey bubbles on the left, with the AI model that wrote them (item_chat_coach.xml)
+// - answers of the coach: grey bubbles on the left, with the AI model that wrote them and, in the
+//   chat about a plan, "Plan updated" if the coach changed the plan (tap it: onPlanUpdatedClick)
+//   (item_chat_coach.xml)
 // - three pulsing dots while the coach is writing (item_chat_typing.xml)
 // - the error of the last request: tap it to try again (item_chat_problem.xml)
 // Long press on a message: copied to the clipboard (onCopy)
 class ChatAdapter(
     private val onRetry: () -> Unit,
-    private val onCopy: (ChatMessage) -> Unit
+    private val onCopy: (ChatMessage) -> Unit,
+    private val onPlanUpdatedClick: () -> Unit = {}
 ) : ListAdapter<ChatItem, RecyclerView.ViewHolder>(DIFF) {
 
     class MessageViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val text: TextView = view.findViewById(R.id.chatMessageText)
         val model: TextView? = view.findViewById(R.id.chatModelText)
+        val planUpdated: TextView? = view.findViewById(R.id.chatPlanUpdated)
     }
 
     class TypingViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -99,6 +103,8 @@ class ChatAdapter(
                     // e.g. "openai/gpt-oss-120b" -> "gpt-oss-120b"
                     holder.model?.text = message.model?.substringAfterLast('/')
                     holder.model?.isVisible = !message.model.isNullOrBlank()
+                    holder.planUpdated?.isVisible = message.planUpdated
+                    holder.planUpdated?.setOnClickListener { onPlanUpdatedClick() }
                 }
                 holder.text.setOnLongClickListener {
                     onCopy(message)

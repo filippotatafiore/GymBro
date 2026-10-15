@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- An exercise of a plan: name, muscle group, rest and notes; sets × reps on the right.
+     Tap it to change or replace it. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/ListRowStyle"
+    android:foreground="@drawable/row_ripple">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/planExerciseName"
+            style="@style/RowTitleStyle"
+            android:textSize="17sp"
+            tools:text="Bench Press"/>
+
+        <TextView
+            android:id="@+id/planExerciseMuscle"
+            style="@style/ExerciseMuscleGroupStyle"
+            tools:text="CHEST"/>
+
+        <!-- rest and notes (hidden if there are none) -->
+        <TextView
+            android:id="@+id/planExerciseDetails"
+            style="@style/RowSubtitleStyle"
+            tools:text="Rest 90 s · keep the shoulder blades together"/>
+
+    </LinearLayout>
+
+    <!-- sets × reps -->
+    <TextView
+        android:id="@+id/planExerciseSetsReps"
+        style="@style/RowValueStyle"
+        android:textSize="18sp"
+        tools:text="4 × 8-10"/>
+
+</LinearLayout>

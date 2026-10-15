@@ -30,12 +30,16 @@ import com.example.gymbro.network.ApiClient
 import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.Better
 import com.example.gymbro.network.Metric
+import com.example.gymbro.network.PlanRequest
 import com.example.gymbro.network.Post
 import com.example.gymbro.network.PostKind
 import com.example.gymbro.network.Sex
 import com.example.gymbro.network.User
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
+import com.example.gymbro.plan.PlanAdapter
+import com.example.gymbro.plan.PlanGoal
+import com.example.gymbro.plan.PlanLevel
 import com.example.gymbro.profile.BodyData
 import com.example.gymbro.profile.ManualExercises
 import com.example.gymbro.profile.PersonalBestAdapter
@@ -71,6 +75,7 @@ class ProfileActivity : ComponentActivity() {
     private lateinit var emailText: TextView
     private lateinit var emptyResultsText: TextView
     private lateinit var emptyPersonalBestsText: TextView
+    private lateinit var emptyPlansText: TextView
     private lateinit var postList: RecyclerView
 
     private val postAdapter = PostAdapter(
@@ -78,6 +83,7 @@ class ProfileActivity : ComponentActivity() {
         onDelete = { post -> confirmDeletePost(post) }
     )
     private val personalBestAdapter = PersonalBestAdapter(onClick = { post -> showPostDetails(post) })
+    private val planAdapter = PlanAdapter(onClick = { plan -> PlanActivity.open(this, plan.id) })
 
     // Opens the system photo picker (no permission needed); the lambda receives the chosen photo
     private val pickPicture = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -186,10 +192,15 @@ class ProfileActivity : ComponentActivity() {
         emailText = findViewById(R.id.profileEmail)
         emptyResultsText = findViewById(R.id.emptyResultsText)
         emptyPersonalBestsText = findViewById(R.id.emptyPersonalBestsText)
+        emptyPlansText = findViewById(R.id.emptyPlansText)
 
         val personalBestList = findViewById<RecyclerView>(R.id.personalBestList)
         personalBestList.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         personalBestList.adapter = personalBestAdapter
+
+        val planList = findViewById<RecyclerView>(R.id.planList)
+        planList.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        planList.adapter = planAdapter
 
         postList = findViewById(R.id.postList)
         postList.layoutManager = LinearLayoutManager(this)
@@ -200,6 +211,7 @@ class ProfileActivity : ComponentActivity() {
             pickPicture.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
         findViewById<Button>(R.id.publishResultButton).setOnClickListener { showPublishChoice() }
+        findViewById<Button>(R.id.newPlanButton).setOnClickListener { showCreatePlanDialog() }
 
 
         // --------------------------------------------------------- NAVBAR
@@ -227,7 +239,7 @@ class ProfileActivity : ComponentActivity() {
         emailText.text = user.email
     }
 
-    // Downloads profile data, picture and posts from the server (in background)
+    // Downloads profile data, picture, posts and workout plans from the server (in background)
     private fun refreshProfile() {
         val token = UserSession.token ?: return
         lifecycleScope.launch {
@@ -244,6 +256,7 @@ class ProfileActivity : ComponentActivity() {
                 }
 
                 showPosts(user.id)
+                showPlans(token)
             } catch (e: ApiException) {
                 Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
                 // the login is no longer valid (e.g. logged out from the server)
@@ -264,6 +277,13 @@ class ProfileActivity : ComponentActivity() {
         val bests = PersonalBests.from(posts)
         personalBestAdapter.submitList(bests)
         emptyPersonalBestsText.isVisible = bests.isEmpty()
+    }
+
+    // Workout plans of the user, the last changed first
+    private suspend fun showPlans(token: String) {
+        val plans = ApiClient.getPlans(token)
+        planAdapter.submitList(plans)
+        emptyPlansText.isVisible = plans.isEmpty()
     }
 
     // Reloads posts and personal bests (after publishing or deleting a post)
@@ -517,6 +537,102 @@ class ProfileActivity : ComponentActivity() {
             }
         }
         dialog.show()
+    }
+
+
+    // --------------------------------------------------------- WORKOUT PLANS
+
+    // Modal window of the "New" button of WORKOUT PLANS: the AI coach writes a gym plan from the body
+    // data of the profile (shown in the window: never username, email or password), the goal, the
+    // level, the days per week, the minutes per session and the preferences. Then the plan opens.
+    private fun showCreatePlanDialog() {
+        val dialog = createModal(this, R.layout.dialog_create_plan, this)
+        val goalSpinner = dialog.findViewById<Spinner>(R.id.planGoalSpinner)
+        val levelGroup = dialog.findViewById<RadioGroup>(R.id.planLevelGroup)
+        val daysGroup = dialog.findViewById<RadioGroup>(R.id.planDaysGroup)
+        val minutesGroup = dialog.findViewById<RadioGroup>(R.id.planMinutesGroup)
+        val preferences = dialog.findViewById<EditText>(R.id.planPreferencesInput)
+        val error = dialog.findViewById<TextView>(R.id.createPlanError)
+        val progress = dialog.findViewById<View>(R.id.createPlanProgress)
+        val create = dialog.findViewById<Button>(R.id.createPlanButton)
+
+        val user = UserSession.user
+        dialog.findViewById<TextView>(R.id.planBodyData).text = bodyDataSummary(user)
+        dialog.findViewById<View>(R.id.planBodyDataHint).isVisible = user?.heightCm == null || user.weightKg == null
+
+        goalSpinner.adapter = ArrayAdapter(this, R.layout.item_spinner, PlanGoal.entries.map { getString(it.label) })
+        goalSpinner.setSelection(PlanGoal.BUILD_MUSCLE.ordinal)
+        levelGroup.check(R.id.levelBeginner)
+        daysGroup.check(R.id.days3)
+        minutesGroup.check(R.id.minutes60)
+
+        create.setOnClickListener {
+            val token = UserSession.token ?: return@setOnClickListener
+            val request = PlanRequest(
+                goal = PlanGoal.entries[goalSpinner.selectedItemPosition],
+                level = when (levelGroup.checkedRadioButtonId) {
+                    R.id.levelIntermediate -> PlanLevel.INTERMEDIATE
+                    R.id.levelAdvanced -> PlanLevel.ADVANCED
+                    else -> PlanLevel.BEGINNER
+                },
+                daysPerWeek = when (daysGroup.checkedRadioButtonId) {
+                    R.id.days2 -> 2
+                    R.id.days4 -> 4
+                    R.id.days5 -> 5
+                    R.id.days6 -> 6
+                    else -> 3
+                },
+                minutesPerSession = when (minutesGroup.checkedRadioButtonId) {
+                    R.id.minutes30 -> 30
+                    R.id.minutes45 -> 45
+                    R.id.minutes90 -> 90
+                    else -> 60
+                },
+                preferences = preferences.text.toString().trim(),
+                // the plan is written in the language of the phone
+                language = Locale.getDefault().getDisplayLanguage(Locale.ENGLISH)
+            )
+            getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(create.windowToken, 0)
+
+            // while the coach writes the plan the window cannot be closed
+            dialog.setCancelable(false)
+            create.isEnabled = false
+            progress.isVisible = true
+            error.isVisible = false
+            lifecycleScope.launch {
+                try {
+                    val plan = ApiClient.createPlan(token, request)
+                    dialog.dismiss()
+                    PlanActivity.open(this@ProfileActivity, plan.id)
+                } catch (e: ApiException) {
+                    error.showError(e.userMessage(this@ProfileActivity))
+                } finally {
+                    dialog.setCancelable(true)
+                    create.isEnabled = true
+                    progress.isVisible = false
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    // Body data used by the coach for a plan, e.g. "180 cm · 72.5 kg · BMI 22.4 · 25 years · Male"
+    private fun bodyDataSummary(user: User?): String {
+        val number = DecimalFormat("0.#")
+        val parts = listOfNotNull(
+            user?.heightCm?.let { "${number.format(it)} cm" },
+            user?.weightKg?.let { "${number.format(it)} kg" },
+            BodyData.bmi(user?.heightCm, user?.weightKg)?.let { "BMI " + DecimalFormat("0.0").format(it) },
+            user?.birthYear?.let { getString(R.string.age_years, Year.now().value - it) },
+            user?.sex?.let {
+                getString(when (it) {
+                    Sex.MALE -> R.string.sex_male
+                    Sex.FEMALE -> R.string.sex_female
+                    Sex.OTHER -> R.string.sex_other
+                })
+            }
+        )
+        return if (parts.isEmpty()) getString(R.string.plan_no_body_data) else parts.joinToString(" · ")
     }
 
 

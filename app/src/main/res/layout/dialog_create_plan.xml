@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window to create a workout plan with the AI coach ("New" in WORKOUT PLANS of the profile,
+     ProfileActivity.showCreatePlanDialog): the body data of the profile that the coach will use,
+     goal, level, days per week, minutes per session and preferences.
+     ScrollView: the window can scroll when the keyboard is open. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout style="@style/ModalCardStyle">
+
+        <TextView
+            style="@style/ModalTitleStyle"
+            android:text="@string/create_plan_title"/>
+
+        <TextView
+            style="@style/ModalMessageStyle"
+            android:layout_marginTop="6dp"
+            android:textSize="14sp"
+            android:text="@string/create_plan_message"/>
+
+        <!-- body data of the profile -->
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/your_data"/>
+
+        <TextView
+            android:id="@+id/planBodyData"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:padding="14dp"
+            android:background="@drawable/input_background"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            tools:text="180 cm · 72.5 kg · BMI 22.4 · 25 years · Male"/>
+
+        <!-- shown when height or weight are missing -->
+        <TextView
+            android:id="@+id/planBodyDataHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp"
+            android:text="@string/plan_body_data_hint"
+            android:visibility="gone"/>
+
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/plan_goal_label"/>
+
+        <Spinner
+            android:id="@+id/planGoalSpinner"
+            style="@style/SpinnerStyle"/>
+
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/plan_level_label"/>
+
+        <RadioGroup
+            android:id="@+id/planLevelGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/levelBeginner"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="6dp"
+                android:textSize="13sp"
+                android:text="@string/level_beginner"/>
+
+            <RadioButton
+                android:id="@+id/levelIntermediate"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="6dp"
+                android:textSize="13sp"
+                android:text="@string/level_intermediate"/>
+
+            <RadioButton
+                android:id="@+id/levelAdvanced"
+                style="@style/SegmentStyle"
+                android:textSize="13sp"
+                android:text="@string/level_advanced"/>
+
+        </RadioGroup>
+
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/plan_days_label"/>
+
+        <RadioGroup
+            android:id="@+id/planDaysGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/days2"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="6dp"
+                android:text="2"/>
+
+            <RadioButton
+                android:id="@+id/days3"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="6dp"
+                android:text="3"/>
+
+            <RadioButton
+                android:id="@+id/days4"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="6dp"
+                android:text="4"/>
+
+            <RadioButton
+                android:id="@+id/days5"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="6dp"
+                android:text="5"/>
+
+            <RadioButton
+                android:id="@+id/days6"
+                style="@style/SegmentStyle"
+                android:text="6"/>
+
+        </RadioGroup>
+
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/plan_minutes_label"/>
+
+        <RadioGroup
+            android:id="@+id/planMinutesGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/minutes30"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="6dp"
+                android:text="30"/>
+
+            <RadioButton
+                android:id="@+id/minutes45"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="6dp"
+                android:text="45"/>
+
+            <RadioButton
+                android:id="@+id/minutes60"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="6dp"
+                android:text="60"/>
+
+            <RadioButton
+                android:id="@+id/minutes90"
+                style="@style/SegmentStyle"
+                android:text="90"/>
+
+        </RadioGroup>
+
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/plan_preferences_label"/>
+
+        <EditText
+            android:id="@+id/planPreferencesInput"
+            style="@style/InputStyle"
+            android:layout_marginTop="8dp"
+            android:gravity="top|start"
+            android:hint="@string/plan_preferences_hint"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLength="500"
+            android:minLines="3"
+            android:maxLines="6"
+            android:singleLine="false"
+            android:importantForAutofill="no"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            android:text="@string/plan_privacy"/>
+
+        <TextView
+            android:id="@+id/createPlanError"
+            style="@style/ErrorTextStyle"/>
+
+        <!-- while the coach writes the plan -->
+        <LinearLayout
+            android:id="@+id/createPlanProgress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <ProgressBar
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:indeterminateTint="@color/lighterBlue"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:text="@string/creating_plan"/>
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/createPlanButton"
+            style="@style/PrimaryButtonStyle"
+            android:layout_marginTop="20dp"
+            android:text="@string/create_plan"/>
+
+    </LinearLayout>
+
+</ScrollView>

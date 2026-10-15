@@ -10,83 +10,97 @@ import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// Conversation with the AI coach (chat page). The messages are saved in the local database
-// (chat_messages table); the answer is asked to the server in background (applicationScope), so it
-// arrives and is saved also if the chat page is closed meanwhile.
+// Conversations with the AI coach (chat page). The messages are saved in the local database
+// (chat_messages table); the answers are asked to the server in background (applicationScope), so
+// they arrive and are saved also if the chat page is closed meanwhile.
 object CoachChat {
 
-    // What the coach is doing for the user with this id
+    // A conversation: the general chat of a user (planId = null) or their chat about a workout plan,
+    // where the coach sees the plan and can change it
+    data class Conversation(val userId: Long, val planId: Long?)
+
+    // What the coach is doing in a conversation
     sealed interface Status {
-        data object Idle : Status                                       // waiting for a message
-        data class Waiting(val userId: Long) : Status                   // writing the answer
-        data class Failed(val userId: Long, val message: String) : Status  // the answer did not arrive
+        data object Idle : Status                           // waiting for a message
+        data object Waiting : Status                        // writing the answer
+        data class Failed(val message: String) : Status     // the answer did not arrive
     }
 
     // Newest messages sent to the server: the server gives to the model those that fit its limits
     private const val MAX_SENT_MESSAGES = 30
 
-    private val mutableStatus = MutableStateFlow<Status>(Status.Idle)
-    val status: StateFlow<Status> = mutableStatus.asStateFlow()
+    private val statuses = MutableStateFlow<Map<Conversation, Status>>(emptyMap())
+    private val requests = mutableMapOf<Conversation, Job>()
 
-    private var request: Job? = null
+    fun status(conversation: Conversation): Flow<Status> =
+        statuses.map { it[conversation] ?: Status.Idle }.distinctUntilChanged()
 
-    val isWaiting: Boolean
-        get() = mutableStatus.value is Status.Waiting
+    fun isWaiting(conversation: Conversation): Boolean = statuses.value[conversation] == Status.Waiting
 
-    // Saves the message of the logged user and asks the answer of the coach
-    fun send(context: Context, text: String) {
-        val userId = UserSession.userId ?: return
+    private fun setStatus(conversation: Conversation, status: Status) {
+        statuses.update { it + (conversation to status) }
+    }
+
+    // Saves the message of the user and asks the answer of the coach
+    fun send(context: Context, conversation: Conversation, text: String) {
         val token = UserSession.token ?: return
-        if (isWaiting) return
+        if (isWaiting(conversation)) return
         val app = context.gymBroApp
 
-        mutableStatus.value = Status.Waiting(userId)
-        request = app.applicationScope.launch {
-            app.database.chatMessageDao().insert(ChatMessage(userId = userId, role = ChatRole.USER, text = text))
-            askCoach(app, userId, token)
+        setStatus(conversation, Status.Waiting)
+        requests[conversation] = app.applicationScope.launch {
+            app.database.chatMessageDao().insert(
+                ChatMessage(userId = conversation.userId, planId = conversation.planId, role = ChatRole.USER, text = text)
+            )
+            askCoach(app, conversation, token)
         }
     }
 
     // Asks again the answer to the last message (after an error)
-    fun retry(context: Context) {
-        val userId = UserSession.userId ?: return
+    fun retry(context: Context, conversation: Conversation) {
         val token = UserSession.token ?: return
-        if (isWaiting) return
-
+        if (isWaiting(conversation)) return
         val app = context.gymBroApp
-        mutableStatus.value = Status.Waiting(userId)
-        request = app.applicationScope.launch { askCoach(app, userId, token) }
+
+        setStatus(conversation, Status.Waiting)
+        requests[conversation] = app.applicationScope.launch { askCoach(app, conversation, token) }
     }
 
     // The last message of the user has no answer, and no answer is coming (e.g. the app was closed
     // while the coach was writing): shown as an error, so that it can be asked again
-    fun answerMissing(userId: Long, message: String) {
-        if (mutableStatus.value == Status.Idle) mutableStatus.value = Status.Failed(userId, message)
+    fun answerMissing(conversation: Conversation, message: String) {
+        if ((statuses.value[conversation] ?: Status.Idle) == Status.Idle) setStatus(conversation, Status.Failed(message))
     }
 
-    // New chat: deletes the conversation of the logged user (an answer still arriving is discarded)
-    fun clear(context: Context) {
-        val userId = UserSession.userId ?: return
+    // New chat (or plan deleted): deletes the conversation (an answer still arriving is discarded)
+    fun clear(context: Context, conversation: Conversation) {
         val app = context.gymBroApp
-        request?.cancel()
-        mutableStatus.value = Status.Idle
-        app.applicationScope.launch { app.database.chatMessageDao().deleteAll(userId) }
+        requests.remove(conversation)?.cancel()
+        setStatus(conversation, Status.Idle)
+        app.applicationScope.launch { app.database.chatMessageDao().deleteAll(conversation.userId, conversation.planId) }
     }
 
-    private suspend fun askCoach(app: GymBroApp, userId: Long, token: String) {
+    private suspend fun askCoach(app: GymBroApp, conversation: Conversation, token: String) {
         val dao = app.database.chatMessageDao()
         try {
-            val conversation = dao.getLast(userId, MAX_SENT_MESSAGES).reversed()
-            val reply = ApiClient.askCoach(token, conversation)
-            dao.insert(ChatMessage(userId = userId, role = ChatRole.ASSISTANT, text = reply.text, model = reply.model))
-            mutableStatus.value = Status.Idle
+            val history = dao.getLast(conversation.userId, conversation.planId, MAX_SENT_MESSAGES).reversed()
+            val reply = ApiClient.askCoach(token, history, conversation.planId)
+            dao.insert(
+                ChatMessage(
+                    userId = conversation.userId, planId = conversation.planId, role = ChatRole.ASSISTANT,
+                    text = reply.text, model = reply.model, planUpdated = reply.plan != null
+                )
+            )
+            setStatus(conversation, Status.Idle)
         } catch (e: ApiException) {
-            mutableStatus.value = Status.Failed(userId, e.userMessage(app))
+            setStatus(conversation, Status.Failed(e.userMessage(app)))
         }
     }
 }

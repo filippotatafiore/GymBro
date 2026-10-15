@@ -8,7 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 // Local database of the app (a SQLite file on the phone). The instance is in GymBroApp.database.
 // version: to be increased every time the structure of the tables changes.
-@Database(entities = [TrainingSession::class, ChatMessage::class], version = 4, exportSchema = false)
+@Database(entities = [TrainingSession::class, ChatMessage::class], version = 5, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun trainingSessionDao(): TrainingSessionDao
@@ -34,6 +34,14 @@ abstract class AppDatabase : RoomDatabase() {
                         "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, " +
                         "`role` TEXT NOT NULL, `text` TEXT NOT NULL, `model` TEXT, `createdAt` INTEGER NOT NULL)"
                 )
+            }
+        }
+
+        // Version 4 -> 5: chats about the workout plans. The saved messages stay in the general chat.
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE chat_messages ADD COLUMN planId INTEGER")
+                db.execSQL("ALTER TABLE chat_messages ADD COLUMN planUpdated INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

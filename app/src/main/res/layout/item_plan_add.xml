@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- "+ Add exercise" under the exercises of a day, "+ Add day" at the end of a plan -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/LinkButtonStyle"
+    android:layout_marginStart="8dp"
+    android:textSize="15sp"
+    android:textStyle="bold"
+    tools:text="@string/add_exercise"/>

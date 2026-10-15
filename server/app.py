@@ -89,7 +89,12 @@ app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # biggest accepted request (
 #                              (rounded to 0.1 km) and, if known, kcal, max_speed_kmh, goal_km,
 #                              route (list of lines, as Google encoded polylines)
 #   pictures/{id}    {jpeg, updated_at}: the profile picture of the user with that id
-#   counters/{name}  {last}: last id given to the users / posts. The ids are numbers 1, 2, 3...
+#   plans/{id}       a gym workout plan of a user, written by the AI coach and then changed by the
+#                    user or by the coach: id, user_id, name, notes (advice of the coach), days
+#                    (list of {name, exercises}; an exercise: name, muscle_group, sets, reps,
+#                    rest_s, notes), what the user asked when creating it (goal, level,
+#                    days_per_week, minutes_per_session, preferences), created_at, updated_at
+#   counters/{name}  {last}: last id given to the users / posts / plans. The ids are numbers 1, 2, 3...
 #                    (like AUTOINCREMENT in SQL), the same ids used by the app.
 
 class DatabaseNotSetUp(Exception):
@@ -181,10 +186,11 @@ def create_user(transaction, username, email, password_hash):
 
 
 @firestore.transactional
-def insert_post(transaction, post):
-    post["id"] = new_id(transaction, "posts")
-    transaction.set(database().collection("posts").document(str(post["id"])), post)
-    return post
+def insert_numbered(transaction, collection, document):
+    """Saves a new post or plan with the next id of its collection (counter of the same name)."""
+    document["id"] = new_id(transaction, collection)
+    transaction.set(database().collection(collection).document(str(document["id"])), document)
+    return document
 
 
 # ------------------------------------------------------------------ HELPERS
@@ -526,7 +532,7 @@ def publish_post():
     post["created_at"] = now_iso()
     # only the known values are stored (e.g. no kcal for the runs recorded before they existed)
     post = {key: value for key, value in post.items() if value is not None}
-    return jsonify(post_json(insert_post(database().transaction(), post))), 201
+    return jsonify(post_json(insert_numbered(database().transaction(), "posts", post))), 201
 
 
 def api_key(variable, file_path):
@@ -713,7 +719,8 @@ Rules:
 - Formatting: plain text, with only **bold**, "- " bullet lists and "1. " numbered lists. No tables, no titles with #, no code.
 - You are not a doctor: for pain, injuries, illnesses, pregnancy, medicines or eating disorders give only general information and suggest seeing a doctor or a physiotherapist. Never suggest doping, steroids or extreme diets.
 - If the request has nothing to do with training, sport, health or nutrition, kindly say that you can help only with training and running.
-- You cannot see the data of the user in the app: ask for them if you need them."""
+- You cannot see the data of the user in the app: ask for them if you need them.
+- In this chat you cannot create or change the workout plans of the user. The user can create a gym plan with you in the Profile page of the app (WORKOUT PLANS > New), and change it with you from the page of the plan (button "Ask the coach")."""
 
 
 class ChatError(Exception):
@@ -726,6 +733,19 @@ class ChatError(Exception):
         self.rate_limited = rate_limited
         self.retry_after = retry_after
         self.bad_key = bad_key
+
+
+class CoachUnavailable(Exception):
+    """No model could answer: status is the HTTP status for the app (429 if they are all busy)."""
+
+    def __init__(self, status, message):
+        super().__init__(message)
+        self.status = status
+
+
+@app.errorhandler(CoachUnavailable)
+def coach_unavailable(e):
+    return error(e.status, str(e))
 
 
 def chat_providers():
@@ -754,9 +774,13 @@ def reasoning_options(model):
     return {}
 
 
-def ask_model(provider, key, url, model, messages, timeout):
-    """The answer of one model to the conversation (OpenAI-compatible chat API), or raises ChatError."""
-    body = {"model": model, "messages": messages, "max_tokens": MAX_ANSWER_TOKENS, **reasoning_options(model)}
+def ask_model(provider, key, url, model, messages, timeout, max_tokens, json_schema=None):
+    """The answer of one model to the conversation (OpenAI-compatible chat API), or raises ChatError.
+    json_schema: (name, schema) of the JSON object the answer must be (structured outputs)."""
+    body = {"model": model, "messages": messages, "max_tokens": max_tokens, **reasoning_options(model)}
+    if json_schema is not None:
+        name, schema = json_schema
+        body["response_format"] = {"type": "json_schema", "json_schema": {"name": name, "strict": True, "schema": schema}}
     service_request = urllib.request.Request(
         url,
         data=json.dumps(body).encode(),
@@ -791,6 +815,49 @@ def ask_model(provider, key, url, model, messages, timeout):
     return text
 
 
+def ask_coach(messages, max_tokens=MAX_ANSWER_TOKENS, json_schema=None, read_answer=None,
+              timeout_s=None, deadline_s=None):
+    """The answer of the first model that answers, among the models of Groq and then of Gemini (see
+    chat_providers): (answer, model, provider). When a model has used up its free limits, the next
+    one answers. read_answer: turns the text of the answer into the value returned (e.g. a plan);
+    it raises ChatError if the answer is not valid, and then the next model is asked.
+    timeout_s / deadline_s: for each model / for all of them (default: those of the chat).
+    Raises CoachUnavailable if no model answers."""
+    timeout_s = timeout_s or CHAT_TIMEOUT_S
+    deadline_s = deadline_s or CHAT_DEADLINE_S
+    providers = chat_providers()
+    if not providers:
+        raise CoachUnavailable(503, "The AI coach is not set up on the server: GROQ_API_KEY missing (see server/README.md)")
+
+    deadline = time.monotonic() + deadline_s
+    problems = []
+    for provider, key, url, models in providers:
+        for model in models:
+            remaining = deadline - time.monotonic()
+            if remaining < 5:
+                break
+            try:
+                text = ask_model(provider, key, url, model, messages, min(timeout_s, remaining), max_tokens, json_schema)
+                try:
+                    answer = read_answer(text) if read_answer else text
+                except ChatError as e:
+                    raise ChatError(f"{provider} {model}: {e}")
+            except ChatError as e:
+                # visible in the logs of Vercel (project > Logs)
+                app.logger.warning("Chat: %s", e)
+                problems.append(e)
+                if e.bad_key:
+                    break
+                continue
+            return answer, model, provider
+
+    if problems and all(problem.rate_limited for problem in problems):
+        waits = [problem.retry_after for problem in problems if problem.retry_after]
+        raise CoachUnavailable(429, "The coach is very busy: the free limits of the AI models are used up. "
+                                    f"Try again {wait_text(min(waits) if waits else None)}.")
+    raise CoachUnavailable(502, "The AI coach is not available: " + "; ".join(str(problem) for problem in problems))
+
+
 def retry_seconds(value):
     """The Retry-After header of a 429 answer, in seconds (None if missing)."""
     try:
@@ -809,9 +876,9 @@ def wait_text(seconds):
     return f"in {round(seconds / 3600)} hours"
 
 
-def clean_conversation(messages):
+def clean_conversation(messages, max_chars=CHAT_HISTORY_CHARS):
     """The conversation sent by the app, validated (None if invalid) and limited to its newest
-    messages that fit in CHAT_HISTORY_CHARS characters. It must end with a message of the user."""
+    messages that fit in max_chars characters. It must end with a message of the user."""
     if not isinstance(messages, list) or not 1 <= len(messages) <= 200:
         return None
     cleaned = []
@@ -829,7 +896,7 @@ def clean_conversation(messages):
     total = 0
     for message in reversed(cleaned):
         total += len(message["content"])
-        if kept and total > CHAT_HISTORY_CHARS:
+        if kept and total > max_chars:
             break
         kept.insert(0, message)
     # the conversation given to the model starts with a message of the user
@@ -841,44 +908,400 @@ def clean_conversation(messages):
 @app.post("/api/chat")
 @login_required
 def chat():
-    """Answer of the AI coach: the first model that answers, among the models of Groq and then of
-    Gemini (see chat_providers). When a model has used up its free limits, the next one answers.
-    The conversation is saved only on the phone: the app sends it every time, so any model can
-    continue it.
-    Body: {"messages": [{"role": "user" | "assistant", "content": "..."}, ...]}
-    -> {"reply": "...", "model": "openai/gpt-oss-120b", "provider": "Groq"}"""
+    """Answer of the AI coach (see ask_coach). The conversation is saved only on the phone: the app
+    sends it every time, so any model can continue it.
+    Body: {"messages": [{"role": "user" | "assistant", "content": "..."}, ...], "plan_id": 3}
+    -> {"reply": "...", "model": "openai/gpt-oss-120b", "provider": "Groq"}
+    With plan_id (optional): chat about that workout plan of the user, which the coach sees and can
+    change; the answer also has "plan": the plan changed by the coach (already saved), or null."""
     data = request.get_json(silent=True) or {}
+    plan_id = data.get("plan_id")
+    if plan_id is not None:
+        return plan_chat(plan_id, data.get("messages"))
+
     conversation = clean_conversation(data.get("messages"))
     if conversation is None:
         return error(400, "Invalid messages")
-    providers = chat_providers()
-    if not providers:
-        return error(503, "The AI coach is not set up on the server: GROQ_API_KEY missing (see server/README.md)")
-
     messages = [{"role": "system", "content": COACH_INSTRUCTIONS}] + conversation
-    deadline = time.monotonic() + CHAT_DEADLINE_S
-    problems = []
-    for provider, key, url, models in providers:
-        for model in models:
-            remaining = deadline - time.monotonic()
-            if remaining < 5:
-                break
-            try:
-                reply = ask_model(provider, key, url, model, messages, min(CHAT_TIMEOUT_S, remaining))
-            except ChatError as e:
-                # visible in the logs of Vercel (project > Logs)
-                app.logger.warning("Chat: %s", e)
-                problems.append(e)
-                if e.bad_key:
-                    break
-                continue
-            return jsonify({"reply": reply, "model": model, "provider": provider})
+    reply, model, provider = ask_coach(messages)
+    return jsonify({"reply": reply, "model": model, "provider": provider})
 
-    if problems and all(problem.rate_limited for problem in problems):
-        waits = [problem.retry_after for problem in problems if problem.retry_after]
-        return error(429, "The coach is very busy: the free limits of the AI models are used up. "
-                          f"Try again {wait_text(min(waits) if waits else None)}.")
-    return error(502, "The AI coach is not available: " + "; ".join(str(problem) for problem in problems))
+
+# ------------------------------------------------------------------ WORKOUT PLANS (written by the AI coach)
+
+# Goals of a plan, as written in the requests of the app -> as explained to the model
+PLAN_GOALS = {
+    "lose_weight": "lose weight (lose fat, keeping the muscles)",
+    "build_muscle": "build muscle (hypertrophy), staying lean",
+    "gain_mass": "gain mass (more muscle and more body weight)",
+    "strength": "get stronger (strength)",
+    "fitness": "general fitness and health",
+}
+PLAN_LEVELS = ("beginner", "intermediate", "advanced")
+MAX_PLANS = 20                  # plans saved by each user
+MAX_PLAN_DAYS = 7
+MAX_DAY_EXERCISES = 15
+# A plan is a long answer: more tokens and more time than a chat message. Groq counts the
+# maximum answer in the tokens per minute of the request (8000 for the free models): the
+# instructions, the plan, the conversation and the answer must stay under it.
+PLAN_ANSWER_TOKENS = 3_500
+PLAN_CHAT_ANSWER_TOKENS = 3_000
+PLAN_CHAT_HISTORY_CHARS = 6_000
+PLAN_TIMEOUT_S = 40
+PLAN_DEADLINE_S = 75   # the app waits 90 s for a plan
+
+# JSON schema of a plan written by the model (structured outputs: the model must follow it).
+# Strict mode: every field is required, no other fields.
+PLAN_EXERCISE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "muscle_group": {"type": "string"},
+        "sets": {"type": "integer"},
+        "reps": {"type": "string"},
+        "rest_s": {"type": "integer"},
+        "notes": {"type": "string"},
+    },
+    "required": ["name", "muscle_group", "sets", "reps", "rest_s", "notes"],
+    "additionalProperties": False,
+}
+PLAN_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "notes": {"type": "string"},
+        "days": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "exercises": {"type": "array", "items": PLAN_EXERCISE_SCHEMA},
+                },
+                "required": ["name", "exercises"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["name", "notes", "days"],
+    "additionalProperties": False,
+}
+# Answer of the coach in the chat about a plan: the reply and the changed plan (null = not changed)
+PLAN_CHAT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "reply": {"type": "string"},
+        "plan": {"anyOf": [PLAN_SCHEMA, {"type": "null"}]},
+    },
+    "required": ["reply", "plan"],
+    "additionalProperties": False,
+}
+
+PLAN_RULES = """Rules for the plan:
+- One day for each training day of the week, with a short name that says what it trains (e.g. "Day 1 · Push", "Day A · Full body").
+- For each day, the exercises in the order to do them (compound exercises first), so many that the session fits in the minutes available, rest included (usually 4-8).
+- For each exercise: its name, the main muscle group, the sets, the reps (a number, a range like "8-10", or a time like "30 s" or "20 min" for planks and cardio), the rest between the sets in seconds, and short notes only if useful (e.g. a technique tip, "per leg"); otherwise empty notes.
+- Exercises, sets, reps and rest must fit the goal and the level of the user. Respect all their preferences and limits (exercises to avoid, available equipment, injuries): if an exercise is not possible, choose an alternative.
+- "notes" of the plan: 2-4 short sentences of advice: warm-up, how to increase the weights, how to adapt the plan. If the body data need care (e.g. a high BMI, an older age), say it kindly here.
+- Write names and notes in {language}. For the exercises, use the names commonly used in gyms (the English names are fine when they are the usual ones, e.g. Bench Press, Lat Machine).
+- You are not a doctor: never suggest doping, steroids or extreme diets. If the user mentions pain or injuries, avoid the exercises that load that part and suggest a doctor or a physiotherapist in the notes."""
+
+PLAN_CREATE_INSTRUCTIONS = """You are GymBro Coach, the personal trainer inside GymBro, an app for gym training and running.
+Create a gym workout plan for the user, based on their body data, goal, level, available time and preferences.
+
+""" + PLAN_RULES + """
+
+Answer only with the JSON object of the plan:
+{{"name": "short name of the plan", "notes": "...", "days": [{{"name": "...", "exercises": [{{"name": "...", "muscle_group": "...", "sets": 3, "reps": "8-10", "rest_s": 90, "notes": ""}}]}}]}}"""
+
+PLAN_CHAT_INSTRUCTIONS = """You are GymBro Coach, the personal trainer inside GymBro, an app for gym training and running.
+The user is looking at one of their gym workout plans in the app: they ask you questions about it or ask you to change it.
+
+Body data of the user:
+{body}
+The user created the plan for: goal {goal}; level {level}; {days_per_week} training days per week; {minutes} minutes per session; preferences and limits: {preferences}.
+
+The plan now (the user may have changed it by hand: this is always the latest version):
+{plan}
+
+Rules for your answer:
+- "reply": the answer to the last message of the user, in the language of that message, practical and concise. Plain text, with only **bold**, "- " bullet lists and "1. " numbered lists.
+- If the user asks to change the plan (replace, add or remove exercises or days, change sets, reps or rest, make it easier, harder, shorter...), change it and write the whole new plan in "plan", keeping as they are all the parts the user did not ask to change. In "reply" say briefly what you changed.
+- If the plan does not need to change (questions, explanations, advice), "plan" is null.
+- If the request has nothing to do with training, sport, health or nutrition, kindly say that you can help only with training and running, and "plan" is null.
+
+""" + PLAN_RULES + """
+
+Answer only with a JSON object: {{"reply": "...", "plan": null or the whole plan, with the same fields of the plan above}}"""
+
+
+def body_summary(user):
+    """What the coach knows about the user for the workout plans: the body data of the profile and
+    the BMI. Never the username, the email or the password."""
+    lines = []
+    height = user.get("height_cm")
+    weight = user.get("weight_kg")
+    if height:
+        lines.append(f"- height: {height:g} cm")
+    if weight:
+        lines.append(f"- weight: {weight:g} kg")
+    if height and weight:
+        bmi = weight / (height / 100) ** 2
+        category = ("underweight" if bmi < 18.5 else "normal weight" if bmi < 25
+                    else "overweight" if bmi < 30 else "obesity")
+        lines.append(f"- BMI: {bmi:.1f} ({category})")
+    if user.get("birth_year"):
+        lines.append(f"- age: about {datetime.now(timezone.utc).year - user['birth_year']} years")
+    if user.get("sex"):
+        lines.append(f"- sex: {user['sex']}")
+    return "\n".join(lines) if lines else "- not known (the user did not add them to the profile)"
+
+
+def clean_text(value, max_length):
+    """A text of a plan without spaces at the ends, cut to max_length characters (numbers are
+    turned into texts, e.g. the reps 10); None if missing or empty."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        value = format(value, "g")
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return value.strip()[:max_length].strip()
+
+
+def plan_number(value, minimum, maximum):
+    """A whole number of a plan (also written as a text, e.g. "90"), brought between minimum and
+    maximum; None if it is not a number."""
+    if isinstance(value, str):
+        try:
+            value = float(value.strip())
+        except ValueError:
+            return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value != value:
+        return None
+    return int(min(max(round(value), minimum), maximum))
+
+
+def clean_plan(data):
+    """Name, notes and days (with their exercises) of a plan written by the coach or changed by the
+    user, validated; None if invalid."""
+    if not isinstance(data, dict):
+        return None
+    name = clean_text(data.get("name"), 60)
+    days = data.get("days")
+    if name is None or not isinstance(days, list) or not 1 <= len(days) <= MAX_PLAN_DAYS:
+        return None
+    cleaned_days = []
+    for day in days:
+        if not isinstance(day, dict):
+            return None
+        day_name = clean_text(day.get("name"), 40)
+        exercises = day.get("exercises")
+        if day_name is None or not isinstance(exercises, list) or len(exercises) > MAX_DAY_EXERCISES:
+            return None
+        cleaned_exercises = []
+        for exercise in exercises:
+            if not isinstance(exercise, dict):
+                return None
+            exercise_name = clean_text(exercise.get("name"), 60)
+            sets = plan_number(exercise.get("sets"), 1, 20)
+            reps = clean_text(exercise.get("reps"), 20)
+            if exercise_name is None or sets is None or reps is None:
+                return None
+            rest = exercise.get("rest_s")
+            cleaned_exercises.append({
+                "name": exercise_name,
+                "muscle_group": clean_text(exercise.get("muscle_group"), 30) or "",
+                "sets": sets,
+                "reps": reps,
+                # null: rest not set (e.g. left empty by the user)
+                "rest_s": None if rest is None or rest == "" else plan_number(rest, 0, 900),
+                "notes": clean_text(exercise.get("notes"), 200) or "",
+            })
+        cleaned_days.append({"name": day_name, "exercises": cleaned_exercises})
+    return {"name": name, "notes": clean_text(data.get("notes"), 1000) or "", "days": cleaned_days}
+
+
+def json_answer(text):
+    """The JSON object written by the model (also if it is between ``` marks), or raises ChatError."""
+    text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
+    try:
+        value = json.loads(text)
+    except ValueError:
+        raise ChatError("the answer is not valid JSON")
+    if not isinstance(value, dict):
+        raise ChatError("the answer is not a JSON object")
+    return value
+
+
+def read_new_plan(text):
+    """The plan written by the model when creating a plan, or raises ChatError."""
+    plan = clean_plan(json_answer(text))
+    if plan is None or any(not day["exercises"] for day in plan["days"]):
+        raise ChatError("the plan written is not valid")
+    return plan
+
+
+def read_plan_chat_answer(text):
+    """(reply, plan changed by the model or None) of an answer in the chat about a plan, or raises
+    ChatError."""
+    answer = json_answer(text)
+    reply = answer.get("reply")
+    if not isinstance(reply, str) or not reply.strip():
+        raise ChatError("the answer has no reply")
+    plan = None
+    if answer.get("plan") is not None:
+        plan = clean_plan(answer["plan"])
+        if plan is None:
+            raise ChatError("the changed plan is not valid")
+    return reply.strip(), plan
+
+
+def plan_json(plan):
+    keys = ("id", "name", "goal", "level", "days_per_week", "minutes_per_session", "preferences",
+            "notes", "days", "created_at", "updated_at")
+    return {key: plan.get(key) for key in keys}
+
+
+def plans_of(user_id):
+    """The plans of a user, the last changed first (no composite index needed: sorted here)."""
+    query = database().collection("plans").where(filter=firestore.FieldFilter("user_id", "==", user_id))
+    plans = [snapshot.to_dict() for snapshot in query.stream()]
+    plans.sort(key=lambda plan: (plan.get("updated_at", ""), plan["id"]), reverse=True)
+    return plans
+
+
+def own_plan(plan_id):
+    """(reference, plan) of a plan of the logged user, or (None, None) if it is not one of theirs."""
+    if isinstance(plan_id, bool) or not isinstance(plan_id, int):
+        return None, None
+    ref = database().collection("plans").document(str(plan_id))
+    snapshot = ref.get()
+    if not snapshot.exists or snapshot.get("user_id") != g.user["id"]:
+        return None, None
+    return ref, snapshot.to_dict()
+
+
+@app.get("/api/me/plans")
+@login_required
+def my_plans():
+    return jsonify([plan_json(plan) for plan in plans_of(g.user["id"])])
+
+
+@app.post("/api/me/plans")
+@login_required
+def create_plan():
+    """A new workout plan written by the AI coach for the logged user, from their body data (see
+    body_summary) and what they ask: {"goal": "build_muscle", "level": "beginner",
+    "days_per_week": 3, "minutes_per_session": 60, "preferences": "no squat", "language": "Italian"}
+    goal: one of PLAN_GOALS; preferences and language optional."""
+    data = request.get_json(silent=True) or {}
+    goal = data.get("goal")
+    level = data.get("level")
+    days_per_week = number(data, "days_per_week", 1, MAX_PLAN_DAYS)
+    minutes = number(data, "minutes_per_session", 15, 180)
+    preferences = data.get("preferences") or ""
+    language = data.get("language") or "English"
+    if goal not in PLAN_GOALS or level not in PLAN_LEVELS or days_per_week is None or minutes is None:
+        return error(400, "Invalid goal, level, days or minutes")
+    if not isinstance(preferences, str) or len(preferences) > 500:
+        return error(400, "Invalid preferences (max 500 characters)")
+    if not isinstance(language, str) or not re.fullmatch(r"[A-Za-z ()-]{2,40}", language):
+        return error(400, "Invalid language")
+    if len(plans_of(g.user["id"])) >= MAX_PLANS:
+        return error(400, f"You can save at most {MAX_PLANS} plans: delete one first")
+
+    request_text = (f"Body data of the user:\n{body_summary(g.user)}\n\n"
+                    f"Goal: {PLAN_GOALS[goal]}\nLevel: {level}\n"
+                    f"Training days per week: {int(days_per_week)}\nMinutes per session: {int(minutes)}\n"
+                    f"Preferences and limits: {preferences.strip() or 'none'}")
+    messages = [
+        {"role": "system", "content": PLAN_CREATE_INSTRUCTIONS.format(language=language)},
+        {"role": "user", "content": request_text},
+    ]
+    plan, _model, _provider = ask_coach(messages, PLAN_ANSWER_TOKENS, ("workout_plan", PLAN_SCHEMA),
+                                        read_new_plan, PLAN_TIMEOUT_S, PLAN_DEADLINE_S)
+    plan.update({
+        "user_id": g.user["id"],
+        "goal": goal,
+        "level": level,
+        "days_per_week": int(days_per_week),
+        "minutes_per_session": int(minutes),
+        "preferences": preferences.strip(),
+        "language": language,
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    })
+    return jsonify(plan_json(insert_numbered(database().transaction(), "plans", plan))), 201
+
+
+@app.get("/api/me/plans/<int:plan_id>")
+@login_required
+def get_plan(plan_id):
+    _ref, plan = own_plan(plan_id)
+    if plan is None:
+        return error(404, "Plan not found")
+    return jsonify(plan_json(plan))
+
+
+@app.put("/api/me/plans/<int:plan_id>")
+@login_required
+def update_plan(plan_id):
+    """The plan changed by the user: {"name": "...", "notes": "...", "days": [...]} (see clean_plan)."""
+    ref, plan = own_plan(plan_id)
+    if plan is None:
+        return error(404, "Plan not found")
+    changes = clean_plan(request.get_json(silent=True))
+    if changes is None:
+        return error(400, "Invalid plan")
+    changes["updated_at"] = now_iso()
+    ref.update(changes)
+    plan.update(changes)
+    return jsonify(plan_json(plan))
+
+
+@app.delete("/api/me/plans/<int:plan_id>")
+@login_required
+def delete_plan(plan_id):
+    ref, plan = own_plan(plan_id)
+    if plan is None:
+        return error(404, "Plan not found")
+    ref.delete()
+    return "", 204
+
+
+def plan_chat(plan_id, messages):
+    """Answer of the coach in the chat about a plan of the user (see chat). The coach sees the plan
+    as it is now in the database, also after the changes made by the user."""
+    ref, plan = own_plan(plan_id)
+    if plan is None:
+        return error(404, "Plan not found")
+    conversation = clean_conversation(messages, PLAN_CHAT_HISTORY_CHARS)
+    if conversation is None:
+        return error(400, "Invalid messages")
+
+    # only what the model needs, without spaces: fewer tokens
+    plan_text = json.dumps({"name": plan["name"], "notes": plan["notes"], "days": plan["days"]},
+                           ensure_ascii=False, separators=(",", ":"))
+    instructions = PLAN_CHAT_INSTRUCTIONS.format(
+        body=body_summary(g.user),
+        goal=PLAN_GOALS.get(plan.get("goal"), "not set"),
+        level=plan.get("level") or "not set",
+        days_per_week=plan.get("days_per_week") or len(plan["days"]),
+        minutes=plan.get("minutes_per_session") or "not set",
+        preferences=plan.get("preferences") or "none",
+        plan=plan_text,
+        language=plan.get("language") or "the language of the plan",
+    )
+    messages = [{"role": "system", "content": instructions}] + conversation
+    (reply, changed), model, provider = ask_coach(
+        messages, PLAN_CHAT_ANSWER_TOKENS, ("plan_chat_answer", PLAN_CHAT_SCHEMA), read_plan_chat_answer,
+        PLAN_TIMEOUT_S, PLAN_DEADLINE_S)
+
+    if changed is not None:
+        changed["updated_at"] = now_iso()
+        ref.update(changed)
+        plan.update(changed)
+    return jsonify({"reply": reply, "model": model, "provider": provider,
+                    "plan": plan_json(plan) if changed is not None else None})
 
 
 if __name__ == "__main__":

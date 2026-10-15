@@ -23,7 +23,7 @@ class GymBroApp : Application() {
     val database: AppDatabase by lazy {
         Room.databaseBuilder(this, AppDatabase::class.java, "gymbro.db")
             // Converts the saved sessions to the new structure of the tables
-            .addMigrations(AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
+            .addMigrations(AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5)
             // While developing: for older structures without a migration, the local database is
             // recreated empty instead of being converted
             .fallbackToDestructiveMigration()

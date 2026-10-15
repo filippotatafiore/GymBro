@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window with a name: of a plan (rename it) or of a day (rename it, delete it, or the name
+     of a new day). See PlanActivity.nameDialog. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/ModalCardStyle">
+
+    <TextView
+        android:id="@+id/nameDialogTitle"
+        style="@style/ModalTitleStyle"
+        android:text="@string/plan_name"/>
+
+    <EditText
+        android:id="@+id/nameInput"
+        style="@style/InputStyle"
+        android:layout_marginTop="20dp"
+        android:inputType="textCapSentences"
+        android:importantForAutofill="no"/>
+
+    <TextView
+        android:id="@+id/nameError"
+        style="@style/ErrorTextStyle"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:orientation="horizontal">
+
+        <!-- days only -->
+        <Button
+            android:id="@+id/deleteNameButton"
+            style="@style/DangerButtonStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="12dp"
+            android:text="@string/delete"
+            android:visibility="gone"/>
+
+        <Button
+            android:id="@+id/saveNameButton"
+            style="@style/PrimaryButtonStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="@string/save"/>
+
+    </LinearLayout>
+
+</LinearLayout>

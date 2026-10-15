@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A workout plan: card of the horizontal list WORKOUT PLANS of the profile (tap it to open it) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="170dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="6dp"
+    android:layout_marginEnd="6dp"
+    android:orientation="vertical"
+    android:padding="14dp"
+    android:background="@drawable/list_row_background"
+    android:foreground="@drawable/row_ripple">
+
+    <ImageView
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:scaleType="fitCenter"
+        android:importantForAccessibility="no"
+        android:src="@drawable/dumbbell_icon"/>
+
+    <TextView
+        android:id="@+id/planCardName"
+        style="@style/RowTitleStyle"
+        android:layout_marginTop="8dp"
+        android:textSize="16sp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        tools:text="Hypertrophy · 4 days"/>
+
+    <TextView
+        android:id="@+id/planCardInfo"
+        style="@style/RowSubtitleStyle"
+        android:textColor="@color/lighterBlue"
+        android:textStyle="bold"
+        android:textSize="13sp"
+        tools:text="4 days · Build muscle"/>
+
+    <TextView
+        android:id="@+id/planCardDate"
+        style="@style/RowSubtitleStyle"
+        android:layout_marginTop="2dp"
+        android:textSize="12sp"
+        tools:text="Updated Oct 15, 2026"/>
+
+</LinearLayout>

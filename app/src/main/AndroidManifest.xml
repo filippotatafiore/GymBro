@@ -44,6 +44,9 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
+            android:name=".PlanActivity"
+            android:exported="false" />
+        <activity
             android:name=".session.RoutePlannerActivity"
             android:exported="false" />
 

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Title of a day of a plan (e.g. "Day 1 · Push"), with the number of exercises: tap it to rename
+     or delete the day -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginTop="16dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:background="@drawable/menu_item_background">
+
+    <TextView
+        android:id="@+id/dayName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textStyle="bold"
+        android:textColor="@color/lighterBlue"
+        android:textSize="20sp"
+        tools:text="Day 1 · Push"/>
+
+    <TextView
+        android:id="@+id/dayExerciseCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:textColor="@color/textSecondary"
+        android:textSize="13sp"
+        tools:text="6 exercises"/>
+
+    <ImageView
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginStart="10dp"
+        android:src="@drawable/new_chat_icon"
+        android:tint="@color/textSecondary"
+        android:importantForAccessibility="no"/>
+
+</LinearLayout>

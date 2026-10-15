@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Page of a workout plan (logic in PlanActivity.kt): information and advice of the coach, then the
+    days with their exercises. Tap an exercise to change or replace it, a day to rename or delete it,
+    the title to rename the plan. "Ask the coach" opens the chat about this plan.
+    The content (planContent) is filled by PlanActivity.show with res/layout/item_plan_*.xml.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/planRoot"
+    tools:context=".PlanActivity"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/lightGrey">
+
+    <!-- spacer (status bar) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="50dp"/>
+
+    <!--************************************** top strip **************************************-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <ImageButton
+            android:id="@+id/planBackButton"
+            style="@style/RoundIconButtonStyle"
+            android:contentDescription="@string/back"
+            android:src="@drawable/back_arrow_icon"/>
+
+        <!-- tap it to rename the plan -->
+        <TextView
+            android:id="@+id/planTitle"
+            style="@style/SectionTitleStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:background="@drawable/menu_item_background"
+            tools:text="Hypertrophy · 4 days"/>
+
+        <ImageButton
+            android:id="@+id/deletePlanButton"
+            style="@style/RoundIconButtonStyle"
+            android:contentDescription="@string/delete"
+            android:src="@drawable/delete_icon"/>
+
+    </LinearLayout>
+    <!--************************************** top strip **************************************-->
+
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <LinearLayout
+                android:id="@+id/planContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="8dp"
+                android:paddingBottom="16dp"/>
+
+        </androidx.core.widget.NestedScrollView>
+
+        <!-- while the plan is loaded -->
+        <ProgressBar
+            android:id="@+id/planLoading"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/lighterBlue"/>
+
+    </FrameLayout>
+
+
+    <!-- chat about this plan: the coach can change it -->
+    <Button
+        android:id="@+id/askCoachButton"
+        style="@style/PrimaryButtonStyle"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="12dp"
+        android:text="@string/ask_coach_plan"/>
+
+</LinearLayout>
