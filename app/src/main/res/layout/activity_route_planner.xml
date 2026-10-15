@@ -8,7 +8,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/lightGrey">
+    android:background="@color/background">
 
     <!-- spacer (status bar) -->
     <View
@@ -91,7 +91,7 @@
             android:paddingTop="10dp"
             android:paddingBottom="10dp"
             android:background="@drawable/modal_background"
-            android:textColor="@color/white"
+            android:textColor="@color/textPrimary"
             android:textSize="14sp"
             android:visibility="gone"/>
 
@@ -146,7 +146,7 @@
             android:layout_marginTop="6dp"
             android:gravity="center"
             android:textStyle="bold"
-            android:textColor="@color/white"
+            android:textColor="@color/textPrimary"
             android:textSize="22sp"
             android:fontFeatureSettings="tnum"
             android:visibility="gone"

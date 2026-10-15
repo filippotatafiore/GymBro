@@ -90,7 +90,7 @@ object RunSummaryView {
         mapView.onResume()
 
         mapView.getMapAsync { map ->
-            map.useDarkTheme(context)
+            map.useAppTheme(context)
             map.uiSettings.setAllGesturesEnabled(false)
             map.isBuildingsEnabled = false
             map.setOnMarkerClickListener { true }  // no info windows on the markers

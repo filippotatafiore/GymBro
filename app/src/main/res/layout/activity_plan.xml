@@ -13,7 +13,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/lightGrey">
+    android:background="@color/background">
 
     <!-- spacer (status bar) -->
     <View
@@ -85,7 +85,7 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_gravity="center"
-            android:indeterminateTint="@color/lighterBlue"/>
+            android:indeterminateTint="?attr/accentTextColor"/>
 
     </FrameLayout>
 

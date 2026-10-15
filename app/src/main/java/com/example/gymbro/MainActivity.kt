@@ -12,6 +12,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.gymbro.ui.theme.GymBroTheme
 
 
+import android.app.Dialog
+import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
@@ -22,6 +24,7 @@ import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.Plan
+import com.example.gymbro.profile.PersonalInfoForm
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.GymSessionFragment
 import com.example.gymbro.session.GymSetup
@@ -41,9 +44,12 @@ import java.util.UUID
 // Home page. Its middle part shows the home (start training + last sessions) or, while a
 // session is in progress, the session itself: it stays there when changing page and coming back.
 // FragmentActivity (instead of ComponentActivity) is needed to host these parts (fragments).
-class MainActivity : FragmentActivity() {
+class MainActivity : ThemedActivity() {
 
     private lateinit var bottomNav: BottomNavBar
+
+    // Window asking the personal information after the registration (while it is open)
+    private var personalInfoDialog: Dialog? = null
 
     // Calendar sliding from the left (calendar button of the home)
     private lateinit var calendar: CalendarDrawer
@@ -56,7 +62,6 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableDarkEdgeToEdge()
 
         // Nobody logged in: the app starts from the welcome page (register / log in)
         if (!UserSession.isLoggedIn) {
@@ -101,6 +106,7 @@ class MainActivity : FragmentActivity() {
         super.onResume()
         showCurrentPage()
         bottomNav.refresh()
+        if (UserSession.askPersonalInfo) askPersonalInfo()
         // a run in progress is tracked again if the app was closed meanwhile (or after a new login)
         if (ActiveSession.type == SessionType.RUN) RunTrackingService.start(this)
         refreshSessions()
@@ -120,6 +126,28 @@ class MainActivity : FragmentActivity() {
     override fun onPause() {
         super.onPause()
         bottomNav.stopGlow()
+    }
+
+
+    // Just registered: a window asks the personal information of the user (used by the coach for the
+    // workout plans and for the calories of the runs). Once saved or skipped ("Later", back) it is
+    // not asked again; they can be changed in the menu of the profile.
+    private fun askPersonalInfo() {
+        if (personalInfoDialog != null) return
+        val dialog = createModal(this, R.layout.dialog_personal_info, this, onDismiss = { personalInfoDialog = null })
+        fun done() {
+            UserSession.askPersonalInfo = false
+            dialog.dismiss()
+        }
+        PersonalInfoForm(dialog.window!!.decorView, lifecycleScope) {
+            Toast.makeText(this, R.string.profile_saved, Toast.LENGTH_SHORT).show()
+            done()
+        }
+        dialog.findViewById<View>(R.id.personalInfoLaterButton).setOnClickListener { done() }
+        // back button or tap outside: like "Later" (closed by a recreation of the page: asked again)
+        dialog.setOnCancelListener { UserSession.askPersonalInfo = false }
+        personalInfoDialog = dialog
+        dialog.show()
     }
 
 

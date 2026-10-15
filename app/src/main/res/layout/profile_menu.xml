@@ -33,7 +33,7 @@
         style="@style/ProfileMenuItemStyle"
         android:text="@string/personal_information"/>
 
-    <!-- not available yet -->
+    <!-- theme and favorite color: res/layout/customize_account_menu.xml -->
     <Button
         android:id="@+id/customizeAccountButton"
         style="@style/ProfileMenuItemStyle"
@@ -51,11 +51,11 @@
         style="@style/ProfileMenuItemStyle"
         android:text="@string/logout" />
 
-    <!-- modify account, delete account: res/layout/settings.xml -->
+    <!-- modify account, delete account: res/layout/manage_account_menu.xml -->
     <Button
-        android:id="@+id/settingsButton"
+        android:id="@+id/manageAccountButton"
         style="@style/ProfileMenuItemStyle"
-        android:text="@string/settings" />
+        android:text="@string/manage_account" />
 
     <!-- spacer -->
     <View

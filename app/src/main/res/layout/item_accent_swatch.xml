@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A favorite color in "Customize account": a colored circle; the chosen one has a ring around it
+     and a check (ProfileActivity.showCustomizeForm) -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp"
+    android:layout_height="52dp"
+    android:layout_weight="1"
+    android:foreground="@drawable/menu_item_background">
+
+    <!-- ring of the chosen color -->
+    <View
+        android:id="@+id/swatchRing"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:background="@drawable/theme_option_background"
+        android:duplicateParentState="true"/>
+
+    <!-- the color (backgroundTint set by the code) -->
+    <View
+        android:id="@+id/swatchColor"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_gravity="center"
+        android:background="@drawable/swatch_circle"/>
+
+    <ImageView
+        android:id="@+id/swatchCheck"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_gravity="center"
+        android:src="@drawable/white_check_icon"
+        android:importantForAccessibility="no"
+        android:visibility="gone"/>
+
+</FrameLayout>

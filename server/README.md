@@ -22,6 +22,7 @@ billing account linked to the project.)
 | POST   | `/api/logout`                 | yes  | Invalidates the token                |
 | GET    | `/api/me`                     | yes  | Logged user (with email, body data)  |
 | PUT    | `/api/me/profile`             | yes  | Body data (see below)                |
+| PUT    | `/api/me/appearance`          | yes  | Favorite color and theme (see below) |
 | PUT    | `/api/me/account`             | yes  | Username, email, password (see below)|
 | POST   | `/api/me/delete-account`      | yes  | Deletes the account and all its data |
 | PUT    | `/api/me/active-plan`         | yes  | `{"plan_id": 3}` or null             |
@@ -71,6 +72,11 @@ the logins, the posts, the sessions, the plans and the profile picture.
 
 Body of `PUT /api/me/profile` (every value optional, null = not set):
 `{"height_cm": 180, "weight_kg": 72.5, "birth_year": 2001, "sex": "male" | "female" | "other"}`
+
+Body of `PUT /api/me/appearance` (both required): `{"accent": "blue" | "violet" | "pink" | "red" |
+"orange" | "amber" | "green" | "teal", "theme": "dark" | "light"}`. The look of the app is saved in
+the account (the same on every device): `accent` and `theme` are in the logged user (`/api/me`,
+login, register); a new account starts with `"blue"` and `"dark"`.
 
 Body of `POST /api/routes/walking`: `{"origin": {"lat": 45.46, "lng": 9.19}, "stop": null,
 "destination": {"lat": 45.47, "lng": 9.18}}` (stop optional) -> `{"distance_m": 1234, "polyline": "...",

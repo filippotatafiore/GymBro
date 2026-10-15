@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Colors of the DARK theme (the same names of res/values/colors.xml, light theme): deep graphite
+    greys, slightly cool, so that the favorite color of the user stands out.
+    Only the colors that change are here: the others come from res/values/colors.xml.
+-->
+<resources>
+    <!-- pages and surfaces -->
+    <color name="background">#0E1014</color>
+    <color name="surface">#171A21</color>
+    <color name="surfaceVariant">#232833</color>
+    <color name="elevated">#161920</color>
+    <color name="outline">#262B35</color>
+    <color name="ripple">#26FFFFFF</color>
+
+    <!-- text and icons -->
+    <color name="textPrimary">#F2F4F8</color>
+    <color name="textSecondary">#8B93A1</color>
+    <color name="icon">#E6E9EF</color>
+
+    <!-- meanings -->
+    <color name="successGreen">#3DD68C</color>
+    <color name="errorRed">#FF6B6B</color>
+    <color name="dangerRed">#C8413E</color>
+    <color name="plannedRoute">#B3FFFFFF</color>
+
+    <!-- favorite colors: lighter texts and a stronger tint on the dark pages -->
+    <color name="accent_blue_text">#6EA8FF</color>
+    <color name="accent_blue_soft">#3D3B82F6</color>
+
+    <color name="accent_violet_text">#B39DFF</color>
+    <color name="accent_violet_soft">#3D8B5CF6</color>
+
+    <color name="accent_pink_text">#F67DBA</color>
+    <color name="accent_pink_soft">#3DEC4899</color>
+
+    <color name="accent_red_text">#FF7D7D</color>
+    <color name="accent_red_soft">#3DEF4444</color>
+
+    <color name="accent_orange_text">#FF9A52</color>
+    <color name="accent_orange_soft">#3DF97316</color>
+
+    <color name="accent_amber_text">#FFC93D</color>
+    <color name="accent_amber_soft">#3DF5B000</color>
+
+    <color name="accent_green_text">#4ADE80</color>
+    <color name="accent_green_soft">#3D22C55E</color>
+
+    <color name="accent_teal_text">#3DDBC8</color>
+    <color name="accent_teal_soft">#3D14B8A6</color>
+</resources>

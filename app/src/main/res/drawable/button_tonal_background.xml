@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Small tonal buttons (e.g. "+ Publish"): a light tint of the favorite color -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/ripple">
+
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/accentSoftColor"/>
+            <corners android:radius="16dp"/>
+        </shape>
+    </item>
+
+</ripple>

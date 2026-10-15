@@ -3,9 +3,12 @@ package com.example.gymbro.session
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import androidx.annotation.ColorRes
+import com.example.gymbro.Appearance
 import com.example.gymbro.R
+import com.example.gymbro.themeColor
 import com.google.android.gms.maps.CameraUpdate
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -27,11 +30,13 @@ import com.google.android.gms.maps.model.RoundCap
 // The way Google Maps draws the maps on this phone, known when the app starts (GymBroApp)
 var mapsRenderer: MapsInitializer.Renderer? = null
 
-// Dark map, like the rest of the app. The dark color scheme of Google Maps needs its "latest"
-// renderer: with the "legacy" one (on some phones and emulators) a dark style is used instead
-// (res/raw/map_dark_style.json).
-fun GoogleMap.useDarkTheme(context: Context) {
-    if (mapsRenderer == MapsInitializer.Renderer.LEGACY) {
+// Map in the theme of the app: dark or light (see Appearance). The dark color scheme of Google Maps
+// needs its "latest" renderer: with the "legacy" one (on some phones and emulators) a dark style is
+// used instead (res/raw/map_dark_style.json).
+fun GoogleMap.useAppTheme(context: Context) {
+    if (!Appearance.isDark(context)) {
+        mapColorScheme = MapColorScheme.LIGHT
+    } else if (mapsRenderer == MapsInitializer.Renderer.LEGACY) {
         setMapStyle(MapStyleOptions.loadRawResourceStyle(context, R.raw.map_dark_style))
     } else {
         mapColorScheme = MapColorScheme.DARK
@@ -44,16 +49,16 @@ fun LatLng.toGeoPoint() = GeoPoint(latitude, longitude)
 
 private fun Context.dp(value: Float) = value * resources.displayMetrics.density
 
-// Path followed: thick blue line with rounded ends
+// Path followed: thick line in the favorite color, with rounded ends
 fun trackLine(context: Context, points: List<LatLng>): PolylineOptions = PolylineOptions()
     .addAll(points)
-    .color(context.getColor(R.color.glowBlue))
+    .color(context.themeColor(R.attr.accentColor))
     .width(context.dp(5f))
     .jointType(JointType.ROUND)
     .startCap(RoundCap())
     .endCap(RoundCap())
 
-// Route planned before the run: dashed white line
+// Route planned before the run: dashed line, white on the dark map (dark on the light one)
 fun plannedLine(context: Context, points: List<LatLng>): PolylineOptions = PolylineOptions()
     .addAll(points)
     .color(context.getColor(R.color.plannedRoute))
@@ -67,7 +72,7 @@ fun dotMarker(context: Context, @ColorRes color: Int): BitmapDescriptor {
     val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    paint.color = context.getColor(R.color.white)
+    paint.color = Color.WHITE
     canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
     paint.color = context.getColor(color)
     canvas.drawCircle(size / 2f, size / 2f, size / 2f - context.dp(3f), paint)

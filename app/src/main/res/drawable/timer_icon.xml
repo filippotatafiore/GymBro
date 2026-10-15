@@ -1,6 +1,6 @@
 <!-- Stopwatch (results measured by time) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="64dp" android:viewportHeight="24" android:viewportWidth="24" android:width="64dp">
 
-    <path android:fillColor="#00000000" android:pathData="M12,21.5A8,8 0,1 1,12,5.5A8,8 0,1 1,12,21.5ZM12,9.5V13.5L14.5,16M10,2.5H14M12,2.5V5.5M18.2,6.3L19.6,4.9" android:strokeColor="#ffffff" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="1.7"/>
+    <path android:fillColor="#00000000" android:pathData="M12,21.5A8,8 0,1 1,12,5.5A8,8 0,1 1,12,21.5ZM12,9.5V13.5L14.5,16M10,2.5H14M12,2.5V5.5M18.2,6.3L19.6,4.9" android:strokeColor="@color/icon" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="1.7"/>
 
 </vector>

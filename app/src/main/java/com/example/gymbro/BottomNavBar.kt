@@ -6,13 +6,16 @@ import android.app.Activity
 import android.app.ActivityOptions
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
+import android.view.Gravity
 import android.widget.ImageButton
 import com.example.gymbro.session.ActiveSession
 
 // Bottom strip shared by all the pages (res/layout/bottom_nav.xml):
 // - moves between the pages
-// - shows the page where the user is: blue icon with a short blue bar under it
-// - makes the home icon shine while a training session is in progress
+// - shows the page where the user is: icon in the favorite color, with a short bar under it
+// - makes the home icon shine (in the favorite color) while a training session is in progress
 class BottomNavBar(private val activity: Activity, private val currentPage: Page) {
 
     enum class Page { HOME, CHAT, PROFILE }
@@ -32,7 +35,7 @@ class BottomNavBar(private val activity: Activity, private val currentPage: Page
         buttons.getValue(currentPage).apply {
             isSelected = true
             foreground = activity.getDrawable(R.drawable.nav_selected_indicator)
-            imageTintList = ColorStateList.valueOf(activity.getColor(R.color.lighterBlue))
+            imageTintList = ColorStateList.valueOf(activity.themeColor(R.attr.accentTextColor))
         }
     }
 
@@ -58,15 +61,16 @@ class BottomNavBar(private val activity: Activity, private val currentPage: Page
 
         if (!ActiveSession.isActive) {
             homeButton.background = null
-            // blue if the home is the page shown
-            val color = if (currentPage == Page.HOME) R.color.lighterBlue else R.color.white
-            homeButton.imageTintList = ColorStateList.valueOf(activity.getColor(color))
+            // in the favorite color if the home is the page shown
+            homeButton.imageTintList = ColorStateList.valueOf(
+                if (currentPage == Page.HOME) activity.themeColor(R.attr.accentTextColor) else activity.getColor(R.color.icon)
+            )
             return
         }
 
-        val glow = activity.getDrawable(R.drawable.nav_glow)!!.mutate()
+        val glow = glow()
         homeButton.background = glow
-        homeButton.imageTintList = ColorStateList.valueOf(activity.getColor(R.color.glowBlue))
+        homeButton.imageTintList = ColorStateList.valueOf(activity.themeColor(R.attr.accentTextColor))
 
         if (!ActiveSession.isPaused) {
             glowAnimation = ObjectAnimator.ofInt(glow, "alpha", 255, 60).apply {
@@ -75,6 +79,24 @@ class BottomNavBar(private val activity: Activity, private val currentPage: Page
                 repeatMode = ValueAnimator.REVERSE
                 start()
             }
+        }
+    }
+
+    // Light behind the home icon: a round glow of the favorite color (50 dp, in the middle of the
+    // button), fading towards the border
+    private fun glow(): LayerDrawable {
+        val color = activity.themeColor(R.attr.accentColor)
+        fun withAlpha(alpha: Int) = (color and 0x00FFFFFF) or (alpha shl 24)
+        val size = (50 * activity.resources.displayMetrics.density).toInt()
+        val circle = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            gradientType = GradientDrawable.RADIAL_GRADIENT
+            gradientRadius = size / 2f
+            colors = intArrayOf(withAlpha(0xA0), withAlpha(0x40), withAlpha(0x00))
+        }
+        return LayerDrawable(arrayOf(circle)).apply {
+            setLayerSize(0, size, size)
+            setLayerGravity(0, Gravity.CENTER)
         }
     }
 

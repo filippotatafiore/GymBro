@@ -1,27 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="lighterGrey">#404045</color>
-    <color name="lightGrey">#212121</color>
-    <color name="darkGrey">#171717</color>
-
-    <color name="lighterBlue">#0a6ed3</color>
-    <color name="lightBlue">#23395d</color>  <!-- light pastel blue -->
-    <color name="darkBlue">#152238</color>  <!-- dark pastel blue -->
-
-    <color name="white">#FFFFFF</color>
-    <color name="yellow">#FFFF00</color>
-
-    <color name="textSecondary">#A0A0A8</color>  <!-- grey text: dates, hints -->
-    <color name="glowBlue">#4FA8FF</color>  <!-- home icon while a session is in progress -->
-    <color name="errorRed">#FF6B6B</color>
-    <color name="dangerRed">#A33A3A</color>  <!-- background of the "delete" buttons -->
-    <color name="successGreen">#4CD97B</color>  <!-- goal of a run reached -->
-    <color name="plannedRoute">#B3FFFFFF</color>  <!-- route planned before a run (dashed) -->
-</resources>
-
-
-
-
 <!--
-Dark blue palette: https://es.pinterest.com/pin/816699713653227104/
+    Colors of the app, by their role. LIGHT theme here; the DARK theme has the same names in
+    res/values-night/colors.xml (the theme is chosen by the user: see Appearance.kt).
+    The favorite color of the user (accent) is not here: it comes from the theme attributes
+    ?attr/accentColor, ?attr/accentTextColor... (res/values/attrs.xml, styles Accent.* in themes.xml).
 -->
+<resources>
+    <!-- pages and surfaces -->
+    <color name="background">#F3F4F7</color>       <!-- behind everything -->
+    <color name="surface">#FFFFFF</color>          <!-- cards and rows of the lists -->
+    <color name="surfaceVariant">#ECEEF2</color>   <!-- text fields, secondary buttons, round buttons -->
+    <color name="elevated">#FFFFFF</color>         <!-- modal windows, bottom strip, sliding menus -->
+    <color name="outline">#E0E3E9</color>          <!-- thin borders of cards and windows -->
+    <color name="ripple">#1A10131A</color>         <!-- touch feedback on surfaces -->
+
+    <!-- text and icons -->
+    <color name="textPrimary">#14171D</color>
+    <color name="textSecondary">#626A77</color>    <!-- dates, hints -->
+    <color name="icon">#1F242C</color>
+
+    <!-- meanings -->
+    <color name="successGreen">#1E9E5C</color>     <!-- done, goal reached -->
+    <color name="errorRed">#D63B3B</color>
+    <color name="dangerRed">#D9443F</color>        <!-- background of the "delete" buttons -->
+    <color name="onColor">#FFFFFF</color>          <!-- text on the colored buttons (danger) -->
+    <color name="plannedRoute">#B31F2937</color>   <!-- route planned before a run (dashed) -->
+
+
+    <!-- ************************ favorite colors (accent) ************************
+         For each one: the color (fills), the text on it, the color of texts and icons on the page
+         (darker here, lighter in the dark theme: always readable) and a light tint. -->
+    <color name="accent_blue">#3B82F6</color>
+    <color name="accent_blue_on">#FFFFFF</color>
+    <color name="accent_blue_text">#2563EB</color>
+    <color name="accent_blue_soft">#243B82F6</color>
+
+    <color name="accent_violet">#8B5CF6</color>
+    <color name="accent_violet_on">#FFFFFF</color>
+    <color name="accent_violet_text">#7C3AED</color>
+    <color name="accent_violet_soft">#248B5CF6</color>
+
+    <color name="accent_pink">#EC4899</color>
+    <color name="accent_pink_on">#FFFFFF</color>
+    <color name="accent_pink_text">#DB2777</color>
+    <color name="accent_pink_soft">#24EC4899</color>
+
+    <color name="accent_red">#EF4444</color>
+    <color name="accent_red_on">#FFFFFF</color>
+    <color name="accent_red_text">#DC2626</color>
+    <color name="accent_red_soft">#24EF4444</color>
+
+    <color name="accent_orange">#F97316</color>
+    <color name="accent_orange_on">#1C0D02</color>
+    <color name="accent_orange_text">#C2410C</color>
+    <color name="accent_orange_soft">#24F97316</color>
+
+    <color name="accent_amber">#F5B000</color>
+    <color name="accent_amber_on">#1A1203</color>
+    <color name="accent_amber_text">#A16207</color>
+    <color name="accent_amber_soft">#2EF5B000</color>
+
+    <color name="accent_green">#22C55E</color>
+    <color name="accent_green_on">#052E16</color>
+    <color name="accent_green_text">#15803D</color>
+    <color name="accent_green_soft">#2422C55E</color>
+
+    <color name="accent_teal">#14B8A6</color>
+    <color name="accent_teal_on">#042F2E</color>
+    <color name="accent_teal_text">#0F766E</color>
+    <color name="accent_teal_soft">#2414B8A6</color>
+</resources>

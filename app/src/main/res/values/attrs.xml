@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The favorite color of the user (accent), as attributes of the theme: every page gets the values
+     of one of the styles Accent.* (res/values/themes.xml, chosen by Appearance.kt). In the layouts:
+     ?attr/accentColor; in the code: context.themeColor(R.attr.accentColor) (Ui.kt). -->
+<resources>
+    <!-- fills: main buttons, messages of the user, selected options, the dots of the calendar -->
+    <attr name="accentColor" format="color"/>
+    <!-- texts and icons on accentColor -->
+    <attr name="onAccentColor" format="color"/>
+    <!-- texts and icons in the favorite color on the pages: titles, links, values -->
+    <attr name="accentTextColor" format="color"/>
+    <!-- a light tint of the favorite color: tonal buttons, labels, the cards of the options -->
+    <attr name="accentSoftColor" format="color"/>
+</resources>

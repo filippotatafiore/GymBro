@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Send button of the chat: bright blue circle, grey while there is nothing to send -->
+<!-- Send button of the chat: circle in the favorite color, neutral while there is nothing to send -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item android:state_enabled="false">
         <shape android:shape="oval">
-            <solid android:color="@color/lighterGrey"/>
+            <solid android:color="@color/surfaceVariant"/>
         </shape>
     </item>
 
     <item>
-        <ripple android:color="#40FFFFFF">
+        <ripple android:color="#33FFFFFF">
             <item>
                 <shape android:shape="oval">
-                    <solid android:color="@color/lighterBlue"/>
+                    <solid android:color="?attr/accentColor"/>
                 </shape>
             </item>
         </ripple>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Arrow of the send button of the chat: on the favorite color, grey while there is nothing to send -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false" android:color="@color/textSecondary"/>
+    <item android:color="?attr/onAccentColor"/>
+</selector>

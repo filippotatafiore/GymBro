@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Green dot under the days of the calendar with at least one training session -->
+<!-- Dot under a day of the calendar with at least one session: in the favorite color -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
 
-    <solid android:color="@color/successGreen"/>
+    <solid android:color="?attr/accentColor"/>
 
 </shape>

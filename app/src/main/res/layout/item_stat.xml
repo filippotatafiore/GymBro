@@ -35,7 +35,7 @@
         android:autoSizeTextType="uniform"
         android:autoSizeMinTextSize="10sp"
         android:autoSizeMaxTextSize="16sp"
-        android:textColor="@color/white"
+        android:textColor="@color/textPrimary"
         android:textStyle="bold"
         android:fontFeatureSettings="tnum"
         tools:text="10.2 km/h"/>

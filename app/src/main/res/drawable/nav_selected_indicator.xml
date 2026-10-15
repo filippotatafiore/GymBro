@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Under the icon of the page shown, in the bottom strip: a short blue bar -->
+<!-- Under the icon of the page shown, in the bottom strip: a short bar in the favorite color -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
@@ -8,7 +8,7 @@
         android:width="22dp"
         android:height="3dp">
         <shape android:shape="rectangle">
-            <solid android:color="@color/lighterBlue"/>
+            <solid android:color="?attr/accentColor"/>
             <corners android:radius="2dp"/>
         </shape>
     </item>

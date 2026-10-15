@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Small blue label "LAST DONE · date" (window to choose the day) and "ACTIVE" (workout plans) -->
+<!-- Small label in the favorite color: "LAST DONE · date" (window to choose the day), "ACTIVE"
+     (workout plans) -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
 
-    <solid android:color="@color/lighterBlue"/>
+    <solid android:color="?attr/accentColor"/>
     <corners android:radius="10dp"/>
 
 </shape>

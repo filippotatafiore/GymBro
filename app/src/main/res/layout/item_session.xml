@@ -9,6 +9,7 @@
 
     <ImageView
         android:id="@+id/sessionIcon"
+        android:tint="?attr/accentTextColor"
         android:layout_width="36dp"
         android:layout_height="36dp"
         android:scaleType="fitCenter"

@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:textStyle="bold"
-        android:textColor="@color/lighterBlue"
+        android:textColor="?attr/accentTextColor"
         android:textSize="20sp"
         tools:text="Day 1 · Push"/>
 

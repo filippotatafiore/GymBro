@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Bubble of a message of the user in the chat: blue, the corner towards the user less rounded -->
+<!-- Bubble of a message of the user in the chat: in the favorite color, the corner towards the
+     user less rounded -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
 
-    <solid android:color="@color/lightBlue"/>
+    <solid android:color="?attr/accentColor"/>
     <corners
         android:topLeftRadius="18dp"
         android:topRightRadius="18dp"

@@ -34,7 +34,7 @@
             android:padding="14dp"
             android:background="@drawable/input_background"
             android:textStyle="bold"
-            android:textColor="@color/white"
+            android:textColor="@color/textPrimary"
             android:textSize="15sp"
             tools:text="180 cm · 72.5 kg · BMI 22.4 · 25 years · Male"/>
 
@@ -211,14 +211,14 @@
             <ProgressBar
                 android:layout_width="28dp"
                 android:layout_height="28dp"
-                android:indeterminateTint="@color/lighterBlue"/>
+                android:indeterminateTint="?attr/accentTextColor"/>
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="12dp"
-                android:textColor="@color/white"
+                android:textColor="@color/textPrimary"
                 android:textSize="14sp"
                 android:text="@string/creating_plan"/>
 

@@ -57,7 +57,7 @@
             android:id="@+id/exerciseWeight"
             style="@style/RowSubtitleStyle"
             android:textStyle="bold"
-            android:textColor="@color/white"
+            android:textColor="@color/textPrimary"
             tools:text="60 kg"/>
 
     </LinearLayout>

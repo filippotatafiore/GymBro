@@ -1,6 +1,6 @@
 <!-- Arrow going up from a tray (publish on the profile) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="24dp" android:viewportHeight="24" android:viewportWidth="24" android:width="24dp">
 
-    <path android:fillColor="#00000000" android:pathData="M12,15V4M7.5,8.5L12,4L16.5,8.5M5,14V18C5,19.66 6.34,21 8,21H16C17.66,21 19,19.66 19,18V14" android:strokeColor="#ffffff" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2"/>
+    <path android:fillColor="#00000000" android:pathData="M12,15V4M7.5,8.5L12,4L16.5,8.5M5,14V18C5,19.66 6.34,21 8,21H16C17.66,21 19,19.66 19,18V14" android:strokeColor="@color/icon" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2"/>
 
 </vector>

@@ -2,14 +2,13 @@ package com.example.gymbro
 
 import android.app.Dialog
 import android.content.Context
-import android.graphics.Color
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
-import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
-import androidx.activity.enableEdgeToEdge
+import androidx.annotation.AttrRes
+import androidx.annotation.ColorInt
 import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
 import androidx.core.view.isVisible
@@ -17,17 +16,17 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 
-// Draws the page under the status/navigation bars, with light (white) system icons,
-// readable on the dark pages of the app
-fun ComponentActivity.enableDarkEdgeToEdge() {
-    enableEdgeToEdge(
-        statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-        navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
-    )
+// A color of the theme of the page, e.g. R.attr.accentColor: the favorite color of the user
+// (res/values/attrs.xml). The context must be a page or a view of the page (not the application).
+@ColorInt
+fun Context.themeColor(@AttrRes attribute: Int): Int {
+    val value = TypedValue()
+    theme.resolveAttribute(attribute, value, true)
+    return value.data
 }
 
 // Creates a modal window: rounded card (the given layout), dimmed background and pop-in animation
-// (see ModalDialogTheme in styles.xml). Call show() on the result to display it.
+// (see ModalDialogTheme in res/values/themes.xml). Call show() on the result to display it.
 // The window is closed automatically when [owner] is destroyed (e.g. when the screen rotates).
 fun createModal(
     context: Context,

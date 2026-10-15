@@ -1,5 +1,6 @@
 package com.example.gymbro
 
+import android.content.res.ColorStateList
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
@@ -13,6 +14,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.RadioGroup
 import android.widget.Spinner
 import android.widget.TextView
@@ -46,6 +48,7 @@ import com.example.gymbro.profile.BodyData
 import com.example.gymbro.profile.ManualExercises
 import com.example.gymbro.profile.PersonalBestAdapter
 import com.example.gymbro.profile.PersonalBests
+import com.example.gymbro.profile.PersonalInfoForm
 import com.example.gymbro.profile.PostAdapter
 import com.example.gymbro.profile.ProfilePictures
 import com.example.gymbro.profile.displayTitle
@@ -65,12 +68,22 @@ import java.time.Year
 import java.util.Locale
 import java.util.Stack
 
-class ProfileActivity : ComponentActivity() {
+class ProfileActivity : ThemedActivity() {
+
+    companion object {
+        // saved state: the menu open, and which page of the menu
+        private const val STATE_MENU_OPEN = "menu_open"
+        private const val STATE_MENU = "menu"
+    }
 
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var menuButton: ImageButton
     private lateinit var menuContainer: FrameLayout
     private val menuHistory = Stack<Int>() // Stack to store previous menus
+    // Menu shown now: saved in menuHistory when another one is opened, to come back to it
+    private var currentMenu = R.layout.profile_menu
+    // A change of the look (favorite color, theme) is being saved
+    private var savingAppearance = false
 
     private lateinit var bottomNav: BottomNavBar
     private lateinit var profilePicture: ImageView
@@ -95,7 +108,6 @@ class ProfileActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableDarkEdgeToEdge()
 
         // Nobody logged in (e.g. app restored after the logout): back to the welcome page
         if (!UserSession.isLoggedIn) {
@@ -120,9 +132,6 @@ class ProfileActivity : ComponentActivity() {
             drawerLayout.openDrawer(GravityCompat.END)
         }
 
-        // Menu shown now: saved in menuHistory when another one is opened, to come back to it
-        var currentMenu = R.layout.profile_menu
-
         // Function to load profile menu and store previous state
         fun loadProfileMenu(layoutId: Int, storePrevious: Boolean = true) {
             if (storePrevious) menuHistory.push(currentMenu) // Store previous menu
@@ -137,26 +146,27 @@ class ProfileActivity : ComponentActivity() {
             }
             if (layoutId == R.layout.personal_info_menu) showPersonalInfoForm()
 
-            // Customize account: not available yet
+            // Customize account: theme and favorite color
             menuContainer.findViewById<Button>(R.id.customizeAccountButton)?.setOnClickListener {
-                Toast.makeText(this, R.string.coming_soon, Toast.LENGTH_SHORT).show()
+                loadProfileMenu(R.layout.customize_account_menu)
             }
+            if (layoutId == R.layout.customize_account_menu) showCustomizeForm()
 
-            // Settings > Modify account: username, email, password
+            // Manage account > Modify account: username, email, password
             menuContainer.findViewById<Button>(R.id.modifyAccountButton)?.setOnClickListener {
                 loadProfileMenu(R.layout.modify_account_menu)
             }
             if (layoutId == R.layout.modify_account_menu) showModifyAccountForm()
 
-            // Settings > Delete account (after a confirmation)
+            // Manage account > Delete account (after a confirmation)
             menuContainer.findViewById<Button>(R.id.deleteAccountButton)?.setOnClickListener {
                 confirmDeleteAccount()
             }
 
 
-            // Handle the settings button (if present in the current layout)
-            menuContainer.findViewById<Button>(R.id.settingsButton)?.setOnClickListener {
-                loadProfileMenu(R.layout.settings) // Open settings menu
+            // Manage account: modify or delete the account
+            menuContainer.findViewById<Button>(R.id.manageAccountButton)?.setOnClickListener {
+                loadProfileMenu(R.layout.manage_account_menu)
             }
 
             // Handle the logout button (if present in the current layout)
@@ -201,6 +211,14 @@ class ProfileActivity : ComponentActivity() {
             override fun onDrawerStateChanged(newState: Int) {}
         })
 
+        // Page recreated with a new look (favorite color, theme) chosen in the menu: the menu is
+        // open again on the same page
+        if (savedInstanceState?.getBoolean(STATE_MENU_OPEN) == true) {
+            loadProfileMenu(savedInstanceState.getInt(STATE_MENU, R.layout.profile_menu), storePrevious = false)
+            drawerLayout.openDrawer(GravityCompat.END, false)
+            closeMenuOnBack.isEnabled = true
+        }
+
 
         // --------------------------------------------------------- PROFILE
 
@@ -234,6 +252,12 @@ class ProfileActivity : ComponentActivity() {
         // --------------------------------------------------------- NAVBAR
 
         bottomNav = BottomNavBar(this, BottomNavBar.Page.PROFILE)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_MENU_OPEN, drawerLayout.isDrawerOpen(GravityCompat.END))
+        outState.putInt(STATE_MENU, currentMenu)
     }
 
     override fun onResume() {
@@ -362,78 +386,78 @@ class ProfileActivity : ComponentActivity() {
 
     // --------------------------------------------------------- PERSONAL INFORMATION
 
-    // "Personal information" page of the menu: body data of the user (height, weight, year of birth,
-    // sex), saved on the server. The weight is used for the calories of the runs, all of them by the
-    // AI coach for the workout plans. An empty field = not set.
+    // "Personal information" page of the menu: body data of the user (see PersonalInfoForm)
     private fun showPersonalInfoForm() {
-        val user = UserSession.user ?: return
-        val heightInput = menuContainer.findViewById<EditText>(R.id.profileHeightInput)
-        val weightInput = menuContainer.findViewById<EditText>(R.id.profileWeightInput)
-        val birthYearInput = menuContainer.findViewById<EditText>(R.id.profileBirthYearInput)
-        val sexGroup = menuContainer.findViewById<RadioGroup>(R.id.profileSexGroup)
-        val bmiText = menuContainer.findViewById<TextView>(R.id.profileBmiText)
-        val error = menuContainer.findViewById<TextView>(R.id.profileError)
-        val save = menuContainer.findViewById<Button>(R.id.saveProfileButton)
+        PersonalInfoForm(menuContainer, lifecycleScope) {
+            Toast.makeText(this, R.string.profile_saved, Toast.LENGTH_SHORT).show()
+            drawerLayout.closeDrawer(GravityCompat.END)
+        }
+    }
 
-        val numberFormat = DecimalFormat("0.#")
-        user.heightCm?.let { heightInput.setText(numberFormat.format(it)) }
-        user.weightKg?.let { weightInput.setText(numberFormat.format(it)) }
-        user.birthYear?.let { birthYearInput.setText(String.format(Locale.ROOT, "%d", it)) }
-        when (user.sex) {
-            Sex.MALE -> sexGroup.check(R.id.sexMale)
-            Sex.FEMALE -> sexGroup.check(R.id.sexFemale)
-            Sex.OTHER -> sexGroup.check(R.id.sexOther)
-            null -> {}
+
+    // --------------------------------------------------------- CUSTOMIZE ACCOUNT
+
+    // "Customize account" page of the menu: theme (dark / light) and favorite color. A choice is
+    // saved in the account first, then applied to the whole app (this page is recreated with the
+    // menu still open, the other pages when they are shown again).
+    private fun showCustomizeForm() {
+        val themeGroup = menuContainer.findViewById<RadioGroup>(R.id.themeGroup)
+        themeGroup.check(if (Appearance.theme == AppTheme.DARK) R.id.themeDark else R.id.themeLight)
+        themeGroup.setOnCheckedChangeListener { _, checkedId ->
+            changeAppearance(Appearance.accent, if (checkedId == R.id.themeDark) AppTheme.DARK else AppTheme.LIGHT)
         }
 
-        fun EditText.number(): Double? = text.toString().trim().replace(',', '.').toDoubleOrNull()
-
-        // BMI, updated while typing height and weight
-        fun showBmi() {
-            val bmi = BodyData.bmi(heightInput.number(), weightInput.number())
-            bmiText.text =
-                if (bmi == null || bmi !in 5.0..100.0) getString(R.string.bmi_missing)
-                else getString(R.string.bmi_value, DecimalFormat("0.0").format(bmi), getString(BodyData.bmiCategory(bmi)))
-        }
-        heightInput.doAfterTextChanged { showBmi() }
-        weightInput.doAfterTextChanged { showBmi() }
-        showBmi()
-
-        save.setOnClickListener {
-            val height = heightInput.number()
-            val weight = weightInput.number()
-            val birthYear = birthYearInput.text.toString().trim().toIntOrNull()
-            val thisYear = Year.now().value
-            if (heightInput.text.isNotBlank() && (height == null || height !in 100.0..250.0)) {
-                return@setOnClickListener error.showError(getString(R.string.error_invalid_height))
-            }
-            if (weightInput.text.isNotBlank() && (weight == null || weight !in 30.0..300.0)) {
-                return@setOnClickListener error.showError(getString(R.string.error_invalid_body_weight))
-            }
-            if (birthYearInput.text.isNotBlank() && (birthYear == null || birthYear !in 1900..thisYear)) {
-                return@setOnClickListener error.showError(getString(R.string.error_invalid_birth_year, thisYear))
-            }
-            val sex = when (sexGroup.checkedRadioButtonId) {
-                R.id.sexMale -> Sex.MALE
-                R.id.sexFemale -> Sex.FEMALE
-                R.id.sexOther -> Sex.OTHER
-                else -> null
-            }
-            val token = UserSession.token ?: return@setOnClickListener
-            error.isVisible = false
-            getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(save.windowToken, 0)
-
-            lifecycleScope.launch {
-                save.isEnabled = false
-                try {
-                    UserSession.updateUser(ApiClient.updateProfile(token, height, weight, birthYear, sex))
-                    Toast.makeText(this@ProfileActivity, R.string.profile_saved, Toast.LENGTH_SHORT).show()
-                    drawerLayout.closeDrawer(GravityCompat.END)
-                } catch (e: ApiException) {
-                    error.showError(e.userMessage(this@ProfileActivity))
-                } finally {
-                    save.isEnabled = true
+        // the favorite colors, 4 for each row
+        val grid = menuContainer.findViewById<LinearLayout>(R.id.accentGrid)
+        val swatches = mutableMapOf<Accent, View>()
+        Accent.entries.chunked(4).forEach { accents ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            grid.addView(row, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            accents.forEach { accent ->
+                val swatch = layoutInflater.inflate(R.layout.item_accent_swatch, row, false)
+                swatch.findViewById<View>(R.id.swatchColor).backgroundTintList =
+                    ColorStateList.valueOf(getColor(accent.swatch))
+                swatch.findViewById<ImageView>(R.id.swatchCheck).imageTintList =
+                    ColorStateList.valueOf(getColor(accent.onSwatch))
+                swatch.contentDescription = getString(accent.label)
+                swatch.setOnClickListener {
+                    // the choice is shown at once, then saved and applied
+                    swatches.forEach { (other, view) -> showSwatchChosen(view, other == accent) }
+                    menuContainer.findViewById<TextView>(R.id.accentName).setText(accent.label)
+                    changeAppearance(accent, Appearance.theme)
                 }
+                showSwatchChosen(swatch, accent == Appearance.accent)
+                swatches[accent] = swatch
+                row.addView(swatch)
+            }
+        }
+        menuContainer.findViewById<TextView>(R.id.accentName).setText(Appearance.accent.label)
+    }
+
+    private fun showSwatchChosen(swatch: View, chosen: Boolean) {
+        swatch.isSelected = chosen
+        swatch.findViewById<View>(R.id.swatchCheck).isVisible = chosen
+    }
+
+    // Saves the new look in the account, then applies it: a new theme recreates all the pages
+    // (Android), a new color this page (and the others when shown again, see ThemedActivity)
+    private fun changeAppearance(accent: Accent, theme: AppTheme) {
+        if (savingAppearance || (accent == Appearance.accent && theme == Appearance.theme)) return
+        val token = UserSession.token ?: return
+        val status = menuContainer.findViewById<TextView>(R.id.appearanceStatus)
+        savingAppearance = true
+        status?.setText(R.string.appearance_saving)
+        lifecycleScope.launch {
+            try {
+                val themeChanged = theme != Appearance.theme
+                UserSession.updateUser(ApiClient.setAppearance(token, accent, theme))
+                if (!themeChanged) recreate()
+            } catch (e: ApiException) {
+                Toast.makeText(this@ProfileActivity, getString(R.string.appearance_not_saved, e.userMessage(this@ProfileActivity)), Toast.LENGTH_LONG).show()
+                // the choices shown go back to the look in use (the menu stays open)
+                recreate()
+            } finally {
+                savingAppearance = false
             }
         }
     }

@@ -3,9 +3,13 @@ package com.example.gymbro.network
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.example.gymbro.Accent
+import com.example.gymbro.AppTheme
+import com.example.gymbro.Appearance
 
 // The logged user, saved on the phone (SharedPreferences) so that the login is kept when the app
 // is closed. The token is the proof of the login: it is sent to the REST API with every request.
+// The look chosen by the user (favorite color, theme) is applied every time the user is updated.
 object UserSession {
 
     private const val KEY_TOKEN = "token"
@@ -18,6 +22,9 @@ object UserSession {
     private const val KEY_BIRTH_YEAR = "birth_year"
     private const val KEY_SEX = "sex"
     private const val KEY_ACTIVE_PLAN = "active_plan_id"
+    private const val KEY_ACCENT = "accent"
+    private const val KEY_THEME = "theme"
+    private const val KEY_ASK_PERSONAL_INFO = "ask_personal_info"
 
     private lateinit var prefs: SharedPreferences
 
@@ -45,8 +52,15 @@ object UserSession {
             weightKg = prefs.getString(KEY_WEIGHT, null)?.toDoubleOrNull(),
             birthYear = prefs.getString(KEY_BIRTH_YEAR, null)?.toIntOrNull(),
             sex = prefs.getString(KEY_SEX, null)?.let { value -> Sex.entries.firstOrNull { it.name == value } },
-            activePlanId = prefs.getLong(KEY_ACTIVE_PLAN, 0L).takeIf { it > 0 }
+            activePlanId = prefs.getLong(KEY_ACTIVE_PLAN, 0L).takeIf { it > 0 },
+            accent = Accent.of(prefs.getString(KEY_ACCENT, null)),
+            theme = AppTheme.of(prefs.getString(KEY_THEME, null))
         )
+
+    // Just registered: the personal information are asked when the app opens (once)
+    var askPersonalInfo: Boolean
+        get() = prefs.getBoolean(KEY_ASK_PERSONAL_INFO, false)
+        set(value) = prefs.edit { putBoolean(KEY_ASK_PERSONAL_INFO, value) }
 
     fun save(token: String, user: User) {
         prefs.edit { putString(KEY_TOKEN, token) }
@@ -65,7 +79,10 @@ object UserSession {
             putString(KEY_BIRTH_YEAR, user.birthYear?.toString())
             putString(KEY_SEX, user.sex?.name)
             putLong(KEY_ACTIVE_PLAN, user.activePlanId ?: 0L)
+            putString(KEY_ACCENT, user.accent.key)
+            putString(KEY_THEME, user.theme.key)
         }
+        Appearance.set(user.accent, user.theme)
     }
 
     fun clear() {

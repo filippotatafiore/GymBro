@@ -1,7 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Themes of the app. Light / dark: the "Base" themes, here (light) and in res/values-night/themes.xml
+    (dark); the colors of the two themes are in res/values/colors.xml and res/values-night/colors.xml.
+    Favorite color of the user: one of the Accent.* styles, applied on top of the theme of every
+    page (ThemedActivity, see Appearance.kt).
+-->
 <resources>
-    <style name="Theme.GymBro" parent="android:Theme.Material.Light.NoActionBar">
-        <!-- dark window background: no white flashes while pages are opening -->
-        <item name="android:windowBackground">@color/lightGrey</item>
+    <style name="Base.Theme.GymBro" parent="android:Theme.Material.Light.NoActionBar"/>
+    <style name="Base.ModalDialogTheme" parent="android:Theme.Material.Light.Dialog.NoActionBar"/>
+
+    <style name="Theme.GymBro" parent="Base.Theme.GymBro">
+        <!-- page color while the pages are opening: no flashes -->
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+        <item name="android:textColorHint">@color/textSecondary</item>
+        <!-- the default favorite color, until the one of the user is applied -->
+        <item name="accentColor">@color/accent_blue</item>
+        <item name="onAccentColor">@color/accent_blue_on</item>
+        <item name="accentTextColor">@color/accent_blue_text</item>
+        <item name="accentSoftColor">@color/accent_blue_soft</item>
+        <item name="android:colorAccent">@color/accent_blue</item>
+        <item name="android:colorControlActivated">@color/accent_blue</item>
+        <item name="android:textColorHighlight">@color/accent_blue_soft</item>
+    </style>
+
+    <!-- Theme of the modal windows: transparent window (the card is drawn by the layout),
+         dimmed background and custom enter/exit animations. The favorite color comes from the page. -->
+    <style name="ModalDialogTheme" parent="Base.ModalDialogTheme">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@style/ModalAnimation</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="android:textColorHint">@color/textSecondary</item>
+    </style>
+
+
+    <!-- ************************ favorite colors (Accent.*, see Appearance.kt) ************************ -->
+    <style name="Accent.Blue" parent="">
+        <item name="accentColor">@color/accent_blue</item>
+        <item name="onAccentColor">@color/accent_blue_on</item>
+        <item name="accentTextColor">@color/accent_blue_text</item>
+        <item name="accentSoftColor">@color/accent_blue_soft</item>
+        <item name="android:colorAccent">@color/accent_blue</item>
+        <item name="android:colorControlActivated">@color/accent_blue</item>
+        <item name="android:textColorHighlight">@color/accent_blue_soft</item>
+    </style>
+
+    <style name="Accent.Violet" parent="">
+        <item name="accentColor">@color/accent_violet</item>
+        <item name="onAccentColor">@color/accent_violet_on</item>
+        <item name="accentTextColor">@color/accent_violet_text</item>
+        <item name="accentSoftColor">@color/accent_violet_soft</item>
+        <item name="android:colorAccent">@color/accent_violet</item>
+        <item name="android:colorControlActivated">@color/accent_violet</item>
+        <item name="android:textColorHighlight">@color/accent_violet_soft</item>
+    </style>
+
+    <style name="Accent.Pink" parent="">
+        <item name="accentColor">@color/accent_pink</item>
+        <item name="onAccentColor">@color/accent_pink_on</item>
+        <item name="accentTextColor">@color/accent_pink_text</item>
+        <item name="accentSoftColor">@color/accent_pink_soft</item>
+        <item name="android:colorAccent">@color/accent_pink</item>
+        <item name="android:colorControlActivated">@color/accent_pink</item>
+        <item name="android:textColorHighlight">@color/accent_pink_soft</item>
+    </style>
+
+    <style name="Accent.Red" parent="">
+        <item name="accentColor">@color/accent_red</item>
+        <item name="onAccentColor">@color/accent_red_on</item>
+        <item name="accentTextColor">@color/accent_red_text</item>
+        <item name="accentSoftColor">@color/accent_red_soft</item>
+        <item name="android:colorAccent">@color/accent_red</item>
+        <item name="android:colorControlActivated">@color/accent_red</item>
+        <item name="android:textColorHighlight">@color/accent_red_soft</item>
+    </style>
+
+    <style name="Accent.Orange" parent="">
+        <item name="accentColor">@color/accent_orange</item>
+        <item name="onAccentColor">@color/accent_orange_on</item>
+        <item name="accentTextColor">@color/accent_orange_text</item>
+        <item name="accentSoftColor">@color/accent_orange_soft</item>
+        <item name="android:colorAccent">@color/accent_orange</item>
+        <item name="android:colorControlActivated">@color/accent_orange</item>
+        <item name="android:textColorHighlight">@color/accent_orange_soft</item>
+    </style>
+
+    <style name="Accent.Amber" parent="">
+        <item name="accentColor">@color/accent_amber</item>
+        <item name="onAccentColor">@color/accent_amber_on</item>
+        <item name="accentTextColor">@color/accent_amber_text</item>
+        <item name="accentSoftColor">@color/accent_amber_soft</item>
+        <item name="android:colorAccent">@color/accent_amber</item>
+        <item name="android:colorControlActivated">@color/accent_amber</item>
+        <item name="android:textColorHighlight">@color/accent_amber_soft</item>
+    </style>
+
+    <style name="Accent.Green" parent="">
+        <item name="accentColor">@color/accent_green</item>
+        <item name="onAccentColor">@color/accent_green_on</item>
+        <item name="accentTextColor">@color/accent_green_text</item>
+        <item name="accentSoftColor">@color/accent_green_soft</item>
+        <item name="android:colorAccent">@color/accent_green</item>
+        <item name="android:colorControlActivated">@color/accent_green</item>
+        <item name="android:textColorHighlight">@color/accent_green_soft</item>
+    </style>
+
+    <style name="Accent.Teal" parent="">
+        <item name="accentColor">@color/accent_teal</item>
+        <item name="onAccentColor">@color/accent_teal_on</item>
+        <item name="accentTextColor">@color/accent_teal_text</item>
+        <item name="accentSoftColor">@color/accent_teal_soft</item>
+        <item name="android:colorAccent">@color/accent_teal</item>
+        <item name="android:colorControlActivated">@color/accent_teal</item>
+        <item name="android:textColorHighlight">@color/accent_teal_soft</item>
     </style>
 </resources>

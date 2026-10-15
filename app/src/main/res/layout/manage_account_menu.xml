@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- "Settings" page of the sliding menu of the profile: modify account (username, email,
+<!-- "Manage account" page of the sliding menu of the profile: modify account (username, email,
      password: res/layout/modify_account_menu.xml) and delete account -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/settings"
+    android:id="@+id/manageAccountMenu"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_gravity="end"
@@ -19,7 +19,7 @@
         android:id="@+id/menu_title"
         style="@style/ProfileMenuTitleStyle"
         android:gravity="center"
-        android:text="@string/settings"/>
+        android:text="@string/manage_account"/>
 
     <View
         android:layout_width="match_parent"

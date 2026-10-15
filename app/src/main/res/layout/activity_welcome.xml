@@ -9,13 +9,13 @@
     android:orientation="vertical"
     android:gravity="center"
     android:padding="32dp"
-    android:background="@color/lightGrey">
+    android:background="@color/background">
 
     <ImageView
         android:layout_width="96dp"
         android:layout_height="96dp"
         android:src="@drawable/dumbbell_icon"
-        android:tint="@color/glowBlue"
+        android:tint="?attr/accentTextColor"
         android:importantForAccessibility="no"
         tools:ignore="UseAppTint"/>
     <!-- UseAppTint: app:tint works only in AppCompat activities; this one is a ComponentActivity -->
@@ -25,7 +25,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:textStyle="bold"
-        android:textColor="@color/white"
+        android:textColor="@color/textPrimary"
         android:textSize="44sp"
         android:text="@string/app_name"/>
 

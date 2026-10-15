@@ -12,6 +12,6 @@
     android:background="@drawable/menu_item_background"
     android:maxLines="2"
     android:ellipsize="end"
-    android:textColor="@color/white"
+    android:textColor="@color/textPrimary"
     android:textSize="15sp"
     tools:text="Piazza del Duomo, 20122 Milano MI, Italy"/>

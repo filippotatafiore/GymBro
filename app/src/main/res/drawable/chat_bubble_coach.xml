@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Bubble of an answer of the coach in the chat: grey, the corner towards the coach less rounded -->
+<!-- Bubble of an answer of the coach in the chat: neutral card, the corner towards the coach less rounded -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
 
-    <solid android:color="@color/lighterGrey"/>
+    <solid android:color="@color/surface"/>
     <corners
         android:topLeftRadius="18dp"
         android:topRightRadius="18dp"
         android:bottomLeftRadius="4dp"
         android:bottomRightRadius="18dp"/>
+    <stroke
+        android:width="1dp"
+        android:color="@color/outline"/>
 
 </shape>

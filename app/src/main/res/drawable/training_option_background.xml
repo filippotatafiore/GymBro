@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Background of the Gym / Run buttons: rounded blue card with a ripple effect when pressed -->
+<!-- Gym / Run options of the start training window: cards tinted with the favorite color -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#40FFFFFF">
+    android:color="@color/ripple">
 
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="@color/lightBlue"/>
-            <corners android:radius="16dp"/>
+            <solid android:color="?attr/accentSoftColor"/>
+            <corners android:radius="20dp"/>
         </shape>
     </item>
 

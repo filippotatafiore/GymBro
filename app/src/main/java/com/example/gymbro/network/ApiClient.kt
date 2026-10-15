@@ -3,6 +3,8 @@ package com.example.gymbro.network
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import com.example.gymbro.Accent
+import com.example.gymbro.AppTheme
 import com.example.gymbro.R
 import com.example.gymbro.data.ChatMessage
 import com.example.gymbro.data.TrainingSession
@@ -30,7 +32,8 @@ import java.time.temporal.ChronoUnit
 enum class Sex(val json: String) { MALE("male"), FEMALE("female"), OTHER("other") }
 
 // A user of the app. Body data (null = not set): see the "Personal information" menu of the profile.
-// activePlanId: the workout plan followed in the gym sessions (null = none).
+// activePlanId: the workout plan followed in the gym sessions (null = none). accent, theme: the look
+// of the app chosen by the user ("Customize account").
 data class User(
     val id: Long,
     val username: String,
@@ -40,7 +43,9 @@ data class User(
     val weightKg: Double? = null,   // used to estimate the calories of the runs
     val birthYear: Int? = null,
     val sex: Sex? = null,
-    val activePlanId: Long? = null
+    val activePlanId: Long? = null,
+    val accent: Accent = Accent.DEFAULT,
+    val theme: AppTheme = AppTheme.DEFAULT
 )
 
 // A walking route computed by the server. provider: the service used (e.g. "OpenRouteService");
@@ -136,6 +141,12 @@ object ApiClient {
     // Deletes the account and all its data from the server (the password confirms it)
     suspend fun deleteAccount(token: String, password: String) {
         request("POST", "/api/me/delete-account", token = token, json = JSONObject().put("password", password))
+    }
+
+    // The look of the app (favorite color and theme), saved in the account; returns the updated user
+    suspend fun setAppearance(token: String, accent: Accent, theme: AppTheme): User {
+        val body = JSONObject().put("accent", accent.key).put("theme", theme.key)
+        return parseUser(JSONObject(request("PUT", "/api/me/appearance", token = token, json = body).decodeToString()))
     }
 
     // The workout plan followed in the gym sessions (null = none); returns the updated user
@@ -433,7 +444,9 @@ object ApiClient {
         weightKg = json.doubleOrNull("weight_kg"),
         birthYear = if (json.isNull("birth_year")) null else json.getInt("birth_year"),
         sex = json.stringOrNull("sex")?.let { value -> Sex.entries.firstOrNull { it.json == value } },
-        activePlanId = if (json.isNull("active_plan_id")) null else json.getLong("active_plan_id")
+        activePlanId = if (json.isNull("active_plan_id")) null else json.getLong("active_plan_id"),
+        accent = Accent.of(json.stringOrNull("accent")),
+        theme = AppTheme.of(json.stringOrNull("theme"))
     )
 
     private fun parsePost(json: JSONObject) = Post(

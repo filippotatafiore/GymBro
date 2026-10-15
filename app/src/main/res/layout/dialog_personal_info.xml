@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window shown after the registration (MainActivity.askPersonalInfo): the personal
+     information of the new user (res/layout/form_personal_info.xml), or "Later".
+     ScrollView: the window can scroll when the keyboard is open. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout style="@style/ModalCardStyle">
+
+        <TextView
+            style="@style/ModalTitleStyle"
+            android:text="@string/welcome_personal_info_title"/>
+
+        <TextView
+            style="@style/ModalMessageStyle"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:textSize="14sp"
+            android:text="@string/welcome_personal_info_message"/>
+
+        <include layout="@layout/form_personal_info"/>
+
+        <Button
+            android:id="@+id/personalInfoLaterButton"
+            style="@style/SecondaryButtonStyle"
+            android:layout_marginTop="12dp"
+            android:text="@string/later"/>
+
+    </LinearLayout>
+
+</ScrollView>

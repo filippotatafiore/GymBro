@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 
 // First page of the app when nobody is logged in: register or log in.
 // It has no bottom strip: the rest of the app can be used only after the login.
-class WelcomeActivity : ComponentActivity() {
+class WelcomeActivity : ThemedActivity() {
 
     // Registration window, while it is open, and the profile picture chosen in it
     // (uploaded right after the account is created)
@@ -39,7 +39,6 @@ class WelcomeActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableDarkEdgeToEdge()
 
         // Already logged in (e.g. page reopened from the recent apps): straight into the app
         if (UserSession.isLoggedIn) {
@@ -100,6 +99,8 @@ class WelcomeActivity : ComponentActivity() {
                 try {
                     val auth = ApiClient.register(usernameText, emailText, passwordText)
                     UserSession.save(auth.token, auth.user)
+                    // the home asks the personal information of the new user right away
+                    UserSession.askPersonalInfo = true
 
                     registerPicture?.let { picture ->
                         try {

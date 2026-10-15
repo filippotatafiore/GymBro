@@ -3,7 +3,7 @@
     <string name="last_session">LAST SESSIONS</string>
 
     <string name="delete_acc">Delete account</string>
-    <string name="settings">Settings</string>
+    <string name="manage_account">Manage account</string>
     <string name="logout">Log out</string>
 
     <string name="register_invitation">Unlock all GymBro\'s functionalities.\nBecome a member!</string>
@@ -165,7 +165,7 @@
     <!-- calendar (home) -->
     <string name="previous_month">Previous month</string>
     <string name="next_month">Next month</string>
-    <string name="calendar_hint">A green dot: at least one session that day. Tap the day to see its sessions.</string>
+    <string name="calendar_hint">A dot: at least one session that day. Tap the day to see its sessions.</string>
     <string name="day_session_time">%1$s · %2$s</string>
 
     <!-- publish modal -->
@@ -322,7 +322,6 @@
     <!-- menu of the profile: personal information, settings, account -->
     <string name="personal_information">Personal information</string>
     <string name="customize_account">Customize account</string>
-    <string name="coming_soon">Coming soon</string>
     <string name="new_password_label">New password (optional)</string>
     <string name="new_password_hint">Leave empty to keep it</string>
     <string name="confirm_password_hint">Repeat the new password</string>
@@ -334,6 +333,28 @@
     <string name="account_deleted">Your account has been deleted</string>
     <string name="delete_account_title">Delete your account?</string>
     <string name="delete_account_message">Your profile, results, sessions, workout plans and picture will be deleted forever. Write your password to confirm.</string>
+
+    <!-- customize account: theme and favorite color -->
+    <string name="theme_label">THEME</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_light">Light</string>
+    <string name="favorite_color_label">FAVORITE COLOR</string>
+    <string name="accent_blue">Blue</string>
+    <string name="accent_violet">Violet</string>
+    <string name="accent_pink">Pink</string>
+    <string name="accent_red">Red</string>
+    <string name="accent_orange">Orange</string>
+    <string name="accent_amber">Gold</string>
+    <string name="accent_green">Green</string>
+    <string name="accent_teal">Teal</string>
+    <string name="appearance_hint">Saved in your account: the same look on all your devices.</string>
+    <string name="appearance_saving">Saving…</string>
+    <string name="appearance_not_saved">Look not saved: %1$s</string>
+
+    <!-- after the registration -->
+    <string name="welcome_personal_info_title">Welcome to GymBro!</string>
+    <string name="welcome_personal_info_message">Tell us something about you: the coach uses these data for your workout plans, and your weight for the calories of your runs. You can change them anytime in ☰ › Personal information.</string>
+    <string name="later">Later</string>
 
     <!-- post details modal -->
     <string name="published_on">Published on %1$s</string>

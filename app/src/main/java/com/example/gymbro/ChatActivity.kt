@@ -38,7 +38,7 @@ import kotlinx.coroutines.launch
 // - chat about a workout plan (button "Ask the coach" of the page of a plan, see open): the coach
 //   sees the plan, also after the changes made by hand, and can change it. Without bottom strip.
 // The conversations are saved on the phone (one for each user and plan), the answers come from the server.
-class ChatActivity : ComponentActivity() {
+class ChatActivity : ThemedActivity() {
 
     private var bottomNav: BottomNavBar? = null
     private lateinit var conversation: CoachChat.Conversation
@@ -58,7 +58,6 @@ class ChatActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableDarkEdgeToEdge()
 
         // Nobody logged in (e.g. app restored after the logout): back to the welcome page
         val userId = UserSession.userId
@@ -174,7 +173,7 @@ class ChatActivity : ComponentActivity() {
     }
 
     // While the keyboard is open, the bottom strip is hidden and the page ends above the keyboard
-    // (the page is drawn under the system bars, see enableDarkEdgeToEdge). Chat about a plan
+    // (the page is drawn under the system bars, see ThemedActivity). Chat about a plan
     // (no bottom strip): the text field stays above the navigation bar of the phone.
     private fun followKeyboard() {
         val navBar = findViewById<View>(R.id.bottomNav)

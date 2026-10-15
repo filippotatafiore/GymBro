@@ -124,7 +124,7 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
     override fun onMapReady(googleMap: GoogleMap) {
         if (view == null) return  // the page was closed meanwhile
         map = googleMap
-        googleMap.useDarkTheme(requireContext())
+        googleMap.useAppTheme(requireContext())
         googleMap.isBuildingsEnabled = false  // 3D buildings would hide parts of the path drawn
 
         // The blue dot is moved with the same GPS positions that draw the path and move the
@@ -230,7 +230,7 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
             if (goal != null) getString(R.string.run_progress, formatLiveDistance(km), formatDistance(goal))
             else getString(R.string.live_distance_km, formatLiveDistance(km))
         distanceText.setTextColor(context.getColor(when {
-            goal == null -> R.color.white
+            goal == null -> R.color.textPrimary
             km >= goal -> R.color.successGreen
             else -> R.color.errorRed
         }))

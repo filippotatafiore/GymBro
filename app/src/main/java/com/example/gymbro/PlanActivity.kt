@@ -41,7 +41,7 @@ import kotlinx.coroutines.launch
 // - tap a day: rename or delete it; tap the title: rename the plan
 // "Ask the coach to change it": chat about this plan (ChatActivity), where the coach sees the plan
 // as it is now and can change it.
-class PlanActivity : ComponentActivity() {
+class PlanActivity : ThemedActivity() {
 
     private var planId = 0L
     private var plan: Plan? = null
@@ -54,7 +54,6 @@ class PlanActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableDarkEdgeToEdge()
 
         // Nobody logged in (e.g. app restored after the logout): back to the welcome page
         if (!UserSession.isLoggedIn) {

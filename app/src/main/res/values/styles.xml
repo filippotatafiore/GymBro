@@ -1,38 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Styles of the views. Colors: by role from res/values/colors.xml (they change with the light /
+    dark theme) and ?attr/accent... for the favorite color of the user (res/values/attrs.xml).
+-->
 <resources>
 
     <!-- ************************************ Common ************************************ -->
-    <!-- Big rounded blue button (start training, register) -->
+    <!-- Big rounded button in the favorite color (start training, register) -->
     <style name="ButtonStyle1">
         <item name="android:layout_width">200sp</item>
         <item name="android:layout_height">80sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:textColor">?attr/onAccentColor</item>
         <item name="android:background">@drawable/button_primary_background</item>
         <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
     </style>
 
-    <!-- Full-width rounded buttons, used in the modal windows -->
+    <!-- Full-width rounded buttons, used in the modal windows: main action in the favorite color -->
     <style name="PrimaryButtonStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">52dp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textSize">16sp</item>
         <item name="android:textAllCaps">false</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">?attr/onAccentColor</item>
         <item name="android:background">@drawable/button_primary_background</item>
         <item name="android:stateListAnimator">@null</item>
     </style>
 
     <style name="SecondaryButtonStyle" parent="PrimaryButtonStyle">
+        <item name="android:textColor">@color/textPrimary</item>
         <item name="android:background">@drawable/button_secondary_background</item>
     </style>
 
     <style name="DangerButtonStyle" parent="PrimaryButtonStyle">
+        <item name="android:textColor">@color/onColor</item>
         <item name="android:background">@drawable/button_danger_background</item>
     </style>
 
-    <!-- Small rounded button with an icon (e.g. "+ Publish") -->
+    <!-- Small tonal button with an icon (e.g. "+ Publish"): a light tint of the favorite color -->
     <style name="SmallButtonStyle">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">40dp</item>
@@ -41,11 +49,12 @@
         <item name="android:paddingStart">14dp</item>
         <item name="android:paddingEnd">16dp</item>
         <item name="android:drawablePadding">6dp</item>
+        <item name="android:drawableTint">?attr/accentTextColor</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textAllCaps">false</item>
-        <item name="android:textColor">@color/white</item>
-        <item name="android:background">@drawable/button_primary_background</item>
+        <item name="android:textColor">?attr/accentTextColor</item>
+        <item name="android:background">@drawable/button_tonal_background</item>
         <item name="android:stateListAnimator">@null</item>
     </style>
 
@@ -56,7 +65,7 @@
         <item name="android:padding">12dp</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:textSize">16sp</item>
-        <item name="android:textColor">@color/lighterBlue</item>
+        <item name="android:textColor">?attr/accentTextColor</item>
         <item name="android:background">@drawable/menu_item_background</item>
         <item name="android:stateListAnimator">@null</item>
     </style>
@@ -65,7 +74,7 @@
     <style name="RoundIconButtonStyle">
         <item name="android:layout_width">44dp</item>
         <item name="android:layout_height">44dp</item>
-        <item name="android:padding">10dp</item>
+        <item name="android:padding">11dp</item>
         <item name="android:scaleType">fitCenter</item>
         <item name="android:background">@drawable/round_icon_button_background</item>
     </style>
@@ -74,7 +83,7 @@
     <style name="SmallRoundIconButtonStyle" parent="RoundIconButtonStyle">
         <item name="android:layout_width">40dp</item>
         <item name="android:layout_height">40dp</item>
-        <item name="android:padding">9dp</item>
+        <item name="android:padding">10dp</item>
     </style>
 
     <!-- Rounded text field -->
@@ -84,7 +93,7 @@
         <item name="android:layout_marginTop">12dp</item>
         <item name="android:padding">14dp</item>
         <item name="android:background">@drawable/input_background</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/textPrimary</item>
         <item name="android:textColorHint">@color/textSecondary</item>
         <item name="android:textSize">16sp</item>
         <item name="android:textCursorDrawable">@null</item>
@@ -100,7 +109,7 @@
         <item name="android:popupBackground">@drawable/modal_background</item>
     </style>
 
-    <!-- Option of a choice (RadioButton), e.g. Time / Weight -->
+    <!-- Option of a choice (RadioButton), e.g. Time / Weight: the chosen one in the favorite color -->
     <style name="SegmentStyle">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">44dp</item>
@@ -108,7 +117,7 @@
         <item name="android:button">@null</item>
         <item name="android:gravity">center</item>
         <item name="android:background">@drawable/segment_background</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/segment_text</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textSize">15sp</item>
     </style>
@@ -127,8 +136,9 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/lighterBlue</item>
-        <item name="android:textSize">22sp</item>
+        <item name="android:textColor">?attr/accentTextColor</item>
+        <item name="android:textSize">21sp</item>
+        <item name="android:letterSpacing">0.02</item>
     </style>
 
     <style name="ErrorTextStyle">
@@ -157,7 +167,7 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:gravity">center</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/lighterBlue</item>
+        <item name="android:textColor">?attr/accentTextColor</item>
         <item name="android:textSize">20sp</item>
     </style>
 
@@ -168,11 +178,12 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:gravity">center</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/lighterBlue</item>
-        <item name="android:textSize">30sp</item>
+        <item name="android:textColor">?attr/accentTextColor</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:letterSpacing">0.02</item>
     </style>
 
-    <!-- A row of a list (sessions, exercises, results): rounded grey card -->
+    <!-- A row of a list (sessions, exercises, results): rounded card with a thin border -->
     <style name="ListRowStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
@@ -190,7 +201,7 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/textPrimary</item>
         <item name="android:textSize">18sp</item>
     </style>
 
@@ -208,7 +219,7 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginStart">16dp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/lighterBlue</item>
+        <item name="android:textColor">?attr/accentTextColor</item>
         <item name="android:textSize">20sp</item>
         <item name="android:fontFeatureSettings">tnum</item>
     </style>
@@ -219,7 +230,7 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/lighterBlue</item>
+        <item name="android:textColor">?attr/accentTextColor</item>
         <item name="android:textSize">14sp</item>
         <item name="android:letterSpacing">0.08</item>
     </style>
@@ -228,15 +239,18 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/textPrimary</item>
         <item name="android:textSize">32sp</item>
         <item name="android:fontFeatureSettings">tnum</item>
     </style>
 
+    <!-- e.g. CHEST: small label in the favorite color -->
     <style name="ExerciseMuscleGroupStyle" parent="RowSubtitleStyle">
         <item name="android:textAllCaps">true</item>
-        <item name="android:textColor">@color/yellow</item>
-        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.06</item>
+        <item name="android:textColor">?attr/accentTextColor</item>
+        <item name="android:textSize">11sp</item>
     </style>
 
 
@@ -245,9 +259,9 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/lightBlue</item>
+        <item name="android:textColor">?attr/accentTextColor</item>
         <item name="android:padding">16dp</item>
-        <item name="android:textSize">25sp</item>
+        <item name="android:textSize">24sp</item>
     </style>
 
     <style name="ProfileMenuItemStyle">
@@ -260,9 +274,9 @@
         <item name="android:stateListAnimator">@null</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:textStyle">normal</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/textPrimary</item>
         <item name="android:padding">16dp</item>
-        <item name="android:textSize">20sp</item>
+        <item name="android:textSize">19sp</item>
     </style>
 
     <!-- Round profile picture: the background gives the circle shape, clipToOutline cuts the image -->
@@ -284,7 +298,7 @@
         <item name="android:paddingEnd">14dp</item>
         <item name="android:paddingTop">10dp</item>
         <item name="android:paddingBottom">10dp</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/textPrimary</item>
         <item name="android:textSize">15sp</item>
         <item name="android:lineSpacingMultiplier">1.15</item>
     </style>
@@ -297,27 +311,20 @@
         <item name="android:padding">14dp</item>
         <item name="android:background">@drawable/list_row_background</item>
         <item name="android:foreground">@drawable/row_ripple</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/textPrimary</item>
         <item name="android:textSize">15sp</item>
     </style>
 
 
 
     <!-- ************************************ Modal windows ************************************ -->
-    <!-- Theme of the modal windows: transparent window (the card is drawn by the layout),
-         dimmed background and custom enter/exit animations -->
-    <style name="ModalDialogTheme" parent="android:Theme.Material.Dialog.NoActionBar">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowAnimationStyle">@style/ModalAnimation</item>
-        <item name="android:backgroundDimAmount">0.7</item>
-    </style>
-
+    <!-- (theme of the modal windows: ModalDialogTheme in res/values/themes.xml) -->
     <style name="ModalAnimation">
         <item name="android:windowEnterAnimation">@anim/modal_enter</item>
         <item name="android:windowExitAnimation">@anim/modal_exit</item>
     </style>
 
-    <!-- Root of the layout of a modal window: rounded dark card -->
+    <!-- Root of the layout of a modal window: rounded card with a thin border -->
     <style name="ModalCardStyle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
@@ -332,8 +339,8 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:gravity">center</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/lighterBlue</item>
-        <item name="android:textSize">24sp</item>
+        <item name="android:textColor">?attr/accentTextColor</item>
+        <item name="android:textSize">23sp</item>
     </style>
 
     <style name="ModalMessageStyle">
@@ -345,7 +352,7 @@
         <item name="android:textSize">16sp</item>
     </style>
 
-    <!-- Gym / Run buttons -->
+    <!-- Gym / Run buttons: cards tinted with the favorite color -->
     <style name="TrainingOptionStyle">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">wrap_content</item>
@@ -363,6 +370,7 @@
         <item name="android:layout_width">64dp</item>
         <item name="android:layout_height">64dp</item>
         <item name="android:scaleType">fitCenter</item>
+        <item name="android:tint">?attr/accentTextColor</item>
     </style>
 
     <style name="TrainingOptionTextStyle">
@@ -370,7 +378,7 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">12dp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">@color/textPrimary</item>
         <item name="android:textSize">20sp</item>
     </style>
 

@@ -23,7 +23,8 @@
             android:layout_height="28dp"
             android:scaleType="fitCenter"
             android:importantForAccessibility="no"
-            android:src="@drawable/dumbbell_icon"/>
+            android:src="@drawable/dumbbell_icon"
+            android:tint="?attr/accentTextColor"/>
 
         <View
             android:layout_width="0dp"
@@ -41,7 +42,7 @@
             android:paddingBottom="2dp"
             android:background="@drawable/last_done_badge_background"
             android:textStyle="bold"
-            android:textColor="@color/white"
+            android:textColor="?attr/onAccentColor"
             android:textSize="11sp"
             android:letterSpacing="0.05"
             android:text="@string/active_badge"
@@ -62,7 +63,7 @@
     <TextView
         android:id="@+id/planCardInfo"
         style="@style/RowSubtitleStyle"
-        android:textColor="@color/lighterBlue"
+        android:textColor="?attr/accentTextColor"
         android:textStyle="bold"
         android:textSize="13sp"
         tools:text="4 days · Build muscle"/>

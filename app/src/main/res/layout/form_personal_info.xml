@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Personal information (body data): height, weight, year of birth, sex, the BMI updated while
+     typing, and the save button (profile/PersonalInfoForm.kt). Included by the "Personal
+     information" page of the menu of the profile and by the window shown after the registration. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        style="@style/FormLabelStyle"
+        android:layout_marginTop="4dp"
+        android:text="@string/height_label"/>
+
+    <EditText
+        android:id="@+id/profileHeightInput"
+        style="@style/InputStyle"
+        android:layout_marginTop="6dp"
+        android:hint="@string/height_hint"
+        android:inputType="numberDecimal"
+        android:importantForAutofill="no"/>
+
+    <TextView
+        style="@style/FormLabelStyle"
+        android:text="@string/weight_label"/>
+
+    <EditText
+        android:id="@+id/profileWeightInput"
+        style="@style/InputStyle"
+        android:layout_marginTop="6dp"
+        android:hint="@string/weight_kg_hint"
+        android:inputType="numberDecimal"
+        android:importantForAutofill="no"/>
+
+    <TextView
+        style="@style/FormLabelStyle"
+        android:text="@string/birth_year_label"/>
+
+    <EditText
+        android:id="@+id/profileBirthYearInput"
+        style="@style/InputStyle"
+        android:layout_marginTop="6dp"
+        android:hint="@string/birth_year_hint"
+        android:inputType="number"
+        android:maxLength="4"
+        android:importantForAutofill="no"/>
+
+    <TextView
+        style="@style/FormLabelStyle"
+        android:text="@string/sex_label"/>
+
+    <RadioGroup
+        android:id="@+id/profileSexGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/sexMale"
+            style="@style/SegmentStyle"
+            android:layout_marginEnd="4dp"
+            android:textSize="13sp"
+            android:text="@string/sex_male"/>
+
+        <RadioButton
+            android:id="@+id/sexFemale"
+            style="@style/SegmentStyle"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:textSize="13sp"
+            android:text="@string/sex_female"/>
+
+        <RadioButton
+            android:id="@+id/sexOther"
+            style="@style/SegmentStyle"
+            android:layout_marginStart="4dp"
+            android:textSize="13sp"
+            android:text="@string/sex_other"/>
+
+    </RadioGroup>
+
+    <!-- e.g. "BMI 22.4 · normal weight", updated while typing -->
+    <TextView
+        android:id="@+id/profileBmiText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:textStyle="bold"
+        android:textColor="@color/textPrimary"
+        android:textSize="15sp"
+        tools:text="BMI 22.4 · normal weight"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:textColor="@color/textSecondary"
+        android:textSize="12sp"
+        android:text="@string/account_hint"/>
+
+    <TextView
+        android:id="@+id/profileError"
+        style="@style/ErrorTextStyle"/>
+
+    <Button
+        android:id="@+id/saveProfileButton"
+        style="@style/PrimaryButtonStyle"
+        android:layout_marginTop="16dp"
+        android:text="@string/save"/>
+
+</LinearLayout>

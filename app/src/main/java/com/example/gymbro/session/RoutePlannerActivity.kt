@@ -17,7 +17,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.gymbro.R
-import com.example.gymbro.enableDarkEdgeToEdge
+import com.example.gymbro.ThemedActivity
 import com.example.gymbro.formatLiveDistance
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -40,7 +40,7 @@ import kotlinx.coroutines.launch
 // wanted, a stop on the way) by tapping the map or searching a place by name. The goal of the run
 // is the walking distance from the current position to the destination, through the stop.
 // Opened by RunSetup; it gives back the goal and the route (readResult).
-class RoutePlannerActivity : FragmentActivity(), OnMapReadyCallback {
+class RoutePlannerActivity : ThemedActivity(), OnMapReadyCallback {
 
     private lateinit var fusedLocation: FusedLocationProviderClient
     private var map: GoogleMap? = null
@@ -76,7 +76,6 @@ class RoutePlannerActivity : FragmentActivity(), OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableDarkEdgeToEdge()
         setContentView(R.layout.activity_route_planner)
         fusedLocation = LocationServices.getFusedLocationProviderClient(this)
 
@@ -130,7 +129,7 @@ class RoutePlannerActivity : FragmentActivity(), OnMapReadyCallback {
     @SuppressLint("MissingPermission")  // the permission is asked by RunSetup before opening this page
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
-        googleMap.useDarkTheme(this)
+        googleMap.useAppTheme(this)
         googleMap.isBuildingsEnabled = false  // 3D buildings would hide parts of the route drawn
         if (RunTrackingService.hasLocationPermission(this)) googleMap.isMyLocationEnabled = true
         googleMap.setOnMapClickListener { setPoint(it.toGeoPoint()) }

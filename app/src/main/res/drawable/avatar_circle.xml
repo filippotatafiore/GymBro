@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Circle shape of the profile pictures (used with clipToOutline) -->
+<!-- Circle behind the profile pictures -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
 
-    <solid android:color="@color/lighterGrey"/>
+    <solid android:color="?attr/accentSoftColor"/>
 
 </shape>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Text of an option of a choice (SegmentStyle): on the favorite color when chosen -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true" android:color="?attr/onAccentColor"/>
+    <item android:color="@color/textPrimary"/>
+</selector>

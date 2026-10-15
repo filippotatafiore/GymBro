@@ -68,7 +68,7 @@ fun showGymDetails(
 
     content.addView(TextView(context).apply {
         setText(R.string.detail_exercises)
-        setTextColor(context.getColor(R.color.lighterBlue))
+        setTextColor(context.themeColor(R.attr.accentTextColor))
         setTypeface(typeface, Typeface.BOLD)
         textSize = 16f
         setPadding(0, (16 * resources.displayMetrics.density).toInt(), 0, 0)

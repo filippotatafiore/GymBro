@@ -43,6 +43,8 @@ class GymBroApp : Application() {
         RunTrackingService.createNotificationChannels(this)
         // Google Maps: asks the latest renderer, and remembers the one available on this phone
         MapsInitializer.initialize(this, MapsInitializer.Renderer.LATEST) { renderer -> mapsRenderer = renderer }
+        // before any page: the light / dark theme and the favorite color of the last user
+        Appearance.init(this)
         UserSession.init(this)
         PlanCache.init(this)
         ApiClient.init(this)

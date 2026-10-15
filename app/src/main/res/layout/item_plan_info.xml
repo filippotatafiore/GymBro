@@ -56,7 +56,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
         android:textStyle="bold"
-        android:textColor="@color/lighterBlue"
+        android:textColor="?attr/accentTextColor"
         android:textSize="14sp"
         android:letterSpacing="0.05"
         android:text="@string/plan_coach_advice"/>
@@ -66,7 +66,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:textColor="@color/white"
+        android:textColor="@color/textPrimary"
         android:textSize="14sp"
         android:lineSpacingMultiplier="1.15"
         tools:text="Warm up 10 minutes before every session. Increase the weights when you can do all the reps."/>

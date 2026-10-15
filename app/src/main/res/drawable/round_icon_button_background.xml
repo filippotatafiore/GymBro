@@ -2,11 +2,11 @@
 
 <!-- Round icon buttons of the top strips (calendar, menu, pause, stop) -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#40FFFFFF">
+    android:color="@color/ripple">
 
     <item>
         <shape android:shape="oval">
-            <solid android:color="@color/lighterGrey"/>
+            <solid android:color="@color/surfaceVariant"/>
         </shape>
     </item>
 

@@ -73,8 +73,9 @@ app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # biggest accepted request (
 #
 #   users/{id}       a user: id, username, email, password_hash, has_picture, created_at, the
 #                    body data (null = not set): height_cm, weight_kg, birth_year,
-#                    sex ('male', 'female' or 'other'), and active_plan_id: the workout plan
-#                    followed in the gym sessions (null = none)
+#                    sex ('male', 'female' or 'other'), active_plan_id: the workout plan
+#                    followed in the gym sessions (null = none), and the look of the app chosen by
+#                    the user: accent (favorite color, one of ACCENTS) and theme ('dark' or 'light')
 #   usernames/{key}  {user_id}: one for each username (key = hash of the username in lowercase).
 #   emails/{key}     {user_id}: the same for the emails. They keep usernames and emails unique,
 #                    also ignoring upper/lower case, and let the login find the user of an email.
@@ -188,6 +189,9 @@ def create_user(transaction, username, email, password_hash):
         "weight_kg": None,
         "birth_year": None,
         "sex": None,
+        # the look of the new accounts: the user can change it later ("Customize account")
+        "accent": DEFAULT_ACCENT,
+        "theme": DEFAULT_THEME,
     }
     transaction.set(db.collection("users").document(str(user_id)), user)
     transaction.set(username_ref, {"user_id": user_id})
@@ -206,6 +210,11 @@ def insert_numbered(transaction, collection, document):
 # ------------------------------------------------------------------ HELPERS
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.]{3,30}$")
+# Favorite colors of the app (the same names in the app: Accent in Appearance.kt) and themes
+ACCENTS = ("blue", "violet", "pink", "red", "orange", "amber", "green", "teal")
+THEMES = ("dark", "light")
+DEFAULT_ACCENT = "blue"
+DEFAULT_THEME = "dark"
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -244,6 +253,9 @@ def user_json(user, private=False):
         data["birth_year"] = user.get("birth_year")
         data["sex"] = user.get("sex")
         data["active_plan_id"] = user.get("active_plan_id")
+        # accounts created before these existed: the default look
+        data["accent"] = user.get("accent") or DEFAULT_ACCENT
+        data["theme"] = user.get("theme") or DEFAULT_THEME
     return data
 
 
@@ -447,6 +459,19 @@ def update_profile():
 
     database().collection("users").document(str(g.user["id"])).update(profile)
     return jsonify(user_json({**g.user, **profile}, private=True))
+
+
+@app.put("/api/me/appearance")
+@login_required
+def update_appearance():
+    """The look of the app chosen by the user, the same on all their devices:
+    {"accent": "blue", "theme": "dark"} (accent: one of ACCENTS; theme: 'dark' or 'light')."""
+    data = request.get_json(silent=True) or {}
+    appearance = {"accent": data.get("accent"), "theme": data.get("theme")}
+    if appearance["accent"] not in ACCENTS or appearance["theme"] not in THEMES:
+        return error(400, "Invalid favorite color or theme")
+    database().collection("users").document(str(g.user["id"])).update(appearance)
+    return jsonify(user_json({**g.user, **appearance}, private=True))
 
 
 @app.put("/api/me/picture")

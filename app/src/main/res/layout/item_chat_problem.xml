@@ -28,7 +28,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textStyle="bold"
-        android:textColor="@color/lighterBlue"
+        android:textColor="?attr/accentTextColor"
         android:textSize="14sp"
         android:text="@string/tap_to_retry"/>
 

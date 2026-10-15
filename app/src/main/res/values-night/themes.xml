@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark theme: the same themes of res/values/themes.xml, on the dark Material themes of Android -->
+<resources>
+    <style name="Base.Theme.GymBro" parent="android:Theme.Material.NoActionBar"/>
+    <style name="Base.ModalDialogTheme" parent="android:Theme.Material.Dialog.NoActionBar"/>
+</resources>

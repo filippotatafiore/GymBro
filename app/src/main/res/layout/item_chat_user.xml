@@ -15,6 +15,7 @@
         style="@style/ChatBubbleTextStyle"
         android:layout_gravity="end"
         android:background="@drawable/chat_bubble_user"
+        android:textColor="?attr/onAccentColor"
         tools:text="How do I do a squat correctly?"/>
 
 </FrameLayout>

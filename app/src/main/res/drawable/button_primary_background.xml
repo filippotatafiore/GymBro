@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Main buttons: rounded blue background with a ripple effect when pressed -->
+<!-- Main buttons: rounded, in the favorite color, with a ripple effect when pressed -->
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#40FFFFFF">
+    android:color="#33FFFFFF">
 
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="@color/lightBlue"/>
+            <solid android:color="?attr/accentColor"/>
             <corners android:radius="16dp"/>
         </shape>
     </item>
