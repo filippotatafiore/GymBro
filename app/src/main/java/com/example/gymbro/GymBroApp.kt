@@ -6,6 +6,7 @@ import androidx.room.Room
 import com.example.gymbro.data.AppDatabase
 import com.example.gymbro.network.ApiClient
 import com.example.gymbro.network.UserSession
+import com.example.gymbro.plan.PlanCache
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.RunTracker
 import com.example.gymbro.session.RunTrackingService
@@ -19,11 +20,13 @@ import kotlinx.coroutines.SupervisorJob
 // before any activity: holds what is shared by the whole app
 class GymBroApp : Application() {
 
-    // Local database (Room) with the finished training sessions and the chat with the AI coach
+    // Local database (Room): the chats with the AI coach, and the finished sessions not sent to the server yet
     val database: AppDatabase by lazy {
         Room.databaseBuilder(this, AppDatabase::class.java, "gymbro.db")
             // Converts the saved sessions to the new structure of the tables
-            .addMigrations(AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5)
+            .addMigrations(
+                AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6
+            )
             // While developing: for older structures without a migration, the local database is
             // recreated empty instead of being converted
             .fallbackToDestructiveMigration()
@@ -41,6 +44,7 @@ class GymBroApp : Application() {
         // Google Maps: asks the latest renderer, and remembers the one available on this phone
         MapsInitializer.initialize(this, MapsInitializer.Renderer.LATEST) { renderer -> mapsRenderer = renderer }
         UserSession.init(this)
+        PlanCache.init(this)
         ApiClient.init(this)
     }
 }

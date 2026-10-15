@@ -14,14 +14,17 @@ import com.example.gymbro.ui.theme.GymBroTheme
 
 import android.widget.Toast
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.home.CalendarDrawer
 import com.example.gymbro.home.HomeFragment
 import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
+import com.example.gymbro.plan.Plan
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.GymSessionFragment
+import com.example.gymbro.session.GymSetup
 import com.example.gymbro.session.RunMath
 import com.example.gymbro.session.RunPlan
 import com.example.gymbro.session.RunSessionFragment
@@ -29,9 +32,10 @@ import com.example.gymbro.session.RunSetup
 import com.example.gymbro.session.RunTracker
 import com.example.gymbro.session.RunTrackingService
 import com.example.gymbro.session.SessionType
-import com.example.gymbro.session.WorkoutPlan
+import com.example.gymbro.session.TrainingSessions
 import com.example.gymbro.session.publishSession
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 
 // Home page. Its middle part shows the home (start training + last sessions) or, while a
@@ -46,6 +50,9 @@ class MainActivity : FragmentActivity() {
 
     // Permissions and goal asked before a run starts
     private val runSetup = RunSetup(this)
+
+    // Day of the active workout plan asked before a gym session starts
+    private val gymSetup = GymSetup(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,6 +103,18 @@ class MainActivity : FragmentActivity() {
         bottomNav.refresh()
         // a run in progress is tracked again if the app was closed meanwhile (or after a new login)
         if (ActiveSession.type == SessionType.RUN) RunTrackingService.start(this)
+        refreshSessions()
+    }
+
+    // LAST SESSIONS and calendar: the sessions waiting on the phone are sent, then all the sessions
+    // are downloaded from the server (in background; an error is shown by the home, see TrainingSessions)
+    private fun refreshSessions() {
+        lifecycleScope.launch {
+            try {
+                TrainingSessions.refresh(this@MainActivity)
+            } catch (_: ApiException) {
+            }
+        }
     }
 
     override fun onPause() {
@@ -106,8 +125,14 @@ class MainActivity : FragmentActivity() {
 
     // --------------------------------------------------------- SESSION
 
-    fun startSession(type: SessionType) {
-        ActiveSession.start(type)
+    // Gym: first the day of the active workout plan (GymSetup), which then calls startGym
+    fun prepareGym() {
+        gymSetup.begin()
+    }
+
+    // plan = null: session without plan (the exercises are added during the session)
+    fun startGym(plan: Plan?, dayIndex: Int) {
+        ActiveSession.startGym(plan, dayIndex)
         onSessionChanged()
     }
 
@@ -126,11 +151,12 @@ class MainActivity : FragmentActivity() {
 
     // The session in progress as it would be saved now (shown in the window to stop it)
     fun finishedSession(): TrainingSession? {
-        val userId = UserSession.userId ?: return null
         val type = ActiveSession.type ?: return null
         val run = if (type == SessionType.RUN) RunTracker.current else null
+        val gym = type == SessionType.GYM
         return TrainingSession(
-            userId = userId,
+            // a new id for each session: the server saves it only once, also if sent again
+            clientId = UUID.randomUUID().toString(),
             type = type,
             startTime = ActiveSession.startTime,
             durationMillis = ActiveSession.elapsedMillis(),
@@ -140,12 +166,18 @@ class MainActivity : FragmentActivity() {
             maxSpeedKmh = run?.let { it.maxSpeedMps * 3.6 },
             goalKm = if (run != null) RunTracker.goalKm else null,
             route = run?.route?.filter { it.size >= 2 },
-            exercises = if (type == SessionType.GYM) WorkoutPlan.exercises else null
+            // gym: the exercises as they were done, and the day of the plan followed
+            exercises = if (gym) ActiveSession.exercises else null,
+            planId = if (gym) ActiveSession.planId else null,
+            planName = if (gym) ActiveSession.planName else null,
+            planDay = if (gym) ActiveSession.planDay else null,
+            planDayName = if (gym) ActiveSession.planDayName else null
         )
     }
 
-    // Saves the session in the database (it appears in LAST SESSIONS of this user), publishes it on
-    // the profile if requested, and goes back to the home
+    // Saves the session on the server (it appears in LAST SESSIONS of this user, on every phone),
+    // publishes it on the profile if requested, and goes back to the home. Server not reachable:
+    // the session waits on the phone and is sent later (it can be published then).
     fun saveSession(session: TrainingSession, publish: Boolean) {
         if (session.type == SessionType.RUN) {
             RunTrackingService.stop(this)
@@ -157,10 +189,14 @@ class MainActivity : FragmentActivity() {
         // applicationScope: the work completes even if this page is closed meanwhile.
         val app = gymBroApp
         app.applicationScope.launch {
-            val id = app.database.trainingSessionDao().insert(session)
+            val saved = TrainingSessions.save(app, session)
+            if (saved == null) {
+                Toast.makeText(app, R.string.session_saved_offline, Toast.LENGTH_LONG).show()
+                return@launch
+            }
             if (publish) {
                 try {
-                    publishSession(app, session.copy(id = id))
+                    publishSession(app, saved)
                     Toast.makeText(app, R.string.session_published, Toast.LENGTH_SHORT).show()
                 } catch (e: ApiException) {
                     // the session is saved anyway: it can be published later from LAST SESSIONS

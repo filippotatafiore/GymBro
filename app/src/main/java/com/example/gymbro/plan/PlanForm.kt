@@ -15,9 +15,13 @@ object PlanForm {
 
     const val MAX_SETS = 20
     const val MAX_REST_SECONDS = 900
+    const val MAX_WEIGHT_KG = 1000.0
 
-    // An exercise written in the window to change or add an exercise. Rest: empty = not set.
-    fun exercise(name: String, muscleGroup: String, sets: String, reps: String, rest: String, notes: String): Check<PlanExercise> {
+    // An exercise written in the window to change or add an exercise. Rest and weight: empty = not
+    // set; weight: also with a comma (e.g. "22,5").
+    fun exercise(
+        name: String, muscleGroup: String, sets: String, reps: String, rest: String, notes: String, weight: String = ""
+    ): Check<PlanExercise> {
         if (name.isBlank()) return Check.Invalid(R.string.error_exercise_name)
         val setsNumber = sets.trim().toIntOrNull()
         if (setsNumber == null || setsNumber !in 1..MAX_SETS) return Check.Invalid(R.string.error_plan_sets)
@@ -26,7 +30,11 @@ object PlanForm {
         if (rest.isNotBlank() && (restSeconds == null || restSeconds !in 0..MAX_REST_SECONDS)) {
             return Check.Invalid(R.string.error_plan_rest)
         }
-        return Check.Valid(PlanExercise(name.trim(), muscleGroup.trim(), setsNumber, reps.trim(), restSeconds, notes.trim()))
+        val weightKg = if (weight.isBlank()) null else weight.trim().replace(',', '.').toDoubleOrNull()
+        if (weight.isNotBlank() && (weightKg == null || weightKg !in 0.0..MAX_WEIGHT_KG)) {
+            return Check.Invalid(R.string.error_plan_weight)
+        }
+        return Check.Valid(PlanExercise(name.trim(), muscleGroup.trim(), setsNumber, reps.trim(), restSeconds, notes.trim(), weightKg))
     }
 
     // Name of a plan or of a day

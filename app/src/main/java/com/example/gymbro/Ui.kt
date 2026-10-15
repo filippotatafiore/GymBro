@@ -74,6 +74,38 @@ fun showConfirmModal(
     dialog.show()
 }
 
+// Modal window with a question and two answers (res/layout/dialog_choice.xml): the first one is
+// the blue button. The window closes, then onFirst / onSecond is called.
+fun showChoiceModal(
+    context: Context,
+    owner: LifecycleOwner,
+    title: String,
+    message: String,
+    first: String,
+    second: String,
+    onFirst: () -> Unit,
+    onSecond: () -> Unit = {}
+) {
+    val dialog = createModal(context, R.layout.dialog_choice, owner)
+    dialog.findViewById<TextView>(R.id.choiceTitle).text = title
+    dialog.findViewById<TextView>(R.id.choiceMessage).text = message
+    dialog.findViewById<Button>(R.id.choiceFirstButton).apply {
+        text = first
+        setOnClickListener {
+            dialog.dismiss()
+            onFirst()
+        }
+    }
+    dialog.findViewById<Button>(R.id.choiceSecondButton).apply {
+        text = second
+        setOnClickListener {
+            dialog.dismiss()
+            onSecond()
+        }
+    }
+    dialog.show()
+}
+
 // Shows an error message in a (normally hidden) TextView
 fun TextView.showError(message: String) {
     text = message

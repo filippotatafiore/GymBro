@@ -11,6 +11,7 @@ import com.example.gymbro.session.ActiveSession
 
 // Bottom strip shared by all the pages (res/layout/bottom_nav.xml):
 // - moves between the pages
+// - shows the page where the user is: blue icon with a short blue bar under it
 // - makes the home icon shine while a training session is in progress
 class BottomNavBar(private val activity: Activity, private val currentPage: Page) {
 
@@ -20,9 +21,19 @@ class BottomNavBar(private val activity: Activity, private val currentPage: Page
     private var glowAnimation: ObjectAnimator? = null
 
     init {
-        homeButton.setOnClickListener { open(Page.HOME) }
-        activity.findViewById<ImageButton>(R.id.chatButton).setOnClickListener { open(Page.CHAT) }
-        activity.findViewById<ImageButton>(R.id.profileButton).setOnClickListener { open(Page.PROFILE) }
+        val buttons = mapOf(
+            Page.HOME to homeButton,
+            Page.CHAT to activity.findViewById(R.id.chatButton),
+            Page.PROFILE to activity.findViewById<ImageButton>(R.id.profileButton)
+        )
+        buttons.forEach { (page, button) -> button.setOnClickListener { open(page) } }
+
+        // the page shown
+        buttons.getValue(currentPage).apply {
+            isSelected = true
+            foreground = activity.getDrawable(R.drawable.nav_selected_indicator)
+            imageTintList = ColorStateList.valueOf(activity.getColor(R.color.lighterBlue))
+        }
     }
 
     private fun open(page: Page) {
@@ -47,7 +58,9 @@ class BottomNavBar(private val activity: Activity, private val currentPage: Page
 
         if (!ActiveSession.isActive) {
             homeButton.background = null
-            homeButton.imageTintList = ColorStateList.valueOf(activity.getColor(R.color.white))
+            // blue if the home is the page shown
+            val color = if (currentPage == Page.HOME) R.color.lighterBlue else R.color.white
+            homeButton.imageTintList = ColorStateList.valueOf(activity.getColor(color))
             return
         }
 

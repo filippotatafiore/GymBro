@@ -26,10 +26,10 @@ import com.google.android.gms.maps.MapView
 // Windows with all the information of a finished session (tap it in LAST SESSIONS) or of a post
 // (tap it in the profile). Layout: res/layout/dialog_post_details.xml
 
-// e.g. "Run · 5.3 km", "Gym" (lists of sessions: LAST SESSIONS, calendar)
+// e.g. "Run · 5.3 km", "Gym · Day 1 · Push", "Gym" (lists of sessions: LAST SESSIONS, calendar)
 fun TrainingSession.displayTitle(context: Context): String = when (type) {
     SessionType.RUN -> context.getString(R.string.run_post_title, formatDistance(distanceKm ?: 0.0))
-    SessionType.GYM -> context.getString(type.label)
+    SessionType.GYM -> planDayName?.let { context.getString(R.string.gym_day_title, it) } ?: context.getString(type.label)
 }
 
 // Details of a saved session (tap it in LAST SESSIONS or in the calendar)
@@ -38,8 +38,8 @@ fun showSessionDetails(context: Context, owner: LifecycleOwner, session: Trainin
     when (session.type) {
         SessionType.RUN -> showRunDetails(context, owner, session.displayTitle(context), date, session.toRunSummary())
         SessionType.GYM -> showGymDetails(
-            context, owner, context.getString(R.string.gym_post_title), date,
-            session.durationMillis, session.exercises.orEmpty()
+            context, owner, session.displayTitle(context), date,
+            session.durationMillis, session.exercises.orEmpty(), session.planName
         )
     }
 }
@@ -52,13 +52,19 @@ fun showRunDetails(context: Context, owner: LifecycleOwner, title: String, subti
     dialog.show()
 }
 
-// Gym: training time and every exercise (sets x reps, weight)
+// Gym: training time, workout plan followed (if any), how many exercises were completed, and every
+// exercise as it was done in that session (sets x reps, weight, rest, notes; dimmed if not completed)
 fun showGymDetails(
     context: Context, owner: LifecycleOwner, title: String, subtitle: String,
-    durationMillis: Long, exercises: List<Exercise>
+    durationMillis: Long, exercises: List<Exercise>, planName: String? = null
 ) {
     val (dialog, content) = detailsDialog(context, owner, R.drawable.dumbbell_icon, title, subtitle)
     addDetailRow(content, R.string.detail_time, formatDuration(durationMillis))
+    planName?.let { addDetailRow(content, R.string.detail_plan, it) }
+    if (exercises.isNotEmpty()) {
+        addDetailRow(content, R.string.detail_completed,
+            context.getString(R.string.completed_count, exercises.count { it.done }, exercises.size))
+    }
 
     content.addView(TextView(context).apply {
         setText(R.string.detail_exercises)
@@ -71,6 +77,8 @@ fun showGymDetails(
     exercises.forEach { exercise ->
         val row = inflater.inflate(R.layout.item_exercise, content, false)
         bindExerciseRow(row, exercise)
+        row.findViewById<View>(R.id.exerciseDoneIcon).visibility = if (exercise.done) View.VISIBLE else View.INVISIBLE
+        if (!exercise.done) row.alpha = 0.5f
         row.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             marginStart = 0
             marginEnd = 0

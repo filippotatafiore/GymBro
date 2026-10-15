@@ -2,7 +2,7 @@
     <string name="app_name" translatable="false">GymBro</string>
     <string name="last_session">LAST SESSIONS</string>
 
-    <string name="delete_acc">Delete Account</string>
+    <string name="delete_acc">Delete account</string>
     <string name="settings">Settings</string>
     <string name="logout">Log out</string>
 
@@ -287,6 +287,53 @@
     <string name="plan_suggestion_3">Add more exercises for the arms</string>
     <string name="plan_suggestion_4">How do I do the first exercise of the first day?</string>
     <string name="plan_chat_input_hint">Ask the coach about this plan…</string>
+
+    <!-- gym session following a workout plan -->
+    <string name="gym_day_title">Gym · %1$s</string>
+    <string name="session_saved_offline">Session saved on this phone: it will be saved online (and can be published) when the server is reachable.</string>
+    <string name="plan_not_loaded">Your active plan could not be loaded: %1$s</string>
+    <string name="choose_day_title">Which day?</string>
+    <string name="last_done_on">LAST DONE · %1$s</string>
+    <string name="plan_and_day">%1$s · %2$s</string>
+    <string name="gym_without_plan">Session without a workout plan</string>
+    <string name="gym_progress">%1$d / %2$d done</string>
+    <string name="gym_no_exercises">No exercises yet: add them with “+ Add exercise”.\n\nTo follow a workout plan, open it in your profile and tap “Set as active plan”.</string>
+    <string name="mark_done">Mark as done</string>
+    <string name="mark_not_done">Mark as not done</string>
+    <string name="save_in_plan_title">Save also in the plan?</string>
+    <string name="save_in_plan_message">Keep this change only for this session, or save it also in “%1$s”? The next sessions will start from it.</string>
+    <string name="also_in_plan">Also in the plan</string>
+    <string name="only_this_session">Only this session</string>
+    <string name="plan_updated_toast">Workout plan updated</string>
+    <string name="exercise_not_in_plan">The exercise is not in the plan anymore: the plan was not changed</string>
+    <string name="plan_not_updated">Plan not updated: %1$s</string>
+    <string name="detail_plan">Plan</string>
+    <string name="detail_completed">Completed</string>
+    <string name="completed_count">%1$d of %2$d exercises</string>
+    <string name="exercise_done">Done</string>
+    <string name="weight_kg_label">Weight (kg)</string>
+    <string name="weight_kg_hint">e.g. 60</string>
+    <string name="error_plan_weight">Weight: kg from 0 to 1000, or empty</string>
+    <string name="set_active_plan">Set as active plan</string>
+    <string name="plan_is_active">Your active plan</string>
+    <string name="plan_now_active">Active plan: your gym sessions will follow it</string>
+    <string name="active_badge">ACTIVE</string>
+
+    <!-- menu of the profile: personal information, settings, account -->
+    <string name="personal_information">Personal information</string>
+    <string name="customize_account">Customize account</string>
+    <string name="coming_soon">Coming soon</string>
+    <string name="new_password_label">New password (optional)</string>
+    <string name="new_password_hint">Leave empty to keep it</string>
+    <string name="confirm_password_hint">Repeat the new password</string>
+    <string name="current_password_label">Current password</string>
+    <string name="modify_account_hint">Your current password is needed to save the changes. After a new password, your other phones must log in again.</string>
+    <string name="error_passwords_differ">The two new passwords are different</string>
+    <string name="error_current_password">Write your current password</string>
+    <string name="account_updated">Account updated</string>
+    <string name="account_deleted">Your account has been deleted</string>
+    <string name="delete_account_title">Delete your account?</string>
+    <string name="delete_account_message">Your profile, results, sessions, workout plans and picture will be deleted forever. Write your password to confirm.</string>
 
     <!-- post details modal -->
     <string name="published_on">Published on %1$s</string>

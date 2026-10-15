@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-
+<!-- Sliding menu of the profile (logic in ProfileActivity: loadProfileMenu) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/drawer_menu"
     android:layout_width="match_parent"
@@ -18,7 +18,7 @@
         android:id="@+id/menu_title"
         style="@style/ProfileMenuTitleStyle"
         android:gravity="center"
-        android:text="Menu"/>
+        android:text="@string/menu"/>
 
     <View
         android:layout_width="match_parent"
@@ -27,26 +27,17 @@
 
     <!-- Menu items -->
 
+    <!-- body data of the user: res/layout/personal_info_menu.xml -->
     <Button
-        android:id="@+id/menu_option_1"
+        android:id="@+id/personalInfoButton"
         style="@style/ProfileMenuItemStyle"
-        android:text="Option 1"/>
+        android:text="@string/personal_information"/>
 
+    <!-- not available yet -->
     <Button
-        android:id="@+id/menu_option_2"
+        android:id="@+id/customizeAccountButton"
         style="@style/ProfileMenuItemStyle"
-        android:text="Option 2"/>
-
-    <!-- body data of the user: res/layout/account_menu.xml -->
-    <Button
-        android:id="@+id/modifyAccountButton"
-        style="@style/ProfileMenuItemStyle"
-        android:text="@string/modify_account"/>
-
-    <Button
-        android:id="@+id/menu_option_4"
-        style="@style/ProfileMenuItemStyle"
-        android:text="@string/delete_acc"/>
+        android:text="@string/customize_account"/>
 
 
     <!-- spacer to place last item at the bottom -->
@@ -60,6 +51,7 @@
         style="@style/ProfileMenuItemStyle"
         android:text="@string/logout" />
 
+    <!-- modify account, delete account: res/layout/settings.xml -->
     <Button
         android:id="@+id/settingsButton"
         style="@style/ProfileMenuItemStyle"

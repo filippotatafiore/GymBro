@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-
+<!-- "Settings" page of the sliding menu of the profile: modify account (username, email,
+     password: res/layout/modify_account_menu.xml) and delete account -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/settings"
     android:layout_width="match_parent"
@@ -27,15 +28,16 @@
     <!-- Menu items -->
 
     <Button
-        android:id="@+id/settings_option_1"
+        android:id="@+id/modifyAccountButton"
         style="@style/ProfileMenuItemStyle"
-        android:text="App Theme"/>
+        android:text="@string/modify_account"/>
 
+    <!-- asks for confirmation (with the password) -->
     <Button
-        android:id="@+id/settings_option_2"
+        android:id="@+id/deleteAccountButton"
         style="@style/ProfileMenuItemStyle"
-        android:text="Option 2"/>
-
+        android:textColor="@color/errorRed"
+        android:text="@string/delete_acc"/>
 
 
     <!-- spacer to place last item at the bottom -->

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window with a question and two answers (see showChoiceModal in Ui.kt), e.g. keep the
+     changes of an exercise only for this session, or save them also in the workout plan -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/ModalCardStyle">
+
+    <TextView
+        android:id="@+id/choiceTitle"
+        style="@style/ModalTitleStyle"
+        tools:text="Save also in the plan?"/>
+
+    <TextView
+        android:id="@+id/choiceMessage"
+        style="@style/ModalMessageStyle"
+        tools:text="Keep these changes only for this session, or save them also in your plan?"/>
+
+    <Button
+        android:id="@+id/choiceFirstButton"
+        style="@style/PrimaryButtonStyle"
+        android:layout_marginTop="24dp"
+        tools:text="Also in the plan"/>
+
+    <Button
+        android:id="@+id/choiceSecondButton"
+        style="@style/SecondaryButtonStyle"
+        android:layout_marginTop="12dp"
+        tools:text="Only this session"/>
+
+</LinearLayout>

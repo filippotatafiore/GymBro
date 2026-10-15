@@ -19,10 +19,11 @@ fun Post.icon(): Int = when (kind) {
     PostKind.MANUAL -> if (metric == Metric.TIME) R.drawable.timer_icon else R.drawable.dumbbell_icon
 }
 
-// e.g. "Run · 5 km", "Gym session", "Deadlift"
+// e.g. "Run · 5 km", "Gym session", "Gym · Day 1 · Push", "Deadlift"
 fun Post.displayTitle(context: Context): String = when (kind) {
     PostKind.RUN -> context.getString(R.string.run_post_title, formatDistance(distanceKm ?: 0.0))
-    PostKind.GYM -> context.getString(R.string.gym_post_title)
+    // e.g. "Gym · Day 1 · Push" (written by the app when publishing)
+    PostKind.GYM -> title.ifBlank { context.getString(R.string.gym_post_title) }
     PostKind.MANUAL -> title
 }
 

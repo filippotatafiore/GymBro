@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window to confirm the deletion of the account, with the password
+     (ProfileActivity.confirmDeleteAccount) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/ModalCardStyle">
+
+    <TextView
+        style="@style/ModalTitleStyle"
+        android:text="@string/delete_account_title"/>
+
+    <TextView
+        style="@style/ModalMessageStyle"
+        android:text="@string/delete_account_message"/>
+
+    <EditText
+        android:id="@+id/deletePasswordInput"
+        style="@style/InputStyle"
+        android:layout_marginTop="20dp"
+        android:hint="@string/password"
+        android:inputType="textPassword"
+        android:importantForAutofill="no"/>
+
+    <TextView
+        android:id="@+id/deleteAccountError"
+        style="@style/ErrorTextStyle"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/cancelButton"
+            style="@style/SecondaryButtonStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="12dp"
+            android:text="@string/cancel"/>
+
+        <Button
+            android:id="@+id/confirmDeleteAccountButton"
+            style="@style/DangerButtonStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="@string/delete"/>
+
+    </LinearLayout>
+
+</LinearLayout>

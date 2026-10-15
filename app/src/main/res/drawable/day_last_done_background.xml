@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- The day of the plan done in the last gym session (window to choose the day): grey card with a
+     blue border -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <solid android:color="@color/lighterGrey"/>
+    <corners android:radius="16dp"/>
+    <stroke
+        android:width="2dp"
+        android:color="@color/lighterBlue"/>
+
+</shape>

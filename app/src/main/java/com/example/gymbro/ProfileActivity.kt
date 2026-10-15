@@ -3,6 +3,7 @@ package com.example.gymbro
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.util.Patterns
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
@@ -20,6 +21,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.edit
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
@@ -51,6 +53,7 @@ import com.example.gymbro.profile.displayValue
 import com.example.gymbro.profile.icon
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.RunTrackingService
+import com.example.gymbro.session.TrainingSessions
 import com.example.gymbro.session.publishSession
 import com.example.gymbro.session.toRunSummary
 import kotlinx.coroutines.launch
@@ -128,13 +131,27 @@ class ProfileActivity : ComponentActivity() {
             menuContainer.removeAllViews()
             layoutInflater.inflate(layoutId, menuContainer, true)
 
-            // Handle the modify account button (if present in the current layout)
-            menuContainer.findViewById<Button>(R.id.modifyAccountButton)?.setOnClickListener {
-                loadProfileMenu(R.layout.account_menu) // Open the body data of the user
+            // Personal information: body data of the user (height, weight, year of birth, sex)
+            menuContainer.findViewById<Button>(R.id.personalInfoButton)?.setOnClickListener {
+                loadProfileMenu(R.layout.personal_info_menu)
+            }
+            if (layoutId == R.layout.personal_info_menu) showPersonalInfoForm()
+
+            // Customize account: not available yet
+            menuContainer.findViewById<Button>(R.id.customizeAccountButton)?.setOnClickListener {
+                Toast.makeText(this, R.string.coming_soon, Toast.LENGTH_SHORT).show()
             }
 
-            // Fill the form with the body data (if the current layout is the account menu)
-            if (layoutId == R.layout.account_menu) showAccountForm()
+            // Settings > Modify account: username, email, password
+            menuContainer.findViewById<Button>(R.id.modifyAccountButton)?.setOnClickListener {
+                loadProfileMenu(R.layout.modify_account_menu)
+            }
+            if (layoutId == R.layout.modify_account_menu) showModifyAccountForm()
+
+            // Settings > Delete account (after a confirmation)
+            menuContainer.findViewById<Button>(R.id.deleteAccountButton)?.setOnClickListener {
+                confirmDeleteAccount()
+            }
 
 
             // Handle the settings button (if present in the current layout)
@@ -281,8 +298,15 @@ class ProfileActivity : ComponentActivity() {
 
     // Workout plans of the user, the last changed first
     private suspend fun showPlans(token: String) {
-        val plans = ApiClient.getPlans(token)
-        planAdapter.submitList(plans)
+        // the active plan first, with "ACTIVE"
+        val activePlanId = UserSession.user?.activePlanId
+        val plans = ApiClient.getPlans(token).sortedByDescending { it.id == activePlanId }
+        val activeChanged = planAdapter.activePlanId != activePlanId
+        planAdapter.activePlanId = activePlanId
+        planAdapter.submitList(plans) {
+            @Suppress("NotifyDataSetChanged")  // the badge of every card may change
+            if (activeChanged) planAdapter.notifyDataSetChanged()
+        }
         emptyPlansText.isVisible = plans.isEmpty()
     }
 
@@ -304,6 +328,7 @@ class ProfileActivity : ComponentActivity() {
         RunTrackingService.stop(this)
         val token = UserSession.token
         UserSession.clear()
+        TrainingSessions.clear()
 
         // Invalidate the token on the server too (if the server is not reachable there is nothing to do).
         // applicationScope: this page is closed right away.
@@ -335,12 +360,12 @@ class ProfileActivity : ComponentActivity() {
     }
 
 
-    // --------------------------------------------------------- MODIFY ACCOUNT
+    // --------------------------------------------------------- PERSONAL INFORMATION
 
-    // "Modify account" page of the menu: body data of the user (height, weight, year of birth,
-    // sex), saved on the server. The weight is used for the calories of the runs.
-    // An empty field = not set.
-    private fun showAccountForm() {
+    // "Personal information" page of the menu: body data of the user (height, weight, year of birth,
+    // sex), saved on the server. The weight is used for the calories of the runs, all of them by the
+    // AI coach for the workout plans. An empty field = not set.
+    private fun showPersonalInfoForm() {
         val user = UserSession.user ?: return
         val heightInput = menuContainer.findViewById<EditText>(R.id.profileHeightInput)
         val weightInput = menuContainer.findViewById<EditText>(R.id.profileWeightInput)
@@ -414,6 +439,114 @@ class ProfileActivity : ComponentActivity() {
     }
 
 
+    // --------------------------------------------------------- MODIFY ACCOUNT, DELETE ACCOUNT
+
+    // "Modify account" page of the settings: username, email and password. The current password is
+    // always needed; after a new password, the other phones must log in again.
+    private fun showModifyAccountForm() {
+        val user = UserSession.user ?: return
+        val usernameInput = menuContainer.findViewById<EditText>(R.id.accountUsernameInput)
+        val emailInput = menuContainer.findViewById<EditText>(R.id.accountEmailInput)
+        val newPasswordInput = menuContainer.findViewById<EditText>(R.id.accountNewPasswordInput)
+        val confirmPasswordInput = menuContainer.findViewById<EditText>(R.id.accountConfirmPasswordInput)
+        val currentPasswordInput = menuContainer.findViewById<EditText>(R.id.accountCurrentPasswordInput)
+        val error = menuContainer.findViewById<TextView>(R.id.accountError)
+        val save = menuContainer.findViewById<Button>(R.id.saveAccountButton)
+        usernameInput.setText(user.username)
+        emailInput.setText(user.email)
+
+        save.setOnClickListener {
+            val username = usernameInput.text.toString().trim()
+            val email = emailInput.text.toString().trim()
+            val newPassword = newPasswordInput.text.toString()
+            val currentPassword = currentPasswordInput.text.toString()
+            val problem = when {
+                username.isEmpty() || email.isEmpty() -> R.string.error_fill_all
+                !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> R.string.error_invalid_email
+                newPassword.isNotEmpty() && newPassword.length < 6 -> R.string.error_short_password
+                newPassword != confirmPasswordInput.text.toString() -> R.string.error_passwords_differ
+                currentPassword.isEmpty() -> R.string.error_current_password
+                else -> null
+            }
+            if (problem != null) return@setOnClickListener error.showError(getString(problem))
+            val token = UserSession.token ?: return@setOnClickListener
+            error.isVisible = false
+            getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(save.windowToken, 0)
+
+            lifecycleScope.launch {
+                save.isEnabled = false
+                try {
+                    val updated = ApiClient.updateAccount(
+                        token, currentPassword,
+                        username.takeIf { it != user.username },
+                        email.takeIf { it != user.email },
+                        newPassword.ifEmpty { null }
+                    )
+                    UserSession.updateUser(updated)
+                    showUser(updated)
+                    Toast.makeText(this@ProfileActivity, R.string.account_updated, Toast.LENGTH_SHORT).show()
+                    drawerLayout.closeDrawer(GravityCompat.END)
+                } catch (e: ApiException) {
+                    error.showError(e.userMessage(this@ProfileActivity))
+                } finally {
+                    save.isEnabled = true
+                }
+            }
+        }
+    }
+
+    // Window asking to confirm with the password; then the account and all its data are deleted
+    // from the server (profile, results, sessions, workout plans, picture) and from this phone.
+    // The user must register again to use the app.
+    private fun confirmDeleteAccount() {
+        val dialog = createModal(this, R.layout.dialog_delete_account, this)
+        val password = dialog.findViewById<EditText>(R.id.deletePasswordInput)
+        val error = dialog.findViewById<TextView>(R.id.deleteAccountError)
+        val confirm = dialog.findViewById<Button>(R.id.confirmDeleteAccountButton)
+        dialog.findViewById<View>(R.id.cancelButton).setOnClickListener { dialog.dismiss() }
+
+        confirm.setOnClickListener {
+            if (password.text.isEmpty()) return@setOnClickListener error.showError(getString(R.string.error_current_password))
+            val token = UserSession.token ?: return@setOnClickListener
+            val userId = UserSession.userId ?: return@setOnClickListener
+            lifecycleScope.launch {
+                confirm.isEnabled = false
+                try {
+                    ApiClient.deleteAccount(token, password.text.toString())
+                    dialog.dismiss()
+                    deleteLocalData(userId)
+                    Toast.makeText(this@ProfileActivity, R.string.account_deleted, Toast.LENGTH_LONG).show()
+                    WelcomeActivity.open(this@ProfileActivity)
+                } catch (e: ApiException) {
+                    error.showError(e.userMessage(this@ProfileActivity))
+                } finally {
+                    confirm.isEnabled = true
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    // The data of the deleted account on this phone: session in progress, saved plan, chats with
+    // the coach, sessions waiting to be sent, login
+    private fun deleteLocalData(userId: Long) {
+        RunTrackingService.stop(this)
+        TrainingSessions.clear()
+        UserSession.clear()
+        // session in progress and saved plan of the user (ActiveSession, PlanCache): emptied right
+        // now (commit), otherwise a write in background would create the file again
+        for (name in listOf("active_session_$userId", "active_plan_$userId")) {
+            getSharedPreferences(name, MODE_PRIVATE).edit(commit = true) { clear() }
+            deleteSharedPreferences(name)
+        }
+        val database = gymBroApp.database
+        gymBroApp.applicationScope.launch {
+            database.chatMessageDao().deleteAllOfUser(userId)
+            database.pendingSessionDao().deleteAll(userId)
+        }
+    }
+
+
     // --------------------------------------------------------- PUBLISH
 
     // Modal window of the "Publish" button: a finished session or a result added manually
@@ -433,7 +566,6 @@ class ProfileActivity : ComponentActivity() {
     // List of the finished sessions not published yet: tap one to publish it.
     // The session in progress is not in the list: it can be published only once it is finished.
     private fun showSessionPicker() {
-        val userId = UserSession.userId ?: return
         val dialog = createModal(this, R.layout.dialog_publish_session, this)
         val list = dialog.findViewById<RecyclerView>(R.id.sessionPickerList)
         val noSessionsText = dialog.findViewById<TextView>(R.id.noSessionsText)
@@ -461,9 +593,14 @@ class ProfileActivity : ComponentActivity() {
         list.layoutManager = LinearLayoutManager(this)
         list.adapter = adapter
 
-        // The sessions are read from the local database in background
+        // The sessions of LAST SESSIONS not published yet, downloaded again from the server in background
         lifecycleScope.launch {
-            val sessions = gymBroApp.database.trainingSessionDao().getUnpublished(userId)
+            try {
+                TrainingSessions.refresh(this@ProfileActivity)
+            } catch (e: ApiException) {
+                noSessionsText.text = e.userMessage(this@ProfileActivity)
+            }
+            val sessions = TrainingSessions.sessions.value.filter { it.publishedPostId == null }
             adapter.submitList(sessions)
             noSessionsText.isVisible = sessions.isEmpty()
         }
@@ -649,7 +786,8 @@ class ProfileActivity : ComponentActivity() {
                 try {
                     ApiClient.deletePost(token, post.id)
                     // if the post was a session of LAST SESSIONS, that session can be published again
-                    gymBroApp.database.trainingSessionDao().clearPublished(post.id)
+                    // (the server knows it already)
+                    TrainingSessions.markUnpublished(post.id)
                     reloadPosts()
                 } catch (e: ApiException) {
                     Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()

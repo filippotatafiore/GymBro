@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- A single row of the exercise list of the gym session (and of the details of a published session) -->
+<!-- An exercise in the details of a finished gym session (or of a published one), as it was done:
+     a green check if it was completed (dimmed if not), sets × reps, weight, rest and notes -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     style="@style/ListRowStyle">
+
+    <!-- completed: check; not completed: invisible (the texts are dimmed) -->
+    <ImageView
+        android:id="@+id/exerciseDoneIcon"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginEnd="12dp"
+        android:src="@drawable/check_icon"
+        android:tint="@color/successGreen"
+        android:contentDescription="@string/exercise_done"/>
 
     <LinearLayout
         android:layout_width="0dp"
@@ -21,6 +32,12 @@
             style="@style/ExerciseMuscleGroupStyle"
             tools:text="CHEST"/>
 
+        <!-- rest and notes (hidden if there are none) -->
+        <TextView
+            android:id="@+id/exerciseDetails"
+            style="@style/RowSubtitleStyle"
+            tools:text="Rest 90 s"/>
+
     </LinearLayout>
 
     <LinearLayout
@@ -35,10 +52,12 @@
             style="@style/RowValueStyle"
             tools:text="4 × 8"/>
 
-        <!-- weight (hidden for bodyweight exercises) -->
+        <!-- weight (hidden if not set) -->
         <TextView
             android:id="@+id/exerciseWeight"
             style="@style/RowSubtitleStyle"
+            android:textStyle="bold"
+            android:textColor="@color/white"
             tools:text="60 kg"/>
 
     </LinearLayout>

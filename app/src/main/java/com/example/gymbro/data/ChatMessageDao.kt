@@ -24,4 +24,8 @@ interface ChatMessageDao {
     // New chat (or plan deleted): deletes the conversation
     @Query("DELETE FROM chat_messages WHERE userId = :userId AND planId IS :planId")
     suspend fun deleteAll(userId: Long, planId: Long?)
+
+    // Account deleted: all the conversations of the user
+    @Query("DELETE FROM chat_messages WHERE userId = :userId")
+    suspend fun deleteAllOfUser(userId: Long)
 }

@@ -22,8 +22,7 @@ import com.example.gymbro.R
 import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.displayTitle
 import com.example.gymbro.formatDuration
-import com.example.gymbro.gymBroApp
-import com.example.gymbro.network.UserSession
+import com.example.gymbro.session.TrainingSessions
 import com.example.gymbro.showSessionDetails
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -87,19 +86,15 @@ class CalendarDrawer(private val activity: MainActivity) {
         })
         activity.onBackPressedDispatcher.addCallback(activity, closeOnBack)
 
-        // The sessions of the logged user, read from the database in background: the dots are
-        // updated automatically when a session is saved or deleted
-        val userId = UserSession.userId
-        if (userId != null) {
-            val dao = activity.gymBroApp.database.trainingSessionDao()
-            activity.lifecycleScope.launch {
-                activity.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    dao.getAll(userId).collect { sessions ->
-                        sessionsByDay = sessions.groupBy {
-                            Instant.ofEpochMilli(it.startTime).atZone(ZoneId.systemDefault()).toLocalDate()
-                        }
-                        showMonth()
+        // The sessions of the logged user, downloaded from the server (see TrainingSessions): the
+        // dots are updated automatically when a session is saved or deleted
+        activity.lifecycleScope.launch {
+            activity.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                TrainingSessions.sessions.collect { sessions ->
+                    sessionsByDay = sessions.groupBy {
+                        Instant.ofEpochMilli(it.startTime).atZone(ZoneId.systemDefault()).toLocalDate()
                     }
+                    showMonth()
                 }
             }
         }

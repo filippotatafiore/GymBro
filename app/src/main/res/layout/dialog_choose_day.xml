@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window before a gym session: the days of the active workout plan (rows added by
+     GymSetup.chooseDay, res/layout/item_choose_day.xml). The day done last is highlighted.
+     ScrollView: plans with many days. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout style="@style/ModalCardStyle">
+
+        <TextView
+            style="@style/ModalTitleStyle"
+            android:text="@string/choose_day_title"/>
+
+        <TextView
+            android:id="@+id/chooseDayPlanName"
+            style="@style/ModalMessageStyle"
+            android:layout_marginTop="6dp"
+            android:textSize="15sp"
+            tools:text="Ipertrofia · 3 giorni"/>
+
+        <LinearLayout
+            android:id="@+id/chooseDayList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical"/>
+
+        <Button
+            android:id="@+id/cancelButton"
+            style="@style/SecondaryButtonStyle"
+            android:layout_marginTop="16dp"
+            android:text="@string/cancel"/>
+
+    </LinearLayout>
+
+</ScrollView>

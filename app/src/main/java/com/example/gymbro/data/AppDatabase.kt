@@ -8,10 +8,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 // Local database of the app (a SQLite file on the phone). The instance is in GymBroApp.database.
 // version: to be increased every time the structure of the tables changes.
-@Database(entities = [TrainingSession::class, ChatMessage::class], version = 5, exportSchema = false)
+@Database(entities = [PendingSession::class, ChatMessage::class], version = 6, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun trainingSessionDao(): TrainingSessionDao
+    abstract fun pendingSessionDao(): PendingSessionDao
     abstract fun chatMessageDao(): ChatMessageDao
 
     companion object {
@@ -42,6 +42,19 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE chat_messages ADD COLUMN planId INTEGER")
                 db.execSQL("ALTER TABLE chat_messages ADD COLUMN planUpdated INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // Version 5 -> 6: the finished sessions are saved on the server; this table keeps only
+        // those waiting to be sent (the saved ones are sent too). New columns: the id that avoids
+        // sending a session twice, and the workout plan followed.
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE training_sessions ADD COLUMN clientId TEXT")
+                db.execSQL("ALTER TABLE training_sessions ADD COLUMN planId INTEGER")
+                db.execSQL("ALTER TABLE training_sessions ADD COLUMN planName TEXT")
+                db.execSQL("ALTER TABLE training_sessions ADD COLUMN planDay INTEGER")
+                db.execSQL("ALTER TABLE training_sessions ADD COLUMN planDayName TEXT")
             }
         }
     }

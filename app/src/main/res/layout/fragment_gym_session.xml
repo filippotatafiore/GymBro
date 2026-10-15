@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Gym session in progress: list of the exercises of the session -->
+<!-- Gym session in progress (GymSessionFragment.kt): the plan and the day followed, how many
+     exercises are done, the list of the exercises (tap one to mark it done, the pencil to change
+     it) and "+ Add exercise" -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".session.GymSessionFragment"
@@ -10,14 +12,70 @@
 
     <include layout="@layout/session_top_strip"/>
 
-    <!-- exercise list (each row is res/layout/item_exercise.xml) -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/exerciseList"
+    <!-- e.g. "Hypertrophy · Day 1 · Push"          "2 / 6 done" -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/gymPlanText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="@color/textSecondary"
+            android:textSize="14sp"
+            tools:text="Hypertrophy · Day 1 · Push"/>
+
+        <TextView
+            android:id="@+id/gymProgressText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:textStyle="bold"
+            android:textColor="@color/successGreen"
+            android:textSize="14sp"
+            android:fontFeatureSettings="tnum"
+            tools:text="2 / 6 done"/>
+
+    </LinearLayout>
+
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingBottom="8dp"
-        android:clipToPadding="false"
-        tools:listitem="@layout/item_exercise"/>
+        android:layout_weight="1">
+
+        <!-- each row is res/layout/item_gym_exercise.xml -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/exerciseList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="8dp"
+            android:clipToPadding="false"
+            tools:listitem="@layout/item_gym_exercise"/>
+
+        <TextView
+            android:id="@+id/gymEmptyText"
+            style="@style/EmptyListTextStyle"
+            android:layout_gravity="top"
+            android:text="@string/gym_no_exercises"
+            android:visibility="gone"/>
+
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/addSessionExerciseButton"
+        style="@style/LinkButtonStyle"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="4dp"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:text="@string/add_exercise"/>
 
 </LinearLayout>

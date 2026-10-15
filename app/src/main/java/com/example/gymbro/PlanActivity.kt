@@ -26,8 +26,11 @@ import com.example.gymbro.network.ApiClient
 import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
+import com.example.gymbro.plan.ExerciseEditor
 import com.example.gymbro.plan.Plan
+import com.example.gymbro.plan.PlanCache
 import com.example.gymbro.plan.PlanForm
+import com.example.gymbro.session.exerciseDetails
 import kotlinx.coroutines.launch
 
 // Page of a gym workout plan (open it from WORKOUT PLANS of the profile). The plan is read from the
@@ -135,10 +138,10 @@ class PlanActivity : ComponentActivity() {
                 }
                 row.findViewById<TextView>(R.id.planExerciseSetsReps).text =
                     getString(R.string.plan_sets_reps, exercise.sets, exercise.reps)
-                // e.g. "Rest 90 s · keep the back straight"
+                // e.g. "60 kg · Rest 90 s · keep the back straight"
                 val details = listOfNotNull(
-                    exercise.restSeconds?.let { getString(R.string.plan_rest, PlanForm.formatRest(it)) },
-                    exercise.notes.takeIf { it.isNotBlank() }
+                    exercise.weightKg?.let { formatWeight(it) },
+                    exerciseDetails(this, exercise.restSeconds, exercise.notes).takeIf { it.isNotEmpty() }
                 ).joinToString(" · ")
                 row.findViewById<TextView>(R.id.planExerciseDetails).apply {
                     text = details
@@ -156,9 +159,16 @@ class PlanActivity : ComponentActivity() {
         if (plan.days.size < Plan.MAX_DAYS) addLink(R.string.add_day) { addDay() }
     }
 
-    // What the user asked (goal, level, days, minutes, preferences) and the advice of the coach
+    // The active plan (followed by the gym sessions) or the button to make it active; what the user
+    // asked (goal, level, days, minutes, preferences) and the advice of the coach
     private fun addInfo(plan: Plan) {
         val card = layoutInflater.inflate(R.layout.item_plan_info, content, false)
+        val isActive = UserSession.user?.activePlanId == plan.id
+        card.findViewById<View>(R.id.planActiveLabel).isVisible = isActive
+        card.findViewById<Button>(R.id.planActivateButton).apply {
+            isVisible = !isActive
+            setOnClickListener { setActive(plan) }
+        }
         val rows = card.findViewById<LinearLayout>(R.id.planInfoRows)
         plan.goal?.let { addDetailRow(rows, R.string.plan_goal_label, getString(it.label)) }
         plan.level?.let { addDetailRow(rows, R.string.plan_level_label, getString(it.label)) }
@@ -205,6 +215,22 @@ class PlanActivity : ComponentActivity() {
     }
 
 
+    // The gym sessions will follow this plan (the server remembers it for the account)
+    private fun setActive(plan: Plan) {
+        val token = UserSession.token ?: return
+        lifecycleScope.launch {
+            try {
+                UserSession.updateUser(ApiClient.setActivePlan(token, plan.id))
+                PlanCache.save(plan)
+                Toast.makeText(this@PlanActivity, R.string.plan_now_active, Toast.LENGTH_SHORT).show()
+                show(plan)
+            } catch (e: ApiException) {
+                showToast(e.userMessage(this@PlanActivity))
+            }
+        }
+    }
+
+
     // --------------------------------------------------------- EXERCISES
 
     // Window to change an exercise (or replace it with another one written by the user, or delete it).
@@ -212,53 +238,20 @@ class PlanActivity : ComponentActivity() {
     private fun showExerciseDialog(dayIndex: Int, exerciseIndex: Int?) {
         val plan = plan ?: return
         val exercise = exerciseIndex?.let { plan.days[dayIndex].exercises[it] }
-        val dialog = createModal(this, R.layout.dialog_plan_exercise, this)
-        val nameInput = dialog.findViewById<EditText>(R.id.planExerciseNameInput)
-        val muscleInput = dialog.findViewById<EditText>(R.id.planExerciseMuscleInput)
-        val setsInput = dialog.findViewById<EditText>(R.id.planExerciseSetsInput)
-        val repsInput = dialog.findViewById<EditText>(R.id.planExerciseRepsInput)
-        val restInput = dialog.findViewById<EditText>(R.id.planExerciseRestInput)
-        val notesInput = dialog.findViewById<EditText>(R.id.planExerciseNotesInput)
-        val error = dialog.findViewById<TextView>(R.id.planExerciseError)
-        val deleteButton = dialog.findViewById<Button>(R.id.deleteExerciseButton)
-
-        dialog.findViewById<TextView>(R.id.exerciseDialogTitle)
-            .setText(if (exercise == null) R.string.new_exercise else R.string.edit_exercise)
-        dialog.findViewById<View>(R.id.exerciseDialogHint).isVisible = exercise != null
-        deleteButton.isVisible = exercise != null
-        if (exercise != null) {
-            nameInput.setText(exercise.name)
-            muscleInput.setText(exercise.muscleGroup)
-            setsInput.setText(exercise.sets.toString())
-            repsInput.setText(exercise.reps)
-            exercise.restSeconds?.let { restInput.setText(it.toString()) }
-            notesInput.setText(exercise.notes)
-        } else {
-            setsInput.setText("3")
-        }
-
-        deleteButton.setOnClickListener {
-            if (exerciseIndex != null) {
-                save(plan.removeExercise(dayIndex, exerciseIndex), onError = { error.showError(it) }) { dialog.dismiss() }
+        ExerciseEditor.open(
+            this, this, exercise,
+            title = if (exercise == null) R.string.new_exercise else R.string.edit_exercise,
+            hint = if (exercise == null) null else R.string.edit_exercise_hint,
+            onDelete = if (exerciseIndex == null) null else { editor ->
+                save(plan.removeExercise(dayIndex, exerciseIndex), onError = editor::showError) { editor.close() }
+            },
+            onSave = { changes, editor ->
+                val changed =
+                    if (exerciseIndex == null) plan.addExercise(dayIndex, changes)
+                    else plan.replaceExercise(dayIndex, exerciseIndex, changes)
+                save(changed, onError = editor::showError) { editor.close() }
             }
-        }
-        dialog.findViewById<Button>(R.id.saveExerciseButton).setOnClickListener {
-            val check = PlanForm.exercise(
-                nameInput.text.toString(), muscleInput.text.toString(), setsInput.text.toString(),
-                repsInput.text.toString(), restInput.text.toString(), notesInput.text.toString()
-            )
-            when (check) {
-                is PlanForm.Check.Invalid -> error.showError(getString(check.message))
-                is PlanForm.Check.Valid -> {
-                    hideKeyboard(dialog)
-                    val changed =
-                        if (exerciseIndex == null) plan.addExercise(dayIndex, check.value)
-                        else plan.replaceExercise(dayIndex, exerciseIndex, check.value)
-                    save(changed, onError = { error.showError(it) }) { dialog.dismiss() }
-                }
-            }
-        }
-        dialog.show()
+        )
     }
 
 
@@ -337,6 +330,10 @@ class PlanActivity : ComponentActivity() {
                 try {
                     ApiClient.deletePlan(token, planId)
                     CoachChat.clear(this@PlanActivity, CoachChat.Conversation(userId, planId))
+                    // it was the active plan: the server has no active plan now
+                    UserSession.user?.takeIf { it.activePlanId == planId }?.let {
+                        UserSession.updateUser(it.copy(activePlanId = null))
+                    }
                     finish()
                 } catch (e: ApiException) {
                     showToast(e.userMessage(this@PlanActivity))

@@ -71,9 +71,10 @@ app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # biggest accepted request (
 #
 # Firestore stores "documents" (similar to the rows of a SQL table) in "collections":
 #
-#   users/{id}       a user: id, username, email, password_hash, has_picture, created_at and the
+#   users/{id}       a user: id, username, email, password_hash, has_picture, created_at, the
 #                    body data (null = not set): height_cm, weight_kg, birth_year,
-#                    sex ('male', 'female' or 'other')
+#                    sex ('male', 'female' or 'other'), and active_plan_id: the workout plan
+#                    followed in the gym sessions (null = none)
 #   usernames/{key}  {user_id}: one for each username (key = hash of the username in lowercase).
 #   emails/{key}     {user_id}: the same for the emails. They keep usernames and emails unique,
 #                    also ignoring upper/lower case, and let the login find the user of an email.
@@ -88,13 +89,22 @@ app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # biggest accepted request (
 #                      run:    a finished run session: duration_s, session_start, distance_km
 #                              (rounded to 0.1 km) and, if known, kcal, max_speed_kmh, goal_km,
 #                              route (list of lines, as Google encoded polylines)
+#                    session_id: the session of sessions/ that was published (if any)
+#   sessions/{id}    a finished training session of a user (LAST SESSIONS and calendar of the
+#                    app): id, user_id, type ('gym' or 'run'), client_id (chosen by the app: the
+#                    same session sent twice is saved once), start_ms, duration_ms (milliseconds),
+#                    published_post_id (null = not published), created_at and, depending on the type:
+#                      run: distance_km, kcal, max_speed_kmh, goal_km, route (as in posts)
+#                      gym: exercises (as done in the session: name, muscle_group, sets, reps,
+#                           weight_kg, rest_s, notes, done), plan_id, plan_name, plan_day (index of
+#                           the day of the plan), plan_day_name (null: session without a plan)
 #   pictures/{id}    {jpeg, updated_at}: the profile picture of the user with that id
 #   plans/{id}       a gym workout plan of a user, written by the AI coach and then changed by the
 #                    user or by the coach: id, user_id, name, notes (advice of the coach), days
 #                    (list of {name, exercises}; an exercise: name, muscle_group, sets, reps,
 #                    rest_s, notes), what the user asked when creating it (goal, level,
 #                    days_per_week, minutes_per_session, preferences), created_at, updated_at
-#   counters/{name}  {last}: last id given to the users / posts / plans. The ids are numbers 1, 2, 3...
+#   counters/{name}  {last}: last id given to the users / posts / plans / sessions. The ids are numbers 1, 2, 3...
 #                    (like AUTOINCREMENT in SQL), the same ids used by the app.
 
 class DatabaseNotSetUp(Exception):
@@ -233,6 +243,7 @@ def user_json(user, private=False):
         data["weight_kg"] = user.get("weight_kg")
         data["birth_year"] = user.get("birth_year")
         data["sex"] = user.get("sex")
+        data["active_plan_id"] = user.get("active_plan_id")
     return data
 
 
@@ -284,27 +295,31 @@ def optional_number(data, key, minimum, maximum):
 
 
 def clean_exercises(exercises):
-    """The exercises of a gym session, validated, or None if invalid."""
-    if not isinstance(exercises, list) or not 1 <= len(exercises) <= 50:
+    """The exercises of a gym session as they were done (sets, reps, weight, rest, notes, done),
+    validated, or None if invalid. reps: a text, e.g. "10", "8-12", "30 s" (numbers also accepted)."""
+    if not isinstance(exercises, list) or len(exercises) > 50:
         return None
     cleaned = []
     for exercise in exercises:
         if not isinstance(exercise, dict):
             return None
-        name = str(exercise.get("name", "")).strip()
+        name = clean_text(exercise.get("name"), 60)
         sets = number(exercise, "sets", 1, 100)
-        reps = number(exercise, "reps", 1, 1000)
-        weight = exercise.get("weight_kg")
-        if not 1 <= len(name) <= 60 or sets is None or reps is None:
-            return None
-        if weight is not None and number(exercise, "weight_kg", 0, 1000) is None:
+        reps = clean_text(exercise.get("reps"), 20)
+        ok_weight, weight = optional_number(exercise, "weight_kg", 0, 1000)
+        ok_rest, rest = optional_number(exercise, "rest_s", 0, 900)
+        if name is None or sets is None or reps is None or not ok_weight or not ok_rest:
             return None
         cleaned.append({
             "name": name,
-            "muscle_group": str(exercise.get("muscle_group", "")).strip()[:60],
+            "muscle_group": clean_text(exercise.get("muscle_group"), 60) or "",
             "sets": int(sets),
-            "reps": int(reps),
+            "reps": reps,
             "weight_kg": weight,
+            "rest_s": None if rest is None else int(rest),
+            "notes": clean_text(exercise.get("notes"), 200) or "",
+            # exercises of the sessions recorded before this information existed: done
+            "done": exercise.get("done") is not False,
         })
     return cleaned
 
@@ -500,7 +515,8 @@ def publish_post():
             return error(400, "The notes must be at most 200 characters")
 
     elif kind in ("gym", "run"):
-        post["title"] = "Gym session" if kind == "gym" else "Run"
+        # gym: e.g. "Gym · Day 1 · Push" (the day of the plan followed)
+        post["title"] = (clean_text(data.get("title"), 60) or "Gym session") if kind == "gym" else "Run"
         post["duration_s"] = number(data, "duration_s", 1, 7 * 24 * 3600)
         post["session_start"] = session_start(data)
         if post["duration_s"] is None or post["session_start"] is None:
@@ -528,11 +544,36 @@ def publish_post():
     else:
         return error(400, "The kind of post must be 'manual', 'gym' or 'run'")
 
+    # the session of LAST SESSIONS that is published (optional): it is marked as published
+    session_ref = None
+    if kind in ("gym", "run") and data.get("session_id") is not None:
+        session_ref, session = own_document("sessions", data["session_id"])
+        if session is None:
+            return error(404, "Session not found")
+        if session.get("published_post_id") is not None:
+            return error(409, "The session is already published")
+        post["session_id"] = session["id"]
+
     post["user_id"] = g.user["id"]
     post["created_at"] = now_iso()
     # only the known values are stored (e.g. no kcal for the runs recorded before they existed)
     post = {key: value for key, value in post.items() if value is not None}
-    return jsonify(post_json(insert_numbered(database().transaction(), "posts", post))), 201
+    saved = insert_numbered(database().transaction(), "posts", post)
+    if session_ref is not None:
+        session_ref.update({"published_post_id": saved["id"]})
+    return jsonify(post_json(saved)), 201
+
+
+def own_document(collection, document_id):
+    """(reference, data) of a document of the logged user (post, session, plan), or (None, None)
+    if it does not exist or belongs to someone else."""
+    if isinstance(document_id, bool) or not isinstance(document_id, int):
+        return None, None
+    ref = database().collection(collection).document(str(document_id))
+    snapshot = ref.get()
+    if not snapshot.exists or snapshot.get("user_id") != g.user["id"]:
+        return None, None
+    return ref, snapshot.to_dict()
 
 
 def api_key(variable, file_path):
@@ -694,11 +735,210 @@ def walking_route():
 @app.delete("/api/me/posts/<int:post_id>")
 @login_required
 def delete_post(post_id):
-    ref = database().collection("posts").document(str(post_id))
-    post = ref.get()
-    if not post.exists or post.get("user_id") != g.user["id"]:
+    ref, post = own_document("posts", post_id)
+    if post is None:
         return error(404, "Post not found")
     ref.delete()
+    # the session of the post can be published again
+    if post.get("session_id") is not None:
+        session_ref, session = own_document("sessions", post["session_id"])
+        if session is not None and session.get("published_post_id") == post_id:
+            session_ref.update({"published_post_id": None})
+    return "", 204
+
+
+# ------------------------------------------------------------------ TRAINING SESSIONS (LAST SESSIONS and calendar)
+
+def session_json(session):
+    keys = ("id", "type", "client_id", "start_ms", "duration_ms", "distance_km", "kcal", "max_speed_kmh",
+            "goal_km", "route", "exercises", "plan_id", "plan_name", "plan_day", "plan_day_name",
+            "published_post_id", "created_at")
+    return {key: session.get(key) for key in keys}
+
+
+def clean_session(data):
+    """A finished training session sent by the app, validated: (session, None) or (None, problem)."""
+    kind = data.get("type")
+    if kind not in ("gym", "run"):
+        return None, "The type of session must be 'gym' or 'run'"
+    client_id = clean_text(data.get("client_id"), 64)
+    # not in the future (one day of margin for a wrong clock of the phone), at most one week long
+    start = number(data, "start_ms", 0, time.time() * 1000 + 24 * 3600 * 1000)
+    duration = number(data, "duration_ms", 0, 7 * 24 * 3600 * 1000)
+    if client_id is None or start is None or duration is None:
+        return None, "Invalid session"
+    session = {"type": kind, "client_id": client_id, "start_ms": int(start), "duration_ms": int(duration)}
+
+    if kind == "run":
+        for key, minimum, maximum in (("distance_km", 0, 1000), ("kcal", 0, 100_000), ("max_speed_kmh", 0, 200),
+                                      ("goal_km", 0.01, 1000)):
+            ok, session[key] = optional_number(data, key, minimum, maximum)
+            if not ok:
+                return None, f"Invalid {key}"
+        if data.get("route") is not None:
+            session["route"] = clean_route(data["route"])
+            if session["route"] is None:
+                return None, "Invalid route"
+    else:
+        session["exercises"] = clean_exercises(data.get("exercises") or [])
+        ok_plan, plan_id = optional_number(data, "plan_id", 1, 10 ** 12)
+        ok_day, plan_day = optional_number(data, "plan_day", 0, MAX_PLAN_DAYS - 1)
+        if session["exercises"] is None:
+            return None, "Invalid exercises"
+        if not ok_plan or not ok_day:
+            return None, "Invalid plan"
+        # the plan and the day followed (the plan can be changed or deleted later: name and day
+        # are kept as they were)
+        session["plan_id"] = None if plan_id is None else int(plan_id)
+        session["plan_name"] = clean_text(data.get("plan_name"), 60)
+        session["plan_day"] = None if plan_day is None else int(plan_day)
+        session["plan_day_name"] = clean_text(data.get("plan_day_name"), 40)
+    return session, None
+
+
+@app.get("/api/me/sessions")
+@login_required
+def my_sessions():
+    """The finished sessions of the logged user, newest first (sorted here: no composite index needed)."""
+    query = database().collection("sessions").where(filter=firestore.FieldFilter("user_id", "==", g.user["id"]))
+    sessions = sorted((snapshot.to_dict() for snapshot in query.stream()),
+                      key=lambda session: (session["start_ms"], session["id"]), reverse=True)
+    return jsonify([session_json(session) for session in sessions])
+
+
+@app.post("/api/me/sessions")
+@login_required
+def save_session():
+    """A finished session, sent by the app when the session stops (or later, if the server was not
+    reachable). The same client_id sent again (e.g. the answer was lost) does not save it twice.
+    published_post_id (optional): the post of a session published before it was saved online."""
+    data = request.get_json(silent=True) or {}
+    session, problem = clean_session(data)
+    if session is None:
+        return error(400, problem)
+
+    sessions = database().collection("sessions")
+    existing = (sessions.where(filter=firestore.FieldFilter("user_id", "==", g.user["id"]))
+                .where(filter=firestore.FieldFilter("client_id", "==", session["client_id"])).limit(1).get())
+    if existing:
+        return jsonify(session_json(existing[0].to_dict()))
+
+    post_ref, post = own_document("posts", data.get("published_post_id"))
+    session["published_post_id"] = post["id"] if post is not None else None
+    session["user_id"] = g.user["id"]
+    session["created_at"] = now_iso()
+    saved = insert_numbered(database().transaction(), "sessions", session)
+    if post_ref is not None:
+        post_ref.update({"session_id": saved["id"]})
+    return jsonify(session_json(saved)), 201
+
+
+@app.delete("/api/me/sessions/<int:session_id>")
+@login_required
+def delete_session(session_id):
+    """The session is removed from LAST SESSIONS; if it was published, the post stays on the profile."""
+    ref, session = own_document("sessions", session_id)
+    if session is None:
+        return error(404, "Session not found")
+    ref.delete()
+    return "", 204
+
+
+# ------------------------------------------------------------------ ACCOUNT
+
+@firestore.transactional
+def change_login(transaction, user, changes):
+    """Changes username and/or email ({"username": ..., "email": ...}) keeping them unique.
+    Returns the changes, or None if a new value is already registered by another user."""
+    db = database()
+    keys = {"username": "usernames", "email": "emails"}
+    new_refs = {}
+    # in a transaction all the reads come before the writes
+    for field, value in changes.items():
+        new_ref = db.collection(keys[field]).document(lookup_key(value))
+        snapshot = new_ref.get(transaction=transaction)
+        if snapshot.exists and snapshot.get("user_id") != user["id"]:
+            return None
+        new_refs[field] = new_ref
+    for field, new_ref in new_refs.items():
+        old_ref = db.collection(keys[field]).document(lookup_key(user[field]))
+        if old_ref.id != new_ref.id:  # the same key if only upper/lower case changes
+            transaction.delete(old_ref)
+        transaction.set(new_ref, {"user_id": user["id"]})
+    if changes:
+        transaction.update(db.collection("users").document(str(user["id"])), changes)
+    return changes
+
+
+@app.put("/api/me/account")
+@login_required
+def update_account():
+    """Username, email and password of the logged user: {"current_password": "...", "username": "...",
+    "email": "...", "new_password": "..."} (username, email and new_password optional: missing or
+    empty = unchanged). The current password is always needed. After a new password, the other
+    devices are logged out."""
+    data = request.get_json(silent=True) or {}
+    if not check_password_hash(g.user["password_hash"], str(data.get("current_password", ""))):
+        return error(403, "Wrong current password")
+    username = str(data.get("username") or "").strip() or None
+    email = str(data.get("email") or "").strip() or None
+    new_password = str(data.get("new_password") or "") or None
+    if username is not None and not USERNAME_PATTERN.match(username):
+        return error(400, "The username must be 3-30 characters: letters, numbers, '_' or '.'")
+    if email is not None and not EMAIL_PATTERN.match(email):
+        return error(400, "Invalid email address")
+    if new_password is not None and len(new_password) < 6:
+        return error(400, "The new password must be at least 6 characters")
+
+    wanted = {field: value for field, value in (("username", username), ("email", email))
+              if value is not None and value != g.user[field]}
+    changes = change_login(database().transaction(), g.user, wanted)
+    if changes is None:
+        return error(409, "Username or email already registered")
+
+    if new_password is not None:
+        db = database()
+        db.collection("users").document(str(g.user["id"])).update(
+            {"password_hash": generate_password_hash(new_password, method="pbkdf2:sha256")})
+        # the other devices must log in again with the new password
+        batch = db.batch()
+        tokens = db.collection("tokens").where(filter=firestore.FieldFilter("user_id", "==", g.user["id"])).stream()
+        for token in tokens:
+            if token.id != g.token_hash:
+                batch.delete(token.reference)
+        batch.commit()
+    return jsonify(user_json({**g.user, **changes}, private=True))
+
+
+@app.post("/api/me/delete-account")
+@login_required
+def delete_account():
+    """Deletes the account of the logged user and all their data: profile, logins, posts, sessions,
+    workout plans and profile picture. {"password": "..."} to confirm."""
+    data = request.get_json(silent=True) or {}
+    if not check_password_hash(g.user["password_hash"], str(data.get("password", ""))):
+        return error(403, "Wrong password")
+
+    db = database()
+    user_id = g.user["id"]
+
+    def documents_of(collection):
+        query = db.collection(collection).where(filter=firestore.FieldFilter("user_id", "==", user_id))
+        return [snapshot.reference for snapshot in query.stream()]
+
+    # the account itself and the logins at the end: if something fails before, the user can try again
+    refs = documents_of("posts") + documents_of("sessions") + documents_of("plans") + [
+        db.collection("pictures").document(str(user_id)),
+        db.collection("usernames").document(lookup_key(g.user["username"])),
+        db.collection("emails").document(lookup_key(g.user["email"])),
+        db.collection("users").document(str(user_id)),
+    ] + documents_of("tokens")
+    # a batch writes at most 500 documents
+    for start in range(0, len(refs), 400):
+        batch = db.batch()
+        for ref in refs[start:start + 400]:
+            batch.delete(ref)
+        batch.commit()
     return "", 204
 
 
@@ -960,9 +1200,10 @@ PLAN_EXERCISE_SCHEMA = {
         "sets": {"type": "integer"},
         "reps": {"type": "string"},
         "rest_s": {"type": "integer"},
+        "weight_kg": {"type": ["number", "null"]},
         "notes": {"type": "string"},
     },
-    "required": ["name", "muscle_group", "sets", "reps", "rest_s", "notes"],
+    "required": ["name", "muscle_group", "sets", "reps", "rest_s", "weight_kg", "notes"],
     "additionalProperties": False,
 }
 PLAN_SCHEMA = {
@@ -1000,7 +1241,7 @@ PLAN_CHAT_SCHEMA = {
 PLAN_RULES = """Rules for the plan:
 - One day for each training day of the week, with a short name that says what it trains (e.g. "Day 1 · Push", "Day A · Full body").
 - For each day, the exercises in the order to do them (compound exercises first), so many that the session fits in the minutes available, rest included (usually 4-8).
-- For each exercise: its name, the main muscle group, the sets, the reps (a number, a range like "8-10", or a time like "30 s" or "20 min" for planks and cardio), the rest between the sets in seconds, and short notes only if useful (e.g. a technique tip, "per leg"); otherwise empty notes.
+- For each exercise: its name, the main muscle group, the sets, the reps (a number, a range like "8-10", or a time like "30 s" or "20 min" for planks and cardio), the rest between the sets in seconds, the weight in kg ("weight_kg") only if the user told you the weight they use (otherwise null), and short notes only if useful (e.g. a technique tip, "per leg"); otherwise empty notes.
 - Exercises, sets, reps and rest must fit the goal and the level of the user. Respect all their preferences and limits (exercises to avoid, available equipment, injuries): if an exercise is not possible, choose an alternative.
 - "notes" of the plan: 2-4 short sentences of advice: warm-up, how to increase the weights, how to adapt the plan. If the body data need care (e.g. a high BMI, an older age), say it kindly here.
 - Write names and notes in {language}. For the exercises, use the names commonly used in gyms (the English names are fine when they are the usual ones, e.g. Bench Press, Lat Machine).
@@ -1067,17 +1308,18 @@ def clean_text(value, max_length):
     return value.strip()[:max_length].strip()
 
 
-def plan_number(value, minimum, maximum):
-    """A whole number of a plan (also written as a text, e.g. "90"), brought between minimum and
-    maximum; None if it is not a number."""
+def plan_number(value, minimum, maximum, whole=True):
+    """A number of a plan (also written as a text, e.g. "90" or "22,5"), brought between minimum and
+    maximum: whole, or with one decimal (whole=False); None if it is not a number."""
     if isinstance(value, str):
         try:
-            value = float(value.strip())
+            value = float(value.strip().replace(",", "."))
         except ValueError:
             return None
     if isinstance(value, bool) or not isinstance(value, (int, float)) or value != value:
         return None
-    return int(min(max(round(value), minimum), maximum))
+    value = min(max(value, minimum), maximum)
+    return int(round(value)) if whole else round(value, 1)
 
 
 def clean_plan(data):
@@ -1107,6 +1349,7 @@ def clean_plan(data):
             if exercise_name is None or sets is None or reps is None:
                 return None
             rest = exercise.get("rest_s")
+            weight = exercise.get("weight_kg")
             cleaned_exercises.append({
                 "name": exercise_name,
                 "muscle_group": clean_text(exercise.get("muscle_group"), 30) or "",
@@ -1114,6 +1357,8 @@ def clean_plan(data):
                 "reps": reps,
                 # null: rest not set (e.g. left empty by the user)
                 "rest_s": None if rest is None or rest == "" else plan_number(rest, 0, 900),
+                # null: no weight (e.g. bodyweight exercises, or not known)
+                "weight_kg": None if weight is None or weight == "" else plan_number(weight, 0, 1000, whole=False),
                 "notes": clean_text(exercise.get("notes"), 200) or "",
             })
         cleaned_days.append({"name": day_name, "exercises": cleaned_exercises})
@@ -1171,13 +1416,7 @@ def plans_of(user_id):
 
 def own_plan(plan_id):
     """(reference, plan) of a plan of the logged user, or (None, None) if it is not one of theirs."""
-    if isinstance(plan_id, bool) or not isinstance(plan_id, int):
-        return None, None
-    ref = database().collection("plans").document(str(plan_id))
-    snapshot = ref.get()
-    if not snapshot.exists or snapshot.get("user_id") != g.user["id"]:
-        return None, None
-    return ref, snapshot.to_dict()
+    return own_document("plans", plan_id)
 
 
 @app.get("/api/me/plans")
@@ -1265,7 +1504,20 @@ def delete_plan(plan_id):
     if plan is None:
         return error(404, "Plan not found")
     ref.delete()
+    if g.user.get("active_plan_id") == plan_id:
+        database().collection("users").document(str(g.user["id"])).update({"active_plan_id": None})
     return "", 204
+
+
+@app.put("/api/me/active-plan")
+@login_required
+def set_active_plan():
+    """The plan followed in the gym sessions: {"plan_id": 3} (null: no active plan). Returns the user."""
+    plan_id = (request.get_json(silent=True) or {}).get("plan_id")
+    if plan_id is not None and own_plan(plan_id)[1] is None:
+        return error(404, "Plan not found")
+    database().collection("users").document(str(g.user["id"])).update({"active_plan_id": plan_id})
+    return jsonify(user_json({**g.user, "active_plan_id": plan_id}, private=True))
 
 
 def plan_chat(plan_id, messages):

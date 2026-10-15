@@ -22,14 +22,16 @@ enum class PlanLevel(val json: String, @StringRes val label: Int) {
 }
 
 // An exercise of a workout plan. reps: a text, e.g. "10", "8-12", "30 s" (planks, cardio);
-// restSeconds: rest between the sets (null = not set)
+// restSeconds: rest between the sets (null = not set); weightKg: the load used (null = not set,
+// e.g. bodyweight exercises)
 data class PlanExercise(
     val name: String,
     val muscleGroup: String,
     val sets: Int,
     val reps: String,
     val restSeconds: Int?,
-    val notes: String
+    val notes: String,
+    val weightKg: Double? = null
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("name", name)
@@ -37,6 +39,7 @@ data class PlanExercise(
         .put("sets", sets)
         .put("reps", reps)
         .put("rest_s", restSeconds ?: JSONObject.NULL)
+        .put("weight_kg", weightKg ?: JSONObject.NULL)
         .put("notes", notes)
 
     companion object {
@@ -46,7 +49,8 @@ data class PlanExercise(
             sets = json.getInt("sets"),
             reps = json.getString("reps"),
             restSeconds = if (json.isNull("rest_s")) null else json.getInt("rest_s"),
-            notes = json.optString("notes")
+            notes = json.optString("notes"),
+            weightKg = if (json.isNull("weight_kg")) null else json.getDouble("weight_kg")
         )
     }
 }
@@ -88,6 +92,17 @@ data class Plan(
         .put("name", name)
         .put("notes", notes)
         .put("days", JSONArray(days.map { it.toJson() }))
+
+    // The whole plan, as the server sends it (saved on the phone by PlanCache)
+    fun toStoredJson(): JSONObject = toJson()
+        .put("id", id)
+        .put("goal", goal?.json ?: JSONObject.NULL)
+        .put("level", level?.json ?: JSONObject.NULL)
+        .put("days_per_week", daysPerWeek ?: JSONObject.NULL)
+        .put("minutes_per_session", minutesPerSession ?: JSONObject.NULL)
+        .put("preferences", preferences)
+        .put("created_at", createdAt.toString())
+        .put("updated_at", updatedAt.toString())
 
 
     // --------------------------------------------------------- CHANGES (they return the changed plan)

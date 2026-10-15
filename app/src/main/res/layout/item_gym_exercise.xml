@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- An exercise of the gym session in progress: the circle on the left marks it as done (tap the
+     row or the circle), the pencil on the right changes it (GymExerciseAdapter) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/ListRowStyle"
+    android:paddingStart="12dp"
+    android:paddingEnd="10dp"
+    android:foreground="@drawable/row_ripple">
+
+    <ImageButton
+        android:id="@+id/exerciseDoneButton"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:padding="7dp"
+        android:scaleType="fitCenter"
+        android:background="@drawable/exercise_done_background"
+        android:contentDescription="@string/mark_done"
+        android:src="@drawable/white_check_icon"/>
+
+    <!-- dimmed when done -->
+    <LinearLayout
+        android:id="@+id/exerciseTexts"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/exerciseName"
+                style="@style/RowTitleStyle"
+                android:textSize="17sp"
+                tools:text="Bench Press"/>
+
+            <TextView
+                android:id="@+id/exerciseMuscleGroup"
+                style="@style/ExerciseMuscleGroupStyle"
+                tools:text="CHEST"/>
+
+            <!-- rest and notes (hidden if there are none) -->
+            <TextView
+                android:id="@+id/exerciseDetails"
+                style="@style/RowSubtitleStyle"
+                tools:text="Rest 90 s · keep the back straight"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:orientation="vertical"
+            android:gravity="end">
+
+            <!-- sets × reps -->
+            <TextView
+                android:id="@+id/exerciseSetsReps"
+                style="@style/RowValueStyle"
+                android:layout_marginStart="0dp"
+                android:textSize="18sp"
+                tools:text="4 × 8-10"/>
+
+            <!-- weight (hidden if not set) -->
+            <TextView
+                android:id="@+id/exerciseWeight"
+                style="@style/RowSubtitleStyle"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                tools:text="60 kg"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/exerciseEditButton"
+        style="@style/SmallRoundIconButtonStyle"
+        android:layout_marginStart="10dp"
+        android:padding="10dp"
+        android:contentDescription="@string/edit_exercise"
+        android:src="@drawable/new_chat_icon"/>
+
+</LinearLayout>

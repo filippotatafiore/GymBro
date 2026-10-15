@@ -18,12 +18,12 @@ import com.example.gymbro.createModal
 import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.gymBroApp
 import com.example.gymbro.network.ApiException
-import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
-import com.example.gymbro.session.SessionType
+import com.example.gymbro.session.TrainingSessions
 import com.example.gymbro.session.publishSession
 import com.example.gymbro.showConfirmModal
 import com.example.gymbro.showSessionDetails
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 // Home shown when no session is in progress: start training button + last sessions of the logged user
@@ -44,8 +44,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
         // --------------------------------------------------------- LAST SESSIONS
 
-        val userId = UserSession.userId ?: return
-
         val adapter = SessionHistoryAdapter(
             onPublish = { session -> publish(session) },
             onDelete = { session -> confirmDelete(session) },
@@ -56,15 +54,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         sessionList.adapter = adapter
         val emptyText = view.findViewById<TextView>(R.id.emptySessionsText)
 
-        // The sessions of this user are read from the database in background, and the list is
-        // updated automatically every time a session is saved, published or deleted
-        val dao = requireContext().gymBroApp.database.trainingSessionDao()
+        // The sessions of this user, downloaded from the server (by MainActivity, every time the
+        // page is shown): the list is updated every time a session is saved, published or deleted
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                dao.getAll(userId).collect { sessions ->
-                    adapter.submitList(sessions)
-                    emptyText.isVisible = sessions.isEmpty()
-                }
+                combine(TrainingSessions.sessions, TrainingSessions.refreshFailed) { sessions, failed -> sessions to failed }
+                    .collect { (sessions, failed) ->
+                        adapter.submitList(sessions)
+                        emptyText.isVisible = sessions.isEmpty()
+                        emptyText.setText(if (failed) R.string.error_server_unreachable else R.string.no_sessions_yet)
+                    }
             }
         }
     }
@@ -76,7 +75,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
         dialog.findViewById<View>(R.id.gymOption).setOnClickListener {
             dialog.dismiss()
-            (requireActivity() as MainActivity).startSession(SessionType.GYM)
+            // before the session: the day of the active workout plan to follow
+            (requireActivity() as MainActivity).prepareGym()
         }
         dialog.findViewById<View>(R.id.runOption).setOnClickListener {
             dialog.dismiss()
@@ -103,7 +103,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
-    // Asks for confirmation, then deletes the session from LAST SESSIONS
+    // Asks for confirmation, then deletes the session from LAST SESSIONS (on the server)
     private fun confirmDelete(session: TrainingSession) {
         showConfirmModal(
             requireContext(), viewLifecycleOwner,
@@ -111,7 +111,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         ) {
             val app = requireContext().gymBroApp
             app.applicationScope.launch {
-                app.database.trainingSessionDao().delete(session.id)
+                try {
+                    TrainingSessions.delete(session)
+                } catch (e: ApiException) {
+                    Toast.makeText(app, e.userMessage(app), Toast.LENGTH_LONG).show()
+                }
             }
         }
     }

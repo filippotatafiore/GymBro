@@ -12,12 +12,43 @@
     android:background="@drawable/list_row_background"
     android:foreground="@drawable/row_ripple">
 
-    <ImageView
-        android:layout_width="28dp"
-        android:layout_height="28dp"
-        android:scaleType="fitCenter"
-        android:importantForAccessibility="no"
-        android:src="@drawable/dumbbell_icon"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:scaleType="fitCenter"
+            android:importantForAccessibility="no"
+            android:src="@drawable/dumbbell_icon"/>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
+        <!-- the plan followed by the gym sessions -->
+        <TextView
+            android:id="@+id/planCardActive"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:background="@drawable/last_done_badge_background"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:textSize="11sp"
+            android:letterSpacing="0.05"
+            android:text="@string/active_badge"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/planCardName"

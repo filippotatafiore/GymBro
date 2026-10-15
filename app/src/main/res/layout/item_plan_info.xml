@@ -14,6 +14,35 @@
     android:padding="16dp"
     android:background="@drawable/list_row_background">
 
+    <!-- the plan followed by the gym sessions... -->
+    <TextView
+        android:id="@+id/planActiveLabel"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginBottom="8dp"
+        android:gravity="center"
+        android:background="@drawable/plan_updated_background"
+        android:drawableStart="@drawable/check_icon"
+        android:drawablePadding="8dp"
+        android:drawableTint="@color/successGreen"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:textStyle="bold"
+        android:textColor="@color/successGreen"
+        android:textSize="15sp"
+        android:text="@string/plan_is_active"
+        android:visibility="gone"
+        tools:visibility="visible"/>
+
+    <!-- ...or the button to make it the followed one -->
+    <Button
+        android:id="@+id/planActivateButton"
+        style="@style/PrimaryButtonStyle"
+        android:layout_height="44dp"
+        android:layout_marginBottom="8dp"
+        android:textSize="15sp"
+        android:text="@string/set_active_plan"/>
+
     <!-- rows: res/layout/item_detail_row.xml -->
     <LinearLayout
         android:id="@+id/planInfoRows"

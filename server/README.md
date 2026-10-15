@@ -22,6 +22,12 @@ billing account linked to the project.)
 | POST   | `/api/logout`                 | yes  | Invalidates the token                |
 | GET    | `/api/me`                     | yes  | Logged user (with email, body data)  |
 | PUT    | `/api/me/profile`             | yes  | Body data (see below)                |
+| PUT    | `/api/me/account`             | yes  | Username, email, password (see below)|
+| POST   | `/api/me/delete-account`      | yes  | Deletes the account and all its data |
+| PUT    | `/api/me/active-plan`         | yes  | `{"plan_id": 3}` or null             |
+| GET    | `/api/me/sessions`            | yes  | Finished sessions, newest first      |
+| POST   | `/api/me/sessions`            | yes  | Save a finished session (see below)  |
+| DELETE | `/api/me/sessions/<id>`       | yes  | Delete one of your sessions          |
 | PUT    | `/api/me/picture`             | yes  | Body: JPEG image (max 900 KB)        |
 | POST   | `/api/me/posts`               | yes  | Publish a post (see below)           |
 | DELETE | `/api/me/posts/<id>`          | yes  | Delete one of your posts             |
@@ -50,6 +56,19 @@ Body of `POST /api/me/posts`, depending on the kind of post:
 - gym session: `{"kind": "gym", "duration_s": 2700, "session_start": "...", "exercises":
   [{"name": "Bench Press", "muscle_group": "Chest", "sets": 4, "reps": 8, "weight_kg": 60}]}`
 
+Body of `POST /api/me/sessions` (LAST SESSIONS and calendar of the app): `{"client_id": "uuid",
+"type": "gym" | "run", "start_ms": 1791830919733, "duration_ms": 2700000, ...}`; run: `distance_km`,
+`kcal`, `max_speed_kmh`, `goal_km`, `route` (as in the posts); gym: `exercises` (as done in the
+session: `name`, `muscle_group`, `sets`, `reps` as a text, `weight_kg`, `rest_s`, `notes`, `done`),
+`plan_id`, `plan_name`, `plan_day`, `plan_day_name`. The same `client_id` is saved only once (the
+app can send a session again after an error). A post published from a session has `"session_id"`
+in its body: the session is then marked as published (`published_post_id`).
+
+Body of `PUT /api/me/account`: `{"current_password": "...", "username": "...", "email": "...",
+"new_password": "..."}` (only the current password is required). After a new password the other
+devices are logged out. `POST /api/me/delete-account` with `{"password": "..."}` deletes the user,
+the logins, the posts, the sessions, the plans and the profile picture.
+
 Body of `PUT /api/me/profile` (every value optional, null = not set):
 `{"height_cm": 180, "weight_kg": 72.5, "birth_year": 2001, "sex": "male" | "female" | "other"}`
 
@@ -75,7 +94,7 @@ Body of `PUT /api/me/plans/<id>`: `{"name", "notes", "days"}` as above (`rest_s`
 ## Data in Firestore
 
 The collections (the "tables" of Firestore) are described at the top of `app.py`: `users`, `posts`,
-`tokens`, `pictures`, plus `usernames` and `emails` (they keep usernames and emails unique) and
+`sessions`, `plans`, `tokens`, `pictures`, plus `usernames` and `emails` (they keep usernames and emails unique) and
 `counters` (the ids 1, 2, 3... of users and posts). To see the data: Firebase console >
 your project > **Firestore Database** > **Data**.
 

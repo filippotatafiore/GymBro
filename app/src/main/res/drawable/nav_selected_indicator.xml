@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Under the icon of the page shown, in the bottom strip: a short blue bar -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:gravity="bottom|center_horizontal"
+        android:width="22dp"
+        android:height="3dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/lighterBlue"/>
+            <corners android:radius="2dp"/>
+        </shape>
+    </item>
+
+</layer-list>
