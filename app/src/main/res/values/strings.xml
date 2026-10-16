@@ -178,7 +178,10 @@
     <string name="username">Username</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
-    <string name="add_photo_hint">Tap the picture to choose a photo (optional)</string>
+    <string name="add_photo_hint">Tap the picture to take a photo or choose one (optional)</string>
+    <string name="take_photo">Take a photo</string>
+    <string name="choose_from_gallery">Choose from gallery</string>
+    <string name="no_camera_app">No camera app found on this phone</string>
     <string name="profile_picture">Profile picture</string>
     <string name="error_fill_all">Please fill in all the fields</string>
     <string name="error_invalid_email">Invalid email address</string>
@@ -191,7 +194,7 @@
     <string name="publish">Publish</string>
     <string name="no_results_yet">Publish your sessions and results: they will appear here</string>
     <string name="personal_bests">PERSONAL BESTS</string>
-    <string name="no_personal_bests">Publish runs or manual results to see your personal bests here</string>
+    <string name="no_personal_bests">Publish runs, swims or manual results to see your personal bests here</string>
     <string name="run_post_title">Run · %1$s</string>
     <string name="swim_post_title">Swim · %1$s</string>
     <string name="swim_post_details">Pace %1$s · %2$s</string>

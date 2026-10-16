@@ -131,7 +131,7 @@ and `"from_username"` (the plan is a copy of a plan of that user, or null).
   first, 20 at a time; for the next page `GET /api/feed?before=<next>` (`next` is null on the last
   page). Every post also has `"user"` and `"personal_best"`: true if it is one of the personal bests
   of that user (the same rules of the profile of the app: the fastest run of every distance, the
-  best manual result of every exercise).
+  swim with the best average pace of every distance, the best manual result of every exercise).
 - Public plans: everyone can see them on the profile of the user; `.../copy` adds a copy to your
   plans (then it is a plan like the others, with `from_username`).
 - Shared plans ("Messages" of the app): only between users that follow each other. The receiver

@@ -29,6 +29,12 @@
         android:name="android.hardware.microphone"
         android:required="false" />
 
+    <!-- Camera: the profile picture can be taken with the camera app of the phone (no permission
+         needed: the camera app takes the photo, see profile/PictureChooser.kt) -->
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+
     <!-- The speech recognizer of the phone (e.g. Google): without this, the app cannot see it -->
     <queries>
         <intent>
@@ -91,6 +97,18 @@
         <activity
             android:name=".session.RoutePlannerActivity"
             android:exported="false" />
+
+        <!-- Shares with the camera app only the file where it saves the profile photo
+             (res/xml/file_paths.xml, profile/PictureChooser.kt) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <!-- GPS positions of the run in progress (session/RunTrackingService.kt) -->
         <service

@@ -12,8 +12,9 @@ object ProfilePictures {
 
     private const val SIZE = 512  // pixels of the saved picture (square)
 
-    // Image processing of the chosen photo: rotated upright, cut to a centered square,
-    // scaled to SIZE x SIZE and compressed as JPEG, ready to be uploaded
+    // Image processing of the photo taken or chosen (PictureChooser): rotated upright (ImageDecoder
+    // follows the orientation saved by the camera), cut to a centered square, scaled to SIZE x SIZE
+    // and compressed as JPEG, ready to be uploaded
     suspend fun prepare(context: Context, uri: Uri): ByteArray = withContext(Dispatchers.Default) {
         val source = ImageDecoder.createSource(context.contentResolver, uri)
         val photo = ImageDecoder.decodeBitmap(source) { decoder, info, _ ->

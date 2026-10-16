@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window of the profile picture (PictureChooser.kt): take a photo with the camera, or
+     choose one from the gallery -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/ModalCardStyle">
+
+    <TextView
+        style="@style/ModalTitleStyle"
+        android:text="@string/profile_picture"/>
+
+    <!-- spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="20dp"/>
+
+    <LinearLayout
+        android:id="@+id/takePhotoOption"
+        style="@style/PublishOptionStyle">
+
+        <ImageView
+            style="@style/PublishOptionIconStyle"
+            android:src="@drawable/camera_icon"
+            android:importantForAccessibility="no"/>
+
+        <TextView
+            style="@style/PublishOptionTextStyle"
+            android:text="@string/take_photo"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/choosePhotoOption"
+        style="@style/PublishOptionStyle">
+
+        <ImageView
+            style="@style/PublishOptionIconStyle"
+            android:src="@drawable/gallery_icon"
+            android:importantForAccessibility="no"/>
+
+        <TextView
+            style="@style/PublishOptionTextStyle"
+            android:text="@string/choose_from_gallery"/>
+
+    </LinearLayout>
+
+</LinearLayout>

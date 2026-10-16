@@ -1749,10 +1749,14 @@ def personal_best_ids(posts):
     the app (PersonalBests.kt), which shows them in the profile:
     - runs: for every distance, the run done in the shortest time; the distances are grouped by
       multiples of 0.5 km (10.2 km counts as 10 km, 10.3 km as 10.5 km)
+    - swims: for every distance, the swim with the best average pace (the shortest time every 100 m);
+      the distances are grouped by multiples of 0.5 km, at most 0.2 km away (1.3 and 1.7 km count as
+      1.5 km, 1.25 km is in no group)
     - manual results: for every exercise (and way of measuring it), the best result, following the
       "higher/lower is better" of the most recent post of that exercise
     With equal results, the most recent post."""
     runs = {}
+    swims = {}
     manual = {}
     for post in posts:
         if post.get("kind") == "run" and post.get("distance_km") is not None and post.get("duration_s") is not None:
@@ -1760,11 +1764,19 @@ def personal_best_ids(posts):
             group = math.floor(post["distance_km"] * 2 + 0.5) / 2
             if group > 0:  # less than 0.25 km: not a distance
                 runs.setdefault(group, []).append(post)
+        elif post.get("kind") == "swim" and (post.get("distance_km") or 0) > 0 and post.get("duration_s") is not None:
+            # in meters, like the app: no errors of the decimals
+            meters = math.floor(post["distance_km"] * 1000 + 0.5)
+            group = math.floor(meters / 500 + 0.5) * 500
+            if group > 0 and abs(meters - group) <= 200:
+                swims.setdefault(group, []).append(post)
         elif post.get("kind") == "manual" and post.get("metric") and post.get("amount") is not None:
             manual.setdefault((post["title"].strip().lower(), post["metric"]), []).append(post)
 
     # min / max: the first of the equal ones, so the most recent
     best = {min(same, key=lambda post: post["duration_s"])["id"] for same in runs.values()}
+    # the best average pace: the least time per km
+    best |= {min(same, key=lambda post: post["duration_s"] / post["distance_km"])["id"] for same in swims.values()}
     for same in manual.values():
         latest = max(same, key=lambda post: post["created_at"])
         choose = min if latest.get("better") == "lower" else max

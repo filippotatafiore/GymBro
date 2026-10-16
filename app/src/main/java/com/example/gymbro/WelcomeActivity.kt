@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Dialog
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Bundle
 import android.util.Patterns
 import android.widget.Button
@@ -13,14 +12,12 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import com.example.gymbro.network.ApiClient
 import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
-import com.example.gymbro.profile.ProfilePictures
+import com.example.gymbro.profile.PictureChooser
 import kotlinx.coroutines.launch
 
 // First page of the app when nobody is logged in: register or log in.
@@ -32,10 +29,8 @@ class WelcomeActivity : ThemedActivity() {
     private var registerDialog: Dialog? = null
     private var registerPicture: ByteArray? = null
 
-    // Opens the system photo picker (no permission needed); the lambda receives the chosen photo
-    private val pickPicture = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) onPicturePicked(uri)
-    }
+    // The profile picture of the registration: taken with the camera or chosen from the gallery
+    private val pictureChooser = PictureChooser(this) { jpeg -> onPicturePicked(jpeg) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,10 +70,8 @@ class WelcomeActivity : ThemedActivity() {
         val error = dialog.findViewById<TextView>(R.id.registerError)
         val confirm = dialog.findViewById<Button>(R.id.registerConfirmButton)
 
-        // Tap the picture to choose a photo (optional)
-        dialog.findViewById<ImageView>(R.id.registerPicture).setOnClickListener {
-            pickPicture.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-        }
+        // Tap the picture to take a photo or choose one (optional)
+        dialog.findViewById<ImageView>(R.id.registerPicture).setOnClickListener { pictureChooser.show() }
 
         confirm.setOnClickListener {
             val usernameText = username.text.toString().trim()
@@ -156,20 +149,13 @@ class WelcomeActivity : ThemedActivity() {
         dialog.show()
     }
 
-    // The photo chosen in the registration window: shown in the window, uploaded after registering
-    private fun onPicturePicked(uri: Uri) {
-        lifecycleScope.launch {
-            val jpeg = try {
-                ProfilePictures.prepare(this@WelcomeActivity, uri)
-            } catch (e: Exception) {
-                Toast.makeText(this@WelcomeActivity, R.string.error_picture, Toast.LENGTH_LONG).show()
-                return@launch
-            }
-            val dialog = registerDialog ?: return@launch
-            registerPicture = jpeg
-            dialog.findViewById<ImageView>(R.id.registerPicture)
-                .setImageBitmap(BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size))
-        }
+    // The photo taken or chosen in the registration window (already prepared, see PictureChooser):
+    // shown in the window, uploaded after registering
+    private fun onPicturePicked(jpeg: ByteArray) {
+        val dialog = registerDialog ?: return
+        registerPicture = jpeg
+        dialog.findViewById<ImageView>(R.id.registerPicture)
+            .setImageBitmap(BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size))
     }
 
     companion object {

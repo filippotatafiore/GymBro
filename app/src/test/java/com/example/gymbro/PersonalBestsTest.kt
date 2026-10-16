@@ -25,6 +25,13 @@ class PersonalBestsTest {
         createdAt = Instant.EPOCH.plusSeconds(nextId++)
     )
 
+    // a swim of [meters] at an average pace of [secondsPer100m]
+    private fun swim(meters: Int, secondsPer100m: Long) = Post(
+        id = nextId, kind = PostKind.SWIM, title = "Swim", durationSeconds = secondsPer100m * meters / 100,
+        distanceKm = meters / 1000.0, poolLengthM = 25.0, laps = meters / 25,
+        createdAt = Instant.EPOCH.plusSeconds(nextId++)
+    )
+
     private fun gym(seconds: Long) = Post(
         id = nextId, kind = PostKind.GYM, title = "Gym session", durationSeconds = seconds,
         createdAt = Instant.EPOCH.plusSeconds(nextId++)
@@ -111,6 +118,48 @@ class PersonalBestsTest {
         ))
 
         assertEquals(listOf(60.0), best.map { it.amount })
+    }
+
+    @Test
+    fun swims_bestPaceForEveryDistance() {
+        // 1.3 km at 02:00 /100 m and 1.7 km at 04:00 /100 m both count as 1.5 km: the faster pace wins
+        val best = PersonalBests.from(listOf(swim(1300, 120), swim(1700, 240)))
+
+        assertEquals(listOf(1.3), best.map { it.distanceKm })
+    }
+
+    @Test
+    fun swims_paceDecides_notTheTime() {
+        // 1.5 km in 30:00 (02:00 /100 m) and 1.3 km in 28:10 (02:10 /100 m): the first one
+        val best = PersonalBests.from(listOf(swim(1500, 120), swim(1300, 130)))
+
+        assertEquals(listOf(1.5), best.map { it.distanceKm })
+    }
+
+    @Test
+    fun swims_groupedByMultiplesOfHalfKm_atMost200mAway() {
+        val best = PersonalBests.from(listOf(
+            swim(800, 150), swim(1000, 160),   // 1 km
+            swim(1200, 140),                    // 1 km (200 m away)
+            swim(1250, 100),                    // 250 m from 1 and from 1.5 km: no distance
+            swim(1550, 130),                    // 1.5 km
+            swim(150, 90),                      // less than 0.3 km: no distance
+        ))
+
+        assertEquals(listOf(1.2, 1.55), best.map { it.distanceKm })
+        assertEquals(listOf(1.0, 1.5), best.map { PersonalBests.swimGroupKm(it.distanceKm!!) })
+    }
+
+    @Test
+    fun swimGroups() {
+        assertEquals(0.5, PersonalBests.swimGroupKm(0.3)!!, 0.0)
+        assertEquals(1.5, PersonalBests.swimGroupKm(1.3)!!, 0.0)
+        assertEquals(1.5, PersonalBests.swimGroupKm(1.7)!!, 0.0)
+        assertEquals(2.0, PersonalBests.swimGroupKm(1.8)!!, 0.0)
+        assertEquals(null, PersonalBests.swimGroupKm(1.25))
+        assertEquals(null, PersonalBests.swimGroupKm(0.25))
+        // 52 laps of 25 m written with the decimals of a computer: still 1.3 km
+        assertEquals(1.5, PersonalBests.swimGroupKm(52 * 25 / 1000.0 + 1e-12)!!, 0.0)
     }
 
     @Test

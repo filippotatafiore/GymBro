@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import android.net.Uri
 import android.os.Bundle
 import android.util.Patterns
 import android.view.View
@@ -31,8 +30,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.edit
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
@@ -61,7 +58,7 @@ import com.example.gymbro.profile.PersonalBests
 import com.example.gymbro.profile.PersonalInfoForm
 import com.example.gymbro.profile.PostAdapter
 import com.example.gymbro.profile.ProfileHeader
-import com.example.gymbro.profile.ProfilePictures
+import com.example.gymbro.profile.PictureChooser
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.RunTrackingService
 import com.example.gymbro.session.publishSession
@@ -108,10 +105,8 @@ class ProfileActivity : ThemedActivity() {
     private val personalBestAdapter = PersonalBestAdapter(onClick = { post -> showPostDetails(this, this, post) })
     private val planAdapter = PlanAdapter(onClick = { plan -> PlanActivity.open(this, plan.id) })
 
-    // Opens the system photo picker (no permission needed); the lambda receives the chosen photo
-    private val pickPicture = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) changePicture(uri)
-    }
+    // A new profile picture: taken with the camera or chosen from the gallery
+    private val pictureChooser = PictureChooser(this) { jpeg -> changePicture(jpeg) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -253,11 +248,9 @@ class ProfileActivity : ThemedActivity() {
         postList.layoutManager = LinearLayoutManager(this)
         postList.adapter = postAdapter
 
-        // Tap the profile picture to change it
+        // Tap the profile picture to change it: a new photo or one of the gallery
         header.picture.foreground = getDrawable(R.drawable.menu_item_background)
-        header.picture.setOnClickListener {
-            pickPicture.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-        }
+        header.picture.setOnClickListener { pictureChooser.show() }
         findViewById<Button>(R.id.publishResultButton).setOnClickListener { showPublishChoice() }
         findViewById<Button>(R.id.newPlanButton).setOnClickListener { showCreatePlanDialog() }
 
@@ -399,16 +392,14 @@ class ProfileActivity : ThemedActivity() {
         WelcomeActivity.open(this)
     }
 
-    // The new picture is uploaded to the server right away (only online), then saved on this phone
-    private fun changePicture(uri: Uri) {
+    // The new picture (already prepared, see PictureChooser) is uploaded to the server right away
+    // (only online), then saved on this phone
+    private fun changePicture(jpeg: ByteArray) {
         lifecycleScope.launch {
             try {
-                val jpeg = ProfilePictures.prepare(this@ProfileActivity, uri)
                 ProfileRepository.changePicture(jpeg)
             } catch (e: ApiException) {
                 Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
-            } catch (e: Exception) {
-                Toast.makeText(this@ProfileActivity, R.string.error_picture, Toast.LENGTH_LONG).show()
             }
         }
     }

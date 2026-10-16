@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Files of the app that can be shared with other apps (FileProvider in AndroidManifest.xml): only
+     the folder where the camera app saves the profile photo (PictureChooser.kt) -->
+<paths>
+    <cache-path
+        name="camera"
+        path="camera/" />
+</paths>

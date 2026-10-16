@@ -1,0 +1,10 @@
+<!-- Camera: take the profile picture with the camera -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="24dp" android:viewportHeight="24" android:viewportWidth="24" android:width="24dp">
+
+    <!-- body -->
+    <path android:fillColor="#00000000" android:pathData="M4.5,7.25h3l1.6,-2.4a1,1 0,0 1,0.83 -0.45h4.14a1,1 0,0 1,0.83 0.45l1.6,2.4h3a2,2 0,0 1,2 2v9a2,2 0,0 1,-2 2h-15a2,2 0,0 1,-2 -2v-9a2,2 0,0 1,2 -2Z" android:strokeColor="@color/icon" android:strokeLineJoin="round" android:strokeWidth="1.7"/>
+
+    <!-- lens -->
+    <path android:fillColor="#00000000" android:pathData="M15.5,13.5a3.5,3.5 0,1 1,-7 0a3.5,3.5 0,1 1,7 0Z" android:strokeColor="@color/icon" android:strokeWidth="1.7"/>
+
+</vector>
