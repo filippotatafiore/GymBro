@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name" translatable="false">GymBro</string>
+    <string name="no_count" translatable="false">–</string>
     <string name="last_session">LAST SESSIONS</string>
 
     <string name="delete_acc">Delete account</string>
@@ -15,7 +16,7 @@
     <string name="calendar">Calendar</string>
     <string name="home">Home</string>
     <string name="chat">Chat</string>
-    <string name="search">Search</string>
+    <string name="social">Social</string>
     <string name="profile">Profile</string>
 
     <!-- home page -->
@@ -129,9 +130,9 @@
     <string name="error_picture">Unable to read the selected picture</string>
 
     <!-- profile -->
-    <string name="my_results">MY RESULTS</string>
+    <string name="posts_title">POSTS</string>
     <string name="publish">Publish</string>
-    <string name="no_results_yet">You haven\'t published any result yet</string>
+    <string name="no_results_yet">Publish your sessions and results: they will appear here</string>
     <string name="personal_bests">PERSONAL BESTS</string>
     <string name="no_personal_bests">Publish runs or manual results to see your personal bests here</string>
     <string name="run_post_title">Run · %1$s</string>
@@ -169,9 +170,14 @@
     <string name="day_session_time">%1$s · %2$s</string>
 
     <!-- publish modal -->
-    <string name="publish_result_title">Publish a result</string>
+    <string name="publish_result_title">Publish on your profile</string>
     <string name="publish_from_session">A finished session</string>
     <string name="publish_manual">A result added manually</string>
+    <string name="publish_plan">A workout plan</string>
+    <string name="publish_plan_title">Publish a workout plan</string>
+    <string name="publish_plan_message">Everyone will see it on your profile and will be able to add it to their plans.</string>
+    <string name="no_private_plans">All your workout plans are already public</string>
+    <string name="plan_published">Workout plan published on your profile</string>
     <string name="choose_session_title">Choose a session</string>
     <string name="no_sessions_to_publish">No finished sessions to publish</string>
     <string name="active_session_not_publishable">The session in progress can be published once it is finished</string>
@@ -355,6 +361,72 @@
     <string name="welcome_personal_info_title">Welcome to GymBro!</string>
     <string name="welcome_personal_info_message">Tell us something about you: the coach uses these data for your workout plans, and your weight for the calories of your runs. You can change them anytime in ☰ › Personal information.</string>
     <string name="later">Later</string>
+
+    <!-- social page: feed, search, profiles of the other users -->
+    <string name="search_users_hint">Search athletes</string>
+    <string name="messages">Messages</string>
+    <string name="feed_empty">Follow other athletes to see their sessions and results here.\n\nSearch them by username above.</string>
+    <string name="no_users_found">No athletes found</string>
+    <string name="personal_best_badge">PERSONAL BEST</string>
+    <string name="public_badge">PUBLIC</string>
+    <string name="run_post_details">Pace %1$s</string>
+    <string name="higher_is_better">higher is better</string>
+    <string name="lower_is_better">lower is better</string>
+    <string name="manual_post_details">%1$s · %2$s</string>
+    <string name="posts_count_label">Posts</string>
+    <string name="followers">Followers</string>
+    <string name="following">Following</string>
+    <string name="follow">Follow</string>
+    <string name="follow_back">Follow back</string>
+    <string name="unfollow">Unfollow</string>
+    <string name="share_plan_button">Share a plan</string>
+    <string name="follows_you">Follows you</string>
+    <string name="you_follow_each_other">You follow each other</string>
+    <string name="you">You</string>
+    <string name="no_public_plans">No public workout plans</string>
+    <string name="no_posts_yet">No posts yet</string>
+    <string name="search_list_hint">Search</string>
+    <string name="no_followers">No followers yet</string>
+    <string name="no_following">Not following anyone yet</string>
+    <string name="no_personal_bests_yet">No personal bests yet</string>
+    <plurals name="count_followers">
+        <item quantity="one">%d Follower</item>
+        <item quantity="other">%d Followers</item>
+    </plurals>
+    <string name="count_following">%1$d Following</string>
+    <string name="user_not_found">This athlete does not exist anymore</string>
+
+    <!-- messages: workout plans shared between users that follow each other -->
+    <string name="messages_hint">Share your workout plans with the athletes you follow and who follow you back.</string>
+    <string name="messages_empty">Nobody here yet: follow other athletes and ask them to follow you back, then you can share your workout plans with them.</string>
+    <string name="you_shared_plan">You shared “%1$s”</string>
+    <string name="shared_plan_with_you">Shared “%1$s” with you</string>
+    <string name="no_plans_shared">Share a workout plan</string>
+    <string name="cannot_share_anymore">You can share plans only with athletes you follow and who follow you back</string>
+    <string name="conversation_empty">No plans shared yet.\nShare one of your workout plans with %1$s.</string>
+    <string name="share_plan_title">Share a workout plan</string>
+    <string name="share_plan_message">%1$s will receive a copy of the plan as it is now.</string>
+    <string name="no_plans_to_share">You have no workout plans yet: create one in your profile</string>
+    <string name="plan_shared">Workout plan shared with %1$s</string>
+    <string name="workout_plan_label">WORKOUT PLAN</string>
+    <string name="added_to_your_plans">Added to your plans</string>
+    <string name="tap_to_view">Tap to view</string>
+
+    <!-- public and shared plans (page of a plan of another user) -->
+    <string name="add_to_my_plans">Add to my plans</string>
+    <string name="open_in_my_plans">Open in my plans</string>
+    <string name="plan_added">Added to your workout plans</string>
+    <string name="plan_by">By</string>
+    <string name="plan_shared_by">Shared by</string>
+    <string name="plan_shared_with">Shared with</string>
+    <string name="plan_copied_from">Added from</string>
+    <string name="username_value">\@%1$s</string>
+    <string name="plan_visibility">VISIBILITY</string>
+    <string name="plan_private">Private</string>
+    <string name="plan_public">Public</string>
+    <string name="plan_private_hint">Only you can see this plan.</string>
+    <string name="plan_public_hint">Everyone can see it on your profile and add it to their plans.</string>
+    <string name="plan_shared_snapshot">The plan as it was when it was shared, on %1$s.</string>
 
     <!-- post details modal -->
     <string name="published_on">Published on %1$s</string>

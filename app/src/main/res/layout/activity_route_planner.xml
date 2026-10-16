@@ -47,7 +47,7 @@
             android:id="@+id/placeSearchButton"
             style="@style/RoundIconButtonStyle"
             android:layout_marginStart="10dp"
-            android:contentDescription="@string/search"
+            android:contentDescription="@string/search_place_hint"
             android:src="@drawable/search_icon"/>
 
     </LinearLayout>

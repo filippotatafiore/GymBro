@@ -36,7 +36,6 @@ import com.example.gymbro.network.Better
 import com.example.gymbro.network.Metric
 import com.example.gymbro.network.PlanRequest
 import com.example.gymbro.network.Post
-import com.example.gymbro.network.PostKind
 import com.example.gymbro.network.Sex
 import com.example.gymbro.network.User
 import com.example.gymbro.network.UserSession
@@ -44,23 +43,23 @@ import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.PlanAdapter
 import com.example.gymbro.plan.PlanGoal
 import com.example.gymbro.plan.PlanLevel
+import com.example.gymbro.plan.PlanPicker
 import com.example.gymbro.profile.BodyData
 import com.example.gymbro.profile.ManualExercises
 import com.example.gymbro.profile.PersonalBestAdapter
 import com.example.gymbro.profile.PersonalBests
 import com.example.gymbro.profile.PersonalInfoForm
 import com.example.gymbro.profile.PostAdapter
+import com.example.gymbro.profile.ProfileHeader
 import com.example.gymbro.profile.ProfilePictures
-import com.example.gymbro.profile.displayTitle
-import com.example.gymbro.profile.displayValue
-import com.example.gymbro.profile.icon
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.RunTrackingService
 import com.example.gymbro.session.TrainingSessions
 import com.example.gymbro.session.publishSession
-import com.example.gymbro.session.toRunSummary
+import com.example.gymbro.social.Avatars
 import kotlinx.coroutines.launch
 
+import androidx.core.widget.NestedScrollView
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.core.view.GravityCompat
 import java.text.DecimalFormat
@@ -86,19 +85,17 @@ class ProfileActivity : ThemedActivity() {
     private var savingAppearance = false
 
     private lateinit var bottomNav: BottomNavBar
-    private lateinit var profilePicture: ImageView
-    private lateinit var usernameText: TextView
-    private lateinit var emailText: TextView
+    private lateinit var header: ProfileHeader
     private lateinit var emptyResultsText: TextView
     private lateinit var emptyPersonalBestsText: TextView
     private lateinit var emptyPlansText: TextView
     private lateinit var postList: RecyclerView
 
     private val postAdapter = PostAdapter(
-        onClick = { post -> showPostDetails(post) },
+        onClick = { post -> showPostDetails(this, this, post) },
         onDelete = { post -> confirmDeletePost(post) }
     )
-    private val personalBestAdapter = PersonalBestAdapter(onClick = { post -> showPostDetails(post) })
+    private val personalBestAdapter = PersonalBestAdapter(onClick = { post -> showPostDetails(this, this, post) })
     private val planAdapter = PlanAdapter(onClick = { plan -> PlanActivity.open(this, plan.id) })
 
     // Opens the system photo picker (no permission needed); the lambda receives the chosen photo
@@ -222,9 +219,14 @@ class ProfileActivity : ThemedActivity() {
 
         // --------------------------------------------------------- PROFILE
 
-        profilePicture = findViewById(R.id.profilePicture)
-        usernameText = findViewById(R.id.profileUsername)
-        emailText = findViewById(R.id.profileEmail)
+        // picture, posts, followers and followed users (tap them to see the lists), username, email
+        val scroll = findViewById<NestedScrollView>(R.id.profileScroll)
+        header = ProfileHeader(
+            this,
+            onPosts = { scroll.smoothScrollTo(0, findViewById<View>(R.id.postsSection).top) },
+            onFollowers = { openFollowList(FollowListActivity.Tab.FOLLOWERS) },
+            onFollowing = { openFollowList(FollowListActivity.Tab.FOLLOWING) }
+        )
         emptyResultsText = findViewById(R.id.emptyResultsText)
         emptyPersonalBestsText = findViewById(R.id.emptyPersonalBestsText)
         emptyPlansText = findViewById(R.id.emptyPlansText)
@@ -242,7 +244,8 @@ class ProfileActivity : ThemedActivity() {
         postList.adapter = postAdapter
 
         // Tap the profile picture to change it
-        profilePicture.setOnClickListener {
+        header.picture.foreground = getDrawable(R.drawable.menu_item_background)
+        header.picture.setOnClickListener {
             pickPicture.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
         findViewById<Button>(R.id.publishResultButton).setOnClickListener { showPublishChoice() }
@@ -276,11 +279,17 @@ class ProfileActivity : ThemedActivity() {
     // --------------------------------------------------------- PROFILE
 
     private fun showUser(user: User) {
-        usernameText.text = user.username
-        emailText.text = user.email
+        header.username.text = user.username
+        header.subtitle.text = user.email
     }
 
-    // Downloads profile data, picture, posts and workout plans from the server (in background)
+    // Followers or followed users of the logged user
+    private fun openFollowList(tab: FollowListActivity.Tab) {
+        val user = UserSession.user ?: return
+        FollowListActivity.open(this, user.id, user.username, tab)
+    }
+
+    // Downloads profile data, picture, posts, followers and workout plans from the server (in background)
     private fun refreshProfile() {
         val token = UserSession.token ?: return
         lifecycleScope.launch {
@@ -291,11 +300,12 @@ class ProfileActivity : ThemedActivity() {
 
                 val picture = if (user.hasPicture) ApiClient.getPicture(user.id) else null
                 if (picture != null) {
-                    profilePicture.setImageBitmap(picture)
+                    header.picture.setImageBitmap(picture)
                 } else {
-                    profilePicture.setImageResource(R.drawable.default_avatar)
+                    header.picture.setImageResource(R.drawable.default_avatar)
                 }
 
+                header.showCounts(ApiClient.getProfile(token, user.id))
                 showPosts(user.id)
                 showPlans(token)
             } catch (e: ApiException) {
@@ -306,16 +316,17 @@ class ProfileActivity : ThemedActivity() {
         }
     }
 
-    // Shows the posts of the user and the personal bests chosen among them.
-    // scrollToTop: shows the top of the list, where a new post appears.
+    // Shows the posts of the user and the personal bests chosen among them ("PERSONAL BEST" also on
+    // their posts). scrollToTop: shows the top of the list, where a new post appears.
     private suspend fun showPosts(userId: Long, scrollToTop: Boolean = false) {
         val posts = ApiClient.getPosts(userId)
-        postAdapter.submitList(posts) {
+        val bests = PersonalBests.from(posts)
+        postAdapter.show(posts, bests.map { it.id }.toSet()) {
             if (scrollToTop) postList.scrollToPosition(0)
         }
         emptyResultsText.isVisible = posts.isEmpty()
+        header.showPostsCount(posts.size)
 
-        val bests = PersonalBests.from(posts)
         personalBestAdapter.submitList(bests)
         emptyPersonalBestsText.isVisible = bests.isEmpty()
     }
@@ -374,7 +385,9 @@ class ProfileActivity : ThemedActivity() {
             try {
                 val jpeg = ProfilePictures.prepare(this@ProfileActivity, uri)
                 ApiClient.uploadPicture(token, jpeg)
-                profilePicture.setImageBitmap(BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size))
+                header.picture.setImageBitmap(BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size))
+                // the small picture of the lists (social page) is downloaded again
+                UserSession.userId?.let { Avatars.forget(it) }
             } catch (e: ApiException) {
                 Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
@@ -573,7 +586,8 @@ class ProfileActivity : ThemedActivity() {
 
     // --------------------------------------------------------- PUBLISH
 
-    // Modal window of the "Publish" button: a finished session or a result added manually
+    // Modal window of the "Publish" button: a finished session, a result added manually, or a
+    // workout plan (it becomes public)
     private fun showPublishChoice() {
         val dialog = createModal(this, R.layout.dialog_publish_choice, this)
         dialog.findViewById<View>(R.id.publishSessionOption).setOnClickListener {
@@ -584,7 +598,43 @@ class ProfileActivity : ThemedActivity() {
             dialog.dismiss()
             showManualPublishDialog()
         }
+        dialog.findViewById<View>(R.id.publishPlanOption).setOnClickListener {
+            dialog.dismiss()
+            showPlanToPublishPicker()
+        }
         dialog.show()
+    }
+
+    // The private workout plans: the one tapped becomes public (everyone sees it on the profile and
+    // can add it to their plans; it can be made private again in its page)
+    private fun showPlanToPublishPicker() {
+        val token = UserSession.token ?: return
+        lifecycleScope.launch {
+            try {
+                val privatePlans = ApiClient.getPlans(token).filter { !it.isPublic }
+                PlanPicker.show(
+                    this@ProfileActivity, this@ProfileActivity,
+                    getString(R.string.publish_plan_title), getString(R.string.publish_plan_message),
+                    getString(R.string.no_private_plans), privatePlans
+                ) { plan, picker ->
+                    picker.busy = true
+                    lifecycleScope.launch {
+                        try {
+                            ApiClient.setPlanPublic(token, plan.id, true)
+                            picker.dialog.dismiss()
+                            Toast.makeText(this@ProfileActivity, R.string.plan_published, Toast.LENGTH_SHORT).show()
+                            showPlans(token)
+                        } catch (e: ApiException) {
+                            picker.showError(e.userMessage(this@ProfileActivity))
+                        } finally {
+                            picker.busy = false
+                        }
+                    }
+                }
+            } catch (e: ApiException) {
+                Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     // List of the finished sessions not published yet: tap one to publish it.
@@ -816,36 +866,6 @@ class ProfileActivity : ThemedActivity() {
                 } catch (e: ApiException) {
                     Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
                 }
-            }
-        }
-    }
-
-    // Modal window with all the information of a post (see SessionDetails.kt):
-    // - run: map with the whole path followed and the final statistics
-    // - gym: training time and exercises
-    // - manual: the result and how it is evaluated
-    private fun showPostDetails(post: Post) {
-        val title = post.displayTitle(this)
-        val published = getString(R.string.published_on, formatDate(post.createdAt))
-        // sessions: when the session was done
-        val sessionDate = post.sessionStart?.let { formatDateTime(it.toEpochMilli()) } ?: published
-
-        when (post.kind) {
-            PostKind.RUN -> showRunDetails(this, this, title, sessionDate, post.toRunSummary())
-
-            PostKind.GYM -> showGymDetails(
-                this, this, title, sessionDate, (post.durationSeconds ?: 0L) * 1000, post.exercises.orEmpty()
-            )
-
-            PostKind.MANUAL -> {
-                val (dialog, content) = detailsDialog(this, this, post.icon(), title, published)
-                addDetailRow(content, R.string.detail_result, post.displayValue())
-                addDetailRow(content, R.string.detail_measured_by,
-                    getString(if (post.metric == Metric.TIME) R.string.metric_time else R.string.metric_weight))
-                addDetailRow(content, R.string.detail_better,
-                    getString(if (post.better == Better.LOWER) R.string.better_lower else R.string.better_higher))
-                if (!post.notes.isNullOrBlank()) addDetailRow(content, R.string.detail_notes, post.notes)
-                dialog.show()
             }
         }
     }

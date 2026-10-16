@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A workout plan sent by the user (Messages): light tint of the favorite color, the corner towards
+     the user less rounded, like the messages of the user in the chat -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/ripple">
+
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/accentSoftColor"/>
+            <corners
+                android:topLeftRadius="18dp"
+                android:topRightRadius="18dp"
+                android:bottomLeftRadius="18dp"
+                android:bottomRightRadius="4dp"/>
+        </shape>
+    </item>
+
+</ripple>

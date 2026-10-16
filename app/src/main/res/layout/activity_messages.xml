@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Messages (logic in MessagesActivity.kt), opened from the social page: the users you follow and
+    who follow you back, with whom you can share your workout plans, and the users you already shared
+    plans with. Not a chat: only workout plans can be sent. Tap a user to see the plans shared.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/messagesRoot"
+    tools:context=".MessagesActivity"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background">
+
+    <!-- spacer (status bar) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="50dp"/>
+
+    <!--************************************** top strip **************************************-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <ImageButton
+            android:id="@+id/messagesBackButton"
+            style="@style/RoundIconButtonStyle"
+            android:contentDescription="@string/back"
+            android:src="@drawable/back_arrow_icon"/>
+
+        <TextView
+            style="@style/SectionTitleStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:text="@string/messages"/>
+
+    </LinearLayout>
+    <!--************************************** top strip **************************************-->
+
+    <EditText
+        android:id="@+id/messagesSearchInput"
+        style="@style/SearchFieldStyle"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="12dp"
+        android:hint="@string/search_list_hint"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginTop="10dp"
+        android:textColor="@color/textSecondary"
+        android:textSize="13sp"
+        android:text="@string/messages_hint"/>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="6dp">
+
+        <!-- res/layout/item_conversation.xml (ConversationAdapter) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/conversationList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="12dp"
+            android:clipToPadding="false"
+            tools:listitem="@layout/item_conversation"/>
+
+        <TextView
+            android:id="@+id/messagesEmptyText"
+            style="@style/EmptyListTextStyle"
+            android:layout_gravity="top"
+            android:text="@string/messages_empty"
+            android:visibility="gone"/>
+
+        <ProgressBar
+            android:id="@+id/messagesLoading"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="?attr/accentTextColor"/>
+
+    </FrameLayout>
+
+</LinearLayout>

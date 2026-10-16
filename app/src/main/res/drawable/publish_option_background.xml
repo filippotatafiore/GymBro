@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Options of the "Publish" window of the profile: rows tinted with the favorite color -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@color/ripple">
+
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/accentSoftColor"/>
+            <corners android:radius="18dp"/>
+        </shape>
+    </item>
+
+</ripple>

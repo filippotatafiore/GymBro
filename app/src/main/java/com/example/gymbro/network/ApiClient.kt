@@ -25,6 +25,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -245,14 +246,16 @@ object ApiClient {
         request("PUT", "/api/me/picture", token = token, jpeg = jpeg)
     }
 
-    // null if the user has no profile picture
-    suspend fun getPicture(userId: Long): Bitmap? {
+    // null if the user has no profile picture. sampleSize: 1 = the whole picture (512 px), 4 = a
+    // quarter of its side (enough for the small pictures of the lists)
+    suspend fun getPicture(userId: Long, sampleSize: Int = 1): Bitmap? {
         val bytes = try {
             request("GET", "/api/users/$userId/picture")
         } catch (e: ApiException) {
             if (e.code == 404) return null else throw e
         }
-        return withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
+        val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+        return withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options) }
     }
 
     // Posts of a user, newest first
@@ -309,6 +312,140 @@ object ApiClient {
 
     private suspend fun publish(token: String, body: JSONObject): Post =
         parsePost(JSONObject(request("POST", "/api/me/posts", token = token, json = body).decodeToString()))
+
+
+    // --------------------------------------------------------- SOCIAL
+
+    // Profile of a user with how many posts, followers and followed users (and whether the logged
+    // user and that user follow each other)
+    suspend fun getProfile(token: String, userId: Long): UserProfile =
+        parse(request("GET", "/api/users/$userId", token = token).decodeToString()) { parseProfile(it) }
+
+    // Users whose username contains the text (the logged user excluded)
+    suspend fun searchUsers(token: String, text: String): List<SocialUser> =
+        parseArray(request("GET", "/api/users/search?q=" + URLEncoder.encode(text, "UTF-8"), token = token)) {
+            parseSocialUser(it)
+        }
+
+    // Follows / stops following the user; returns their profile with the new counts
+    suspend fun follow(token: String, userId: Long): UserProfile =
+        parse(request("POST", "/api/users/$userId/follow", token = token).decodeToString()) { parseProfile(it) }
+
+    suspend fun unfollow(token: String, userId: Long): UserProfile =
+        parse(request("DELETE", "/api/users/$userId/follow", token = token).decodeToString()) { parseProfile(it) }
+
+    // The users that follow the user / followed by the user, in alphabetical order
+    suspend fun getFollowers(token: String, userId: Long): List<SocialUser> =
+        parseArray(request("GET", "/api/users/$userId/followers", token = token)) { parseSocialUser(it) }
+
+    suspend fun getFollowing(token: String, userId: Long): List<SocialUser> =
+        parseArray(request("GET", "/api/users/$userId/following", token = token)) { parseSocialUser(it) }
+
+    // The posts of the users followed, newest first, a page at a time (before: the next of the
+    // previous page, null for the first one)
+    suspend fun getFeed(token: String, before: String?): FeedPage {
+        val path = "/api/feed" + (before?.let { "?before=" + URLEncoder.encode(it, "UTF-8") } ?: "")
+        return parse(request("GET", path, token = token).decodeToString()) { json ->
+            val posts = json.getJSONArray("posts")
+            FeedPage(
+                posts = (0 until posts.length()).map { index ->
+                    val item = posts.getJSONObject(index)
+                    FeedPost(parsePost(item), parseSocialUser(item.getJSONObject("user")), item.optBoolean("personal_best"))
+                },
+                next = json.stringOrNull("next")
+            )
+        }
+    }
+
+    // The public workout plans of a user, and one of them
+    suspend fun getPublicPlans(userId: Long): List<Plan> =
+        parseArray(request("GET", "/api/users/$userId/plans")) { Plan.fromJson(it) }
+
+    suspend fun getPublicPlan(userId: Long, planId: Long): Plan =
+        parse(request("GET", "/api/users/$userId/plans/$planId").decodeToString()) { Plan.fromJson(it) }
+
+    // Adds a copy of a public plan of another user to the plans of the logged user; returns the copy
+    suspend fun copyPublicPlan(token: String, userId: Long, planId: Long): Plan =
+        parse(request("POST", "/api/users/$userId/plans/$planId/copy", token = token).decodeToString()) {
+            Plan.fromJson(it)
+        }
+
+    // public: everyone can see the plan on the profile of the user; returns the plan
+    suspend fun setPlanPublic(token: String, planId: Long, public: Boolean): Plan {
+        val body = JSONObject().put("public", public)
+        return parse(request("PUT", "/api/me/plans/$planId/public", token = token, json = body).decodeToString()) {
+            Plan.fromJson(it)
+        }
+    }
+
+    // Messages: the users the logged user can share plans with, the last shared first
+    suspend fun getConversations(token: String): List<Conversation> =
+        parseArray(request("GET", "/api/me/conversations", token = token)) { json ->
+            Conversation(
+                user = parseSocialUser(json.getJSONObject("user")),
+                canShare = json.getBoolean("can_share"),
+                unread = json.optInt("unread"),
+                last = if (json.isNull("last")) null else json.getJSONObject("last").let { last ->
+                    LastShare(last.getString("plan_name"), last.getBoolean("from_me"), Instant.parse(last.getString("created_at")))
+                }
+            )
+        }
+
+    // The plans shared with a user
+    suspend fun getConversation(token: String, userId: Long): ConversationDetails =
+        parse(request("GET", "/api/me/conversations/$userId", token = token).decodeToString()) { json ->
+            val shares = json.getJSONArray("shares")
+            ConversationDetails(
+                user = parseSocialUser(json.getJSONObject("user")),
+                canShare = json.getBoolean("can_share"),
+                shares = (0 until shares.length()).map { parseSharedPlan(shares.getJSONObject(it)) }
+            )
+        }
+
+    // Sends a copy of a plan of the logged user to the user (they must follow each other)
+    suspend fun sharePlan(token: String, userId: Long, planId: Long): SharedPlan {
+        val body = JSONObject().put("plan_id", planId)
+        return parse(request("POST", "/api/me/conversations/$userId", token = token, json = body).decodeToString()) {
+            parseSharedPlan(it)
+        }
+    }
+
+    // The plans received from the user are seen
+    suspend fun markConversationRead(token: String, userId: Long) {
+        request("POST", "/api/me/conversations/$userId/read", token = token)
+    }
+
+    suspend fun getSharedPlan(token: String, shareId: Long): SharedPlan =
+        parse(request("GET", "/api/me/shares/$shareId", token = token).decodeToString()) { parseSharedPlan(it) }
+
+    // The receiver adds the plan received to their plans (the plan added before, if already added)
+    suspend fun saveSharedPlan(token: String, shareId: Long): Plan =
+        parse(request("POST", "/api/me/shares/$shareId/save", token = token).decodeToString()) { Plan.fromJson(it) }
+
+    private fun parseSocialUser(json: JSONObject) = SocialUser(
+        id = json.getLong("id"),
+        username = json.getString("username"),
+        hasPicture = json.getBoolean("has_picture"),
+        isFollowing = json.optBoolean("is_following"),
+        followsYou = json.optBoolean("follows_you")
+    )
+
+    private fun parseProfile(json: JSONObject) = UserProfile(
+        user = parseSocialUser(json),
+        postsCount = json.getInt("posts_count"),
+        followersCount = json.getInt("followers_count"),
+        followingCount = json.getInt("following_count")
+    )
+
+    private fun parseSharedPlan(json: JSONObject) = SharedPlan(
+        id = json.getLong("id"),
+        fromMe = json.getBoolean("from_me"),
+        plan = Plan.fromJson(json.getJSONObject("plan")),
+        read = json.optBoolean("read"),
+        savedPlanId = if (json.isNull("saved_plan_id")) null else json.getLong("saved_plan_id"),
+        createdAt = Instant.parse(json.getString("created_at")),
+        user = if (json.isNull("user")) null else parseSocialUser(json.getJSONObject("user"))
+    )
 
 
     // --------------------------------------------------------- FINISHED SESSIONS (LAST SESSIONS, calendar)
@@ -418,6 +555,15 @@ object ApiClient {
     private fun <T> parse(answer: String, read: (JSONObject) -> T): T =
         try {
             read(JSONObject(answer))
+        } catch (e: JSONException) {
+            throw ApiException(500, "Invalid answer of the server")
+        }
+
+    // A JSON array answered by the server, each object read by [read]
+    private fun <T> parseArray(answer: ByteArray, read: (JSONObject) -> T): List<T> =
+        try {
+            val array = JSONArray(answer.decodeToString())
+            (0 until array.length()).map { read(array.getJSONObject(it)) }
         } catch (e: JSONException) {
             throw ApiException(500, "Invalid answer of the server")
         }

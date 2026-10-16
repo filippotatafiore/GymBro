@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A workout plan in the window to choose one (share it, publish it): tap it to choose it -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/ListRowStyle"
+    android:paddingTop="14dp"
+    android:paddingBottom="14dp"
+    android:foreground="@drawable/row_ripple">
+
+    <ImageView
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/dumbbell_icon"
+        android:tint="?attr/accentTextColor"
+        android:importantForAccessibility="no"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="14dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/planChoiceName"
+            style="@style/RowTitleStyle"
+            android:textSize="16sp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            tools:text="Push Pull Legs"/>
+
+        <TextView
+            android:id="@+id/planChoiceInfo"
+            style="@style/RowSubtitleStyle"
+            android:layout_marginTop="2dp"
+            tools:text="3 days · Build muscle"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/planChoicePublic"
+        style="@style/SoftBadgeStyle"
+        android:layout_marginStart="8dp"
+        android:drawableStart="@drawable/globe_badge_icon"
+        android:text="@string/public_badge"
+        android:visibility="gone"
+        tools:visibility="visible"/>
+
+</LinearLayout>

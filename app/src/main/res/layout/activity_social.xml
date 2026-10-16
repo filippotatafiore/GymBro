@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Social page (logic in SocialActivity.kt): the feed with the posts of the users followed. At the
+    top the search of the users (the results cover the feed while there is a text) and the button
+    of Messages (workout plans shared with other users), with a dot for the plans not seen yet.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/socialRoot"
+    tools:context=".SocialActivity"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background">
+
+    <!-- spacer (status bar) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="50dp"/>
+
+    <!--************************************** top strip **************************************-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="12dp">
+
+        <EditText
+            android:id="@+id/searchInput"
+            style="@style/SearchFieldStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:hint="@string/search_users_hint"/>
+
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="10dp">
+
+            <ImageButton
+                android:id="@+id/messagesButton"
+                style="@style/RoundIconButtonStyle"
+                android:padding="10dp"
+                android:contentDescription="@string/messages"
+                android:src="@drawable/direct_icon"/>
+
+            <!-- plans received and not seen yet -->
+            <View
+                android:id="@+id/messagesUnreadDot"
+                android:layout_width="13dp"
+                android:layout_height="13dp"
+                android:layout_gravity="top|end"
+                android:background="@drawable/unread_dot"
+                android:visibility="gone"
+                tools:visibility="visible"/>
+
+        </FrameLayout>
+
+    </LinearLayout>
+    <!--************************************** top strip **************************************-->
+
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp">
+
+        <!-- the feed: res/layout/item_feed_post.xml (FeedAdapter) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/feedList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="4dp"
+            android:paddingBottom="12dp"
+            android:clipToPadding="false"
+            tools:listitem="@layout/item_feed_post"/>
+
+        <TextView
+            android:id="@+id/feedEmptyText"
+            style="@style/EmptyListTextStyle"
+            android:text="@string/feed_empty"
+            android:visibility="gone"/>
+
+        <ProgressBar
+            android:id="@+id/feedLoading"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="?attr/accentTextColor"/>
+
+        <!-- results of the search, over the feed: res/layout/item_user.xml (UserAdapter) -->
+        <FrameLayout
+            android:id="@+id/searchResults"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/background"
+            android:visibility="gone">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/searchList"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingBottom="12dp"
+                android:clipToPadding="false"
+                tools:listitem="@layout/item_user"/>
+
+            <TextView
+                android:id="@+id/searchEmptyText"
+                style="@style/EmptyListTextStyle"
+                android:layout_gravity="top"
+                android:text="@string/no_users_found"
+                android:visibility="gone"/>
+
+        </FrameLayout>
+
+    </FrameLayout>
+
+
+    <!--************************************** bottom strip **************************************-->
+    <include
+        android:id="@+id/bottomNav"
+        layout="@layout/bottom_nav"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+</LinearLayout>

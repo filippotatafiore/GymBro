@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+    Followers and followed users of a user (logic in FollowListActivity.kt), opened by tapping the
+    numbers of a profile: the two lists (choice at the top), with a search on the list shown.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/followListRoot"
+    tools:context=".FollowListActivity"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background">
+
+    <!-- spacer (status bar) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="50dp"/>
+
+    <!--************************************** top strip **************************************-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <ImageButton
+            android:id="@+id/followListBackButton"
+            style="@style/RoundIconButtonStyle"
+            android:contentDescription="@string/back"
+            android:src="@drawable/back_arrow_icon"/>
+
+        <TextView
+            android:id="@+id/followListTitle"
+            style="@style/SectionTitleStyle"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:singleLine="true"
+            android:ellipsize="end"
+            tools:text="marco.runs"/>
+
+    </LinearLayout>
+    <!--************************************** top strip **************************************-->
+
+    <!-- Followers / Following -->
+    <RadioGroup
+        android:id="@+id/followListGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/followersTab"
+            style="@style/SegmentStyle"
+            android:text="@string/followers"
+            tools:text="34 Followers"/>
+
+        <View
+            android:layout_width="8dp"
+            android:layout_height="match_parent"/>
+
+        <RadioButton
+            android:id="@+id/followingTab"
+            style="@style/SegmentStyle"
+            android:text="@string/following"
+            tools:text="56 Following"/>
+
+    </RadioGroup>
+
+    <EditText
+        android:id="@+id/followSearchInput"
+        style="@style/SearchFieldStyle"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="12dp"
+        android:hint="@string/search_list_hint"/>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp">
+
+        <!-- res/layout/item_user.xml (UserAdapter) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/followList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="12dp"
+            android:clipToPadding="false"
+            tools:listitem="@layout/item_user"/>
+
+        <TextView
+            android:id="@+id/followEmptyText"
+            style="@style/EmptyListTextStyle"
+            android:layout_gravity="top"
+            android:visibility="gone"
+            tools:text="@string/no_followers"/>
+
+        <ProgressBar
+            android:id="@+id/followLoading"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="?attr/accentTextColor"/>
+
+    </FrameLayout>
+
+</LinearLayout>

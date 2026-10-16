@@ -1,0 +1,6 @@
+<!-- Paper plane (Messages of the social page: workout plans shared with other users) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="24dp" android:viewportHeight="24" android:viewportWidth="24" android:width="24dp">
+
+    <path android:fillColor="#00000000" android:pathData="M21.2,2.8L2.9,9.3L10.2,13.6L14.6,21.1ZM21.2,2.8L10.2,13.6" android:strokeColor="@color/icon" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="2"/>
+
+</vector>

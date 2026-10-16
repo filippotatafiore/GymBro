@@ -40,18 +40,19 @@
             android:contentDescription="@string/chat"
             android:src="@drawable/chat_icon"/>
 
+        <!-- social page: feed of the users followed, search, messages -->
         <ImageButton
-            android:id="@+id/searchButton"
+            android:id="@+id/socialButton"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:scaleType="centerInside"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
-            android:padding="8dp"
+            android:padding="7dp"
             android:background="@android:color/transparent"
-            android:contentDescription="@string/search"
-            android:src="@drawable/search_icon"/>
+            android:contentDescription="@string/social"
+            android:src="@drawable/social_icon"/>
 
         <ImageButton
             android:id="@+id/profileButton"

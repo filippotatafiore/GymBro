@@ -43,6 +43,62 @@
         android:textSize="15sp"
         android:text="@string/set_active_plan"/>
 
+    <!-- your plans only: private, or public (everyone sees it on your profile) -->
+    <LinearLayout
+        android:id="@+id/planVisibility"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:textColor="?attr/accentTextColor"
+            android:textSize="14sp"
+            android:letterSpacing="0.05"
+            android:text="@string/plan_visibility"/>
+
+        <RadioGroup
+            android:id="@+id/planVisibilityGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/planPrivateOption"
+                style="@style/SegmentStyle"
+                android:layout_height="40dp"
+                android:textSize="14sp"
+                android:text="@string/plan_private"/>
+
+            <View
+                android:layout_width="8dp"
+                android:layout_height="match_parent"/>
+
+            <RadioButton
+                android:id="@+id/planPublicOption"
+                style="@style/SegmentStyle"
+                android:layout_height="40dp"
+                android:textSize="14sp"
+                android:text="@string/plan_public"/>
+
+        </RadioGroup>
+
+        <TextView
+            android:id="@+id/planVisibilityHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp"
+            tools:text="@string/plan_public_hint"/>
+
+    </LinearLayout>
+
     <!-- rows: res/layout/item_detail_row.xml -->
     <LinearLayout
         android:id="@+id/planInfoRows"

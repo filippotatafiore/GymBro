@@ -1,0 +1,6 @@
+<!-- Small check mark next to a text (e.g. "Added to your plans"), tinted by the text -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="14dp" android:viewportHeight="24" android:viewportWidth="24" android:width="14dp">
+
+    <path android:fillColor="#00000000" android:pathData="M5,12.5L9.8,17.3L19,7" android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="3"/>
+
+</vector>

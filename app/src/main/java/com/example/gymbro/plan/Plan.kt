@@ -73,7 +73,9 @@ data class PlanDay(val name: String, val exercises: List<PlanExercise>) {
 
 // A gym workout plan of the user, written by the AI coach and saved on the server (it can then be
 // changed by hand or by the coach). goal, level, daysPerWeek, minutesPerSession, preferences: what
-// the user asked when creating it. notes: the advice of the coach.
+// the user asked when creating it. notes: the advice of the coach. isPublic: everyone can see it on
+// the profile of the user (and add a copy of it to their plans). fromUsername: the plan is a copy of
+// a plan of that user (public or shared with Messages), null if not.
 data class Plan(
     val id: Long,
     val name: String,
@@ -85,7 +87,9 @@ data class Plan(
     val notes: String,
     val days: List<PlanDay>,
     val createdAt: Instant,
-    val updatedAt: Instant
+    val updatedAt: Instant,
+    val isPublic: Boolean = false,
+    val fromUsername: String? = null
 ) {
     // What the user can change (sent to the server when saving the changes)
     fun toJson(): JSONObject = JSONObject()
@@ -103,6 +107,8 @@ data class Plan(
         .put("preferences", preferences)
         .put("created_at", createdAt.toString())
         .put("updated_at", updatedAt.toString())
+        .put("public", isPublic)
+        .put("from_username", fromUsername ?: JSONObject.NULL)
 
 
     // --------------------------------------------------------- CHANGES (they return the changed plan)
@@ -143,7 +149,9 @@ data class Plan(
                 (0 until array.length()).map { PlanDay.fromJson(array.getJSONObject(it)) }
             },
             createdAt = Instant.parse(json.getString("created_at")),
-            updatedAt = Instant.parse(json.getString("updated_at"))
+            updatedAt = Instant.parse(json.getString("updated_at")),
+            isPublic = json.optBoolean("public"),
+            fromUsername = if (json.isNull("from_username")) null else json.getString("from_username")
         )
     }
 }

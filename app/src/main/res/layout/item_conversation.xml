@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A user of Messages: picture, username, the last plan shared and when, how many plans received
+     were not seen yet. Tap it to see the plans shared with the user. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:background="@drawable/menu_item_background">
+
+    <ImageView
+        android:id="@+id/conversationAvatar"
+        style="@style/ProfilePictureStyle"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:importantForAccessibility="no"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="14dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/conversationName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:textColor="@color/textPrimary"
+            android:textSize="16sp"
+            android:singleLine="true"
+            android:ellipsize="end"
+            tools:text="marco.runs"/>
+
+        <TextView
+            android:id="@+id/conversationLast"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/textSecondary"
+            android:textSize="13sp"
+            android:singleLine="true"
+            android:ellipsize="end"
+            tools:text="Shared “Push Pull Legs” with you"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:orientation="vertical"
+        android:gravity="end">
+
+        <TextView
+            android:id="@+id/conversationTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            tools:text="2 hours ago"/>
+
+        <!-- plans received and not seen yet -->
+        <TextView
+            android:id="@+id/conversationUnread"
+            style="@style/BadgeStyle"
+            android:layout_marginTop="4dp"
+            android:minWidth="22dp"
+            android:gravity="center"
+            android:visibility="gone"
+            tools:text="2"
+            tools:visibility="visible"/>
+
+    </LinearLayout>
+
+</LinearLayout>

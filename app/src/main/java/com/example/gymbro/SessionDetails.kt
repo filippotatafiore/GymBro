@@ -14,6 +14,13 @@ import androidx.annotation.StringRes
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.LifecycleOwner
 import com.example.gymbro.data.TrainingSession
+import com.example.gymbro.network.Better
+import com.example.gymbro.network.Metric
+import com.example.gymbro.network.Post
+import com.example.gymbro.network.PostKind
+import com.example.gymbro.profile.displayTitle
+import com.example.gymbro.profile.displayValue
+import com.example.gymbro.profile.icon
 import com.example.gymbro.session.Exercise
 import com.example.gymbro.session.RunSummary
 import com.example.gymbro.session.SessionType
@@ -41,6 +48,36 @@ fun showSessionDetails(context: Context, owner: LifecycleOwner, session: Trainin
             context, owner, session.displayTitle(context), date,
             session.durationMillis, session.exercises.orEmpty(), session.planName
         )
+    }
+}
+
+// Details of a post (tap it in a profile or in the feed of the social page):
+// - run: map with the whole path followed and the final statistics
+// - gym: training time and exercises
+// - manual: the result and how it is evaluated
+fun showPostDetails(context: Context, owner: LifecycleOwner, post: Post) {
+    val title = post.displayTitle(context)
+    val published = context.getString(R.string.published_on, formatDate(post.createdAt))
+    // sessions: when the session was done
+    val sessionDate = post.sessionStart?.let { formatDateTime(it.toEpochMilli()) } ?: published
+
+    when (post.kind) {
+        PostKind.RUN -> showRunDetails(context, owner, title, sessionDate, post.toRunSummary())
+
+        PostKind.GYM -> showGymDetails(
+            context, owner, title, sessionDate, (post.durationSeconds ?: 0L) * 1000, post.exercises.orEmpty()
+        )
+
+        PostKind.MANUAL -> {
+            val (dialog, content) = detailsDialog(context, owner, post.icon(), title, published)
+            addDetailRow(content, R.string.detail_result, post.displayValue())
+            addDetailRow(content, R.string.detail_measured_by,
+                context.getString(if (post.metric == Metric.TIME) R.string.metric_time else R.string.metric_weight))
+            addDetailRow(content, R.string.detail_better,
+                context.getString(if (post.better == Better.LOWER) R.string.better_lower else R.string.better_higher))
+            if (!post.notes.isNullOrBlank()) addDetailRow(content, R.string.detail_notes, post.notes)
+            dialog.show()
+        }
     }
 }
 

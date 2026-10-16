@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A post of the feed of the social page (logic in FeedAdapter.kt): who published it and when,
+     then the session or result. A personal best of the user: border in the favorite color and
+     "PERSONAL BEST". Tap the user to open their profile, the rest to see the details. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/feedCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginTop="6dp"
+    android:layout_marginBottom="6dp"
+    android:orientation="vertical"
+    android:paddingBottom="16dp"
+    android:background="@drawable/list_row_background"
+    android:foreground="@drawable/row_ripple">
+
+    <!-- the user: tap to open the profile -->
+    <LinearLayout
+        android:id="@+id/feedUser"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="12dp"
+        android:background="@drawable/menu_item_background">
+
+        <ImageView
+            android:id="@+id/feedAvatar"
+            style="@style/ProfilePictureStyle"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:importantForAccessibility="no"/>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/feedUsername"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textColor="@color/textPrimary"
+                android:textSize="16sp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                tools:text="marco.runs"/>
+
+            <TextView
+                android:id="@+id/feedTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/textSecondary"
+                android:textSize="12sp"
+                tools:text="2 hours ago"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/feedBestBadge"
+            style="@style/BadgeStyle"
+            android:layout_marginStart="8dp"
+            android:drawableStart="@drawable/trophy_badge_icon"
+            android:text="@string/personal_best_badge"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+    </LinearLayout>
+
+    <!-- the session or result -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="14dp"
+        android:background="@drawable/input_background">
+
+        <ImageView
+            android:id="@+id/feedIcon"
+            android:tint="?attr/accentTextColor"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:scaleType="fitCenter"
+            android:importantForAccessibility="no"
+            tools:src="@drawable/shoe_icon"/>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/feedTitle"
+                style="@style/RowTitleStyle"
+                android:textSize="17sp"
+                tools:text="Run · 10 km"/>
+
+            <TextView
+                android:id="@+id/feedDetails"
+                style="@style/RowSubtitleStyle"
+                android:layout_marginTop="2dp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                tools:text="Pace 05:15 /km · 620 kcal"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/feedValue"
+            style="@style/RowValueStyle"
+            android:textSize="20sp"
+            tools:text="52:30"/>
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -39,9 +39,25 @@ billing account linked to the project.)
 | GET    | `/api/me/plans/<id>`          | yes  | One of your plans                    |
 | PUT    | `/api/me/plans/<id>`          | yes  | Save your changes to a plan          |
 | DELETE | `/api/me/plans/<id>`          | yes  | Delete one of your plans             |
-| GET    | `/api/users/<id>`             |      | Public profile                       |
+| PUT    | `/api/me/plans/<id>/public`   | yes  | `{"public": true}`: on your profile  |
+| GET    | `/api/users/<id>`             |      | Public profile, with counts (below)  |
 | GET    | `/api/users/<id>/picture`     |      | Profile picture (404 if none)        |
 | GET    | `/api/users/<id>/posts`       |      | Posts published by the user          |
+| GET    | `/api/users/<id>/plans`       |      | Public workout plans of the user     |
+| GET    | `/api/users/<id>/plans/<pid>` |      | One public plan of the user          |
+| POST   | `/api/users/<id>/plans/<pid>/copy` | yes | Add a copy of it to your plans  |
+| GET    | `/api/users/search?q=...`     | yes  | Users whose username contains q      |
+| POST   | `/api/users/<id>/follow`      | yes  | Follow the user                      |
+| DELETE | `/api/users/<id>/follow`      | yes  | Stop following the user              |
+| GET    | `/api/users/<id>/followers`   | yes  | Users following the user             |
+| GET    | `/api/users/<id>/following`   | yes  | Users followed by the user           |
+| GET    | `/api/feed`                   | yes  | Posts of the users you follow        |
+| GET    | `/api/me/conversations`       | yes  | Users you can share plans with       |
+| GET    | `/api/me/conversations/<id>`  | yes  | Plans shared with that user          |
+| POST   | `/api/me/conversations/<id>`  | yes  | Share a plan: `{"plan_id": 3}`       |
+| POST   | `/api/me/conversations/<id>/read` | yes | The plans received are seen      |
+| GET    | `/api/me/shares/<id>`         | yes  | A plan shared with you or by you     |
+| POST   | `/api/me/shares/<id>/save`    | yes  | Add a plan received to your plans    |
 
 "Auth" endpoints need the header `Authorization: Bearer <token>` (the token is returned by
 register/login).
@@ -96,12 +112,38 @@ Body of `POST /api/me/plans`: `{"goal": "lose_weight" | "build_muscle" | "gain_m
 "Bench Press", "muscle_group": "Chest", "sets": 4, "reps": "8-10", "rest_s": 90, "notes": ""}]}],
 "goal", "level", "days_per_week", "minutes_per_session", "preferences", "created_at", "updated_at"}`.
 Body of `PUT /api/me/plans/<id>`: `{"name", "notes", "days"}` as above (`rest_s` can be null).
+Every plan also has `"public"` (true: everyone sees it on your profile, `PUT /api/me/plans/<id>/public`)
+and `"from_username"` (the plan is a copy of a plan of that user, or null).
+
+### Social (social page of the app)
+
+- `GET /api/users/<id>` also has `posts_count`, `followers_count`, `following_count` and, with the
+  login (of another user), `is_following` (you follow them) and `follows_you`.
+- The users in the lists (search, followers, following) are `{"id", "username", "has_picture",
+  "is_following", "follows_you"}`. The search ignores upper/lower case: first the usernames that
+  start with `q`, then those that contain it (at most 30).
+- `GET /api/feed` -> `{"posts": [...], "next": "..."}`: the posts of the users you follow, newest
+  first, 20 at a time; for the next page `GET /api/feed?before=<next>` (`next` is null on the last
+  page). Every post also has `"user"` and `"personal_best"`: true if it is one of the personal bests
+  of that user (the same rules of the profile of the app: the fastest run of every distance, the
+  best manual result of every exercise).
+- Public plans: everyone can see them on the profile of the user; `.../copy` adds a copy to your
+  plans (then it is a plan like the others, with `from_username`).
+- Shared plans ("Messages" of the app): only between users that follow each other. The receiver
+  gets a copy of the plan as it is when it is shared (the later changes are not sent) and can add it
+  to their plans (`/api/me/shares/<id>/save`, the plan added before if called again).
+  `GET /api/me/conversations` -> `[{"user", "can_share", "unread", "last": {"plan_name", "from_me",
+  "created_at"} or null}]`; `GET /api/me/conversations/<id>` -> `{"user", "can_share", "shares":
+  [{"id", "from_me", "plan", "read", "saved_plan_id", "created_at"}]}` (oldest first).
+- `POST /api/me/delete-account` also deletes the follows of the user (in both directions) and the
+  plans they shared or received.
 
 ## Data in Firestore
 
 The collections (the "tables" of Firestore) are described at the top of `app.py`: `users`, `posts`,
-`sessions`, `plans`, `tokens`, `pictures`, plus `usernames` and `emails` (they keep usernames and emails unique) and
-`counters` (the ids 1, 2, 3... of users and posts). To see the data: Firebase console >
+`sessions`, `plans`, `follows`, `shares`, `tokens`, `pictures`, plus `usernames` and `emails` (they keep usernames and emails unique) and
+`counters` (the ids 1, 2, 3... of users, posts, plans, sessions and shares). No index has to be
+created by hand: the queries of the server use only the indexes that Firestore creates by itself. To see the data: Firebase console >
 your project > **Firestore Database** > **Data**.
 
 ## Keys (never in git)

@@ -1,5 +1,6 @@
 package com.example.gymbro.plan
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,10 +12,12 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.gymbro.R
 import com.example.gymbro.formatDate
 
-// Fills the horizontal WORKOUT PLANS list of the profile: one card (res/layout/item_plan.xml) per
+// Fills the horizontal WORKOUT PLANS list of a profile: one card (res/layout/item_plan.xml) per
 // plan, e.g. "Hypertrophy · 4 days" / "4 days · Build muscle"; "ACTIVE" on the plan followed by the
-// gym sessions. Tap a card to open the plan.
+// gym sessions, "PUBLIC" on the plans that everyone can see (showPublic = false: the profile of
+// another user, where all the plans shown are public). Tap a card to open the plan.
 class PlanAdapter(
+    private val showPublic: Boolean = true,
     private val onClick: (Plan) -> Unit
 ) : ListAdapter<Plan, PlanAdapter.PlanViewHolder>(DIFF) {
 
@@ -22,6 +25,8 @@ class PlanAdapter(
     var activePlanId: Long? = null
 
     class PlanViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val icon: View = view.findViewById(R.id.planCardIcon)
+        val public: View = view.findViewById(R.id.planCardPublic)
         val active: View = view.findViewById(R.id.planCardActive)
         val name: TextView = view.findViewById(R.id.planCardName)
         val info: TextView = view.findViewById(R.id.planCardInfo)
@@ -39,8 +44,9 @@ class PlanAdapter(
 
         holder.name.text = plan.name
         holder.active.isVisible = plan.id == activePlanId
-        val days = context.resources.getQuantityString(R.plurals.plan_days, plan.days.size, plan.days.size)
-        holder.info.text = plan.goal?.let { context.getString(R.string.plan_card_info, days, context.getString(it.label)) } ?: days
+        holder.public.isVisible = showPublic && plan.isPublic
+        holder.icon.isVisible = !(holder.active.isVisible && holder.public.isVisible)
+        holder.info.text = plan.cardInfo(context)
         holder.date.text = context.getString(R.string.plan_updated_on, formatDate(plan.updatedAt))
         holder.itemView.setOnClickListener { onClick(plan) }
     }
@@ -52,4 +58,10 @@ class PlanAdapter(
             override fun areContentsTheSame(old: Plan, new: Plan) = old == new
         }
     }
+}
+
+// e.g. "4 days · Build muscle", "3 days" (cards of the plans)
+fun Plan.cardInfo(context: Context): String {
+    val dayCount = context.resources.getQuantityString(R.plurals.plan_days, days.size, days.size)
+    return goal?.let { context.getString(R.string.plan_card_info, dayCount, context.getString(it.label)) } ?: dayCount
 }

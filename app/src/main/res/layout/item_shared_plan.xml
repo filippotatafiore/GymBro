@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- A workout plan shared (logic in SharedPlanAdapter.kt): a card on the right if sent (light tint of
+     the favorite color), on the left if received (neutral), with the time under it. Tap the card to
+     see the plan. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/sharedPlanRow"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="8dp"
+    android:gravity="end">
+
+    <LinearLayout
+        android:id="@+id/sharedPlanCard"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="14dp"
+        android:background="@drawable/shared_plan_sent_background">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/dumbbell_icon"
+                android:tint="?attr/accentTextColor"
+                android:importantForAccessibility="no"/>
+
+            <TextView
+                style="@style/ExerciseMuscleGroupStyle"
+                android:layout_marginTop="0dp"
+                android:layout_marginStart="6dp"
+                android:text="@string/workout_plan_label"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/sharedPlanName"
+            style="@style/RowTitleStyle"
+            android:layout_marginTop="8dp"
+            android:textSize="17sp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            tools:text="Push Pull Legs"/>
+
+        <TextView
+            android:id="@+id/sharedPlanInfo"
+            style="@style/RowSubtitleStyle"
+            android:layout_marginTop="2dp"
+            android:textStyle="bold"
+            android:textColor="?attr/accentTextColor"
+            tools:text="3 days · Build muscle"/>
+
+        <!-- "Tap to view", or "Added to your plans" (received and added) -->
+        <TextView
+            android:id="@+id/sharedPlanStatus"
+            style="@style/RowSubtitleStyle"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:drawablePadding="4dp"
+            android:textSize="12sp"
+            tools:text="@string/tap_to_view"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/sharedPlanTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
+        android:textColor="@color/textSecondary"
+        android:textSize="11sp"
+        tools:text="Oct 16, 2026, 10:42 AM"/>
+
+</LinearLayout>

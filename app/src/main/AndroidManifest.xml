@@ -46,6 +46,26 @@
         <activity
             android:name=".PlanActivity"
             android:exported="false" />
+        <!-- social page (third icon of the bottom strip) and its pages. adjustResize: the pages with
+             a search field receive the height of the keyboard, to stay above it -->
+        <activity
+            android:name=".SocialActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".UserProfileActivity"
+            android:exported="false" />
+        <activity
+            android:name=".FollowListActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".MessagesActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ConversationActivity"
+            android:exported="false" />
         <activity
             android:name=".session.RoutePlannerActivity"
             android:exported="false" />

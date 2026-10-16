@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Top of the profile pages (your profile and those of the other users, logic in ProfileHeader.kt):
+     picture, and next to it how many posts, followers and followed users (tap them); username and
+     a line under it (your email, or "Follows you") -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/profileHeader"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="20dp"
+    android:paddingEnd="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/profilePicture"
+            style="@style/ProfilePictureStyle"
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            android:contentDescription="@string/profile_picture"/>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/postsCountButton"
+                style="@style/ProfileCountStyle">
+
+                <TextView
+                    android:id="@+id/postsCount"
+                    style="@style/ProfileCountValueStyle"
+                    android:text="@string/no_count"
+                    tools:text="12"/>
+
+                <TextView
+                    style="@style/ProfileCountLabelStyle"
+                    android:text="@string/posts_count_label"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/followersCountButton"
+                style="@style/ProfileCountStyle">
+
+                <TextView
+                    android:id="@+id/followersCount"
+                    style="@style/ProfileCountValueStyle"
+                    android:text="@string/no_count"
+                    tools:text="34"/>
+
+                <TextView
+                    style="@style/ProfileCountLabelStyle"
+                    android:text="@string/followers"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/followingCountButton"
+                style="@style/ProfileCountStyle">
+
+                <TextView
+                    android:id="@+id/followingCount"
+                    style="@style/ProfileCountValueStyle"
+                    android:text="@string/no_count"
+                    tools:text="56"/>
+
+                <TextView
+                    style="@style/ProfileCountLabelStyle"
+                    android:text="@string/following"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/profileUsername"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textStyle="bold"
+        android:textColor="@color/textPrimary"
+        android:textSize="22sp"
+        android:singleLine="true"
+        android:ellipsize="end"
+        tools:text="filippo"/>
+
+    <TextView
+        android:id="@+id/profileSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="@color/textSecondary"
+        android:textSize="14sp"
+        tools:text="filippo@example.com"/>
+
+</LinearLayout>

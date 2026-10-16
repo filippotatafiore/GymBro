@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- A workout plan: card of the horizontal list WORKOUT PLANS of the profile (tap it to open it) -->
+<!-- A workout plan: card of the horizontal list WORKOUT PLANS of a profile (tap it to open it), with
+     "PUBLIC" (everyone sees it on your profile) and "ACTIVE" (followed by your gym sessions) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="170dp"
+    android:layout_width="176dp"
     android:layout_height="wrap_content"
     android:layout_marginStart="6dp"
     android:layout_marginEnd="6dp"
@@ -12,13 +13,17 @@
     android:background="@drawable/list_row_background"
     android:foreground="@drawable/row_ripple">
 
+    <!-- minHeight: the height of the icon, also when it is hidden (all the cards equally tall) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="28dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
+        <!-- hidden when both the labels are shown: there is no room for it -->
         <ImageView
+            android:id="@+id/planCardIcon"
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:scaleType="fitCenter"
@@ -31,20 +36,20 @@
             android:layout_height="0dp"
             android:layout_weight="1"/>
 
+        <!-- everyone can see the plan on the profile -->
+        <TextView
+            android:id="@+id/planCardPublic"
+            style="@style/SoftBadgeStyle"
+            android:drawableStart="@drawable/globe_badge_icon"
+            android:text="@string/public_badge"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
         <!-- the plan followed by the gym sessions -->
         <TextView
             android:id="@+id/planCardActive"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
-            android:background="@drawable/last_done_badge_background"
-            android:textStyle="bold"
-            android:textColor="?attr/onAccentColor"
-            android:textSize="11sp"
-            android:letterSpacing="0.05"
+            style="@style/BadgeStyle"
+            android:layout_marginStart="6dp"
             android:text="@string/active_badge"
             android:visibility="gone"
             tools:visibility="visible"/>

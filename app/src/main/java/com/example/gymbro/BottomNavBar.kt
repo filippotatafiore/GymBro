@@ -18,7 +18,7 @@ import com.example.gymbro.session.ActiveSession
 // - makes the home icon shine (in the favorite color) while a training session is in progress
 class BottomNavBar(private val activity: Activity, private val currentPage: Page) {
 
-    enum class Page { HOME, CHAT, PROFILE }
+    enum class Page { HOME, CHAT, SOCIAL, PROFILE }
 
     private val homeButton: ImageButton = activity.findViewById(R.id.homeButton)
     private var glowAnimation: ObjectAnimator? = null
@@ -27,6 +27,7 @@ class BottomNavBar(private val activity: Activity, private val currentPage: Page
         val buttons = mapOf(
             Page.HOME to homeButton,
             Page.CHAT to activity.findViewById(R.id.chatButton),
+            Page.SOCIAL to activity.findViewById(R.id.socialButton),
             Page.PROFILE to activity.findViewById<ImageButton>(R.id.profileButton)
         )
         buttons.forEach { (page, button) -> button.setOnClickListener { open(page) } }
@@ -45,6 +46,7 @@ class BottomNavBar(private val activity: Activity, private val currentPage: Page
         val target = when (page) {
             Page.HOME -> MainActivity::class.java
             Page.CHAT -> ChatActivity::class.java
+            Page.SOCIAL -> SocialActivity::class.java
             Page.PROFILE -> ProfileActivity::class.java
         }
         // REORDER_TO_FRONT: if the page is already open it is brought back,

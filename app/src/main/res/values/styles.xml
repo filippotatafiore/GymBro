@@ -287,6 +287,84 @@
         <item name="android:src">@drawable/default_avatar</item>
     </style>
 
+    <!-- Posts / Followers / Following next to the profile picture: tap them (number above, name below) -->
+    <style name="ProfileCountStyle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+        <item name="android:background">@drawable/menu_item_background</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="ProfileCountValueStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+
+    <style name="ProfileCountLabelStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">2dp</item>
+        <item name="android:textColor">@color/textSecondary</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+
+    <!-- ************************************ Social page ************************************ -->
+    <!-- Search field (users, followers): pill with a magnifying glass -->
+    <style name="SearchFieldStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">44dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:drawableStart">@drawable/search_field_icon</item>
+        <item name="android:drawablePadding">10dp</item>
+        <item name="android:background">@drawable/chat_input_background</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textColorHint">@color/textSecondary</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textCursorDrawable">@null</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:inputType">text</item>
+        <item name="android:imeOptions">actionSearch</item>
+        <item name="android:importantForAutofill">no</item>
+    </style>
+
+    <!-- Small label in the favorite color, e.g. PERSONAL BEST (feed and posts), ACTIVE (plans) -->
+    <style name="BadgeStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:paddingTop">3dp</item>
+        <item name="android:paddingBottom">3dp</item>
+        <item name="android:drawablePadding">4dp</item>
+        <item name="android:drawableTint">?attr/onAccentColor</item>
+        <item name="android:background">@drawable/last_done_badge_background</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/onAccentColor</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:letterSpacing">0.05</item>
+        <item name="android:singleLine">true</item>
+    </style>
+
+    <!-- The same label with a light tint of the favorite color, e.g. PUBLIC (plans) -->
+    <style name="SoftBadgeStyle" parent="BadgeStyle">
+        <item name="android:drawableTint">?attr/accentTextColor</item>
+        <item name="android:background">@drawable/badge_soft_background</item>
+        <item name="android:textColor">?attr/accentTextColor</item>
+    </style>
+
 
 
     <!-- ************************************ Chat page ************************************ -->
@@ -371,6 +449,36 @@
         <item name="android:layout_height">64dp</item>
         <item name="android:scaleType">fitCenter</item>
         <item name="android:tint">?attr/accentTextColor</item>
+    </style>
+
+    <!-- Options of the "Publish" window of the profile: rows tinted with the favorite color -->
+    <style name="PublishOptionStyle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">10dp</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:padding">16dp</item>
+        <item name="android:background">@drawable/publish_option_background</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="PublishOptionIconStyle">
+        <item name="android:layout_width">36dp</item>
+        <item name="android:layout_height">36dp</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:tint">?attr/accentTextColor</item>
+    </style>
+
+    <style name="PublishOptionTextStyle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_marginStart">16dp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textSize">17sp</item>
     </style>
 
     <style name="TrainingOptionTextStyle">

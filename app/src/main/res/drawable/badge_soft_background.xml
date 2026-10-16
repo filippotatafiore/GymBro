@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Small label with a light tint of the favorite color: "PUBLIC" (workout plans) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <solid android:color="?attr/accentSoftColor"/>
+    <corners android:radius="10dp"/>
+
+</shape>

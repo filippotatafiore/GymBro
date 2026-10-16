@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Dot on the Messages button of the social page: workout plans received and not seen yet -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <solid android:color="?attr/accentColor"/>
+    <stroke
+        android:width="2dp"
+        android:color="@color/background"/>
+
+</shape>

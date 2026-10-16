@@ -11,19 +11,17 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
-import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.example.gymbro.chat.CoachChat
 import com.example.gymbro.chat.styledText
 import com.example.gymbro.network.ApiClient
 import com.example.gymbro.network.ApiException
+import com.example.gymbro.network.SharedPlan
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.ExerciseEditor
@@ -33,24 +31,38 @@ import com.example.gymbro.plan.PlanForm
 import com.example.gymbro.session.exerciseDetails
 import kotlinx.coroutines.launch
 
-// Page of a gym workout plan (open it from WORKOUT PLANS of the profile). The plan is read from the
-// server every time the page is shown: it also shows the changes made by the coach in the chat.
-// Changes by hand, saved on the server right away:
-// - tap an exercise: change it, replace it with another one, or delete it
-// - "+ Add exercise" under a day, "+ Add day" at the end
-// - tap a day: rename or delete it; tap the title: rename the plan
-// "Ask the coach to change it": chat about this plan (ChatActivity), where the coach sees the plan
-// as it is now and can change it.
+// Page of a gym workout plan. The plan is read from the server every time the page is shown: it also
+// shows the changes made by the coach in the chat.
+// - your plans (WORKOUT PLANS of your profile), changed by hand and saved on the server right away:
+//   - tap an exercise: change it, replace it with another one, or delete it
+//   - "+ Add exercise" under a day, "+ Add day" at the end
+//   - tap a day: rename or delete it; tap the title: rename the plan
+//   - private or public (everyone sees it on your profile)
+//   "Ask the coach to change it": chat about this plan (ChatActivity), where the coach sees the plan
+//   as it is now and can change it.
+// - a public plan of another user (their profile, see openPublic) or a plan shared with Messages
+//   (see openShared): only to see, with "Add to my plans": a copy, then a plan like the others.
 class PlanActivity : ThemedActivity() {
 
+    // OWN: a plan of the logged user; PUBLIC: a public plan of another user; SHARED: a plan sent
+    // with Messages (by the logged user or to them)
+    private enum class Mode { OWN, PUBLIC, SHARED }
+
+    private var mode = Mode.OWN
     private var planId = 0L
     private var plan: Plan? = null
+    // PUBLIC: the user of the plan; SHARED: the plan shared
+    private var ownerId = 0L
+    private var ownerName = ""
+    private var shareId = 0L
+    private var shared: SharedPlan? = null
     // a change is being saved: the other changes wait (they would start from an old plan)
     private var saving = false
 
     private lateinit var title: TextView
     private lateinit var content: LinearLayout
     private lateinit var loading: ProgressBar
+    private lateinit var bottomButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,6 +74,14 @@ class PlanActivity : ThemedActivity() {
             return
         }
         planId = intent.getLongExtra(EXTRA_PLAN_ID, 0L)
+        ownerId = intent.getLongExtra(EXTRA_OWNER_ID, 0L)
+        ownerName = intent.getStringExtra(EXTRA_OWNER_NAME).orEmpty()
+        shareId = intent.getLongExtra(EXTRA_SHARE_ID, 0L)
+        mode = when {
+            shareId > 0 -> Mode.SHARED
+            ownerId > 0 -> Mode.PUBLIC
+            else -> Mode.OWN
+        }
 
         // link to the layout
         setContentView(R.layout.activity_plan)
@@ -69,19 +89,24 @@ class PlanActivity : ThemedActivity() {
         title = findViewById(R.id.planTitle)
         content = findViewById(R.id.planContent)
         loading = findViewById(R.id.planLoading)
+        bottomButton = findViewById(R.id.askCoachButton)
 
         findViewById<View>(R.id.planBackButton).setOnClickListener { finish() }
-        title.setOnClickListener { renamePlan() }
-        findViewById<View>(R.id.deletePlanButton).setOnClickListener { confirmDeletePlan() }
-        findViewById<Button>(R.id.askCoachButton).setOnClickListener {
-            plan?.let { ChatActivity.open(this, it) }
+        if (mode == Mode.OWN) {
+            title.setOnClickListener { renamePlan() }
+            findViewById<View>(R.id.deletePlanButton).setOnClickListener { confirmDeletePlan() }
+            bottomButton.setOnClickListener { plan?.let { ChatActivity.open(this, it) } }
+        } else {
+            // nothing can be changed: the title is not a button, no delete
+            title.background = null
+            findViewById<View>(R.id.deletePlanButton).isVisible = false
+            bottomButton.setText(R.string.add_to_my_plans)
+            bottomButton.isVisible = false
+            bottomButton.setOnClickListener { addToMyPlans() }
         }
 
         // no bottom strip: the button stays above the navigation bar of the phone
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.planRoot)) { root, insets ->
-            root.updatePadding(bottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom)
-            insets
-        }
+        keepAboveKeyboard(findViewById(R.id.planRoot))
     }
 
     override fun onResume() {
@@ -94,7 +119,16 @@ class PlanActivity : ThemedActivity() {
         val token = UserSession.token ?: return
         lifecycleScope.launch {
             try {
-                show(ApiClient.getPlan(token, planId))
+                when (mode) {
+                    Mode.OWN -> show(ApiClient.getPlan(token, planId))
+                    Mode.PUBLIC -> show(ApiClient.getPublicPlan(ownerId, planId))
+                    Mode.SHARED -> {
+                        val shared = ApiClient.getSharedPlan(token, shareId)
+                        this@PlanActivity.shared = shared
+                        ownerName = shared.user?.username.orEmpty()
+                        show(shared.plan)
+                    }
+                }
             } catch (e: ApiException) {
                 if (e.code == 404) {
                     Toast.makeText(this@PlanActivity, R.string.plan_not_found, Toast.LENGTH_LONG).show()
@@ -111,21 +145,24 @@ class PlanActivity : ThemedActivity() {
 
     // --------------------------------------------------------- PLAN
 
-    // Information and advice of the coach, then each day with its exercises
+    // Information and advice of the coach, then each day with its exercises (they can be changed
+    // only in your plans)
     private fun show(plan: Plan) {
         this.plan = plan
+        val editable = mode == Mode.OWN
         title.text = plan.name
         content.removeAllViews()
         addInfo(plan)
 
-        layoutInflater.inflate(R.layout.item_plan_hint, content, true)
+        if (editable) layoutInflater.inflate(R.layout.item_plan_hint, content, true)
 
         plan.days.forEachIndexed { dayIndex, day ->
             val header = layoutInflater.inflate(R.layout.item_plan_day, content, false)
             header.findViewById<TextView>(R.id.dayName).text = day.name
             header.findViewById<TextView>(R.id.dayExerciseCount).text =
                 resources.getQuantityString(R.plurals.plan_exercises, day.exercises.size, day.exercises.size)
-            header.setOnClickListener { editDay(dayIndex) }
+            if (editable) header.setOnClickListener { editDay(dayIndex) } else header.background = null
+            header.findViewById<View>(R.id.dayEditIcon).isVisible = editable
             content.addView(header)
 
             day.exercises.forEachIndexed { exerciseIndex, exercise ->
@@ -146,29 +183,44 @@ class PlanActivity : ThemedActivity() {
                     text = details
                     isVisible = details.isNotEmpty()
                 }
-                row.setOnClickListener { showExerciseDialog(dayIndex, exerciseIndex) }
+                if (editable) row.setOnClickListener { showExerciseDialog(dayIndex, exerciseIndex) } else row.foreground = null
                 content.addView(row)
             }
 
-            if (day.exercises.size < Plan.MAX_DAY_EXERCISES) {
+            if (editable && day.exercises.size < Plan.MAX_DAY_EXERCISES) {
                 addLink(R.string.add_exercise) { showExerciseDialog(dayIndex, null) }
             }
         }
 
-        if (plan.days.size < Plan.MAX_DAYS) addLink(R.string.add_day) { addDay() }
+        if (editable && plan.days.size < Plan.MAX_DAYS) addLink(R.string.add_day) { addDay() }
+        showBottomButton()
     }
 
-    // The active plan (followed by the gym sessions) or the button to make it active; what the user
-    // asked (goal, level, days, minutes, preferences) and the advice of the coach
+    // Your plans: the active plan (followed by the gym sessions) or the button to make it active, and
+    // private / public. The plans of other users: who made or shared it. Then what the user asked
+    // (goal, level, days, minutes, preferences) and the advice of the coach.
     private fun addInfo(plan: Plan) {
         val card = layoutInflater.inflate(R.layout.item_plan_info, content, false)
-        val isActive = UserSession.user?.activePlanId == plan.id
+        val rows = card.findViewById<LinearLayout>(R.id.planInfoRows)
+        val own = mode == Mode.OWN
+        val isActive = own && UserSession.user?.activePlanId == plan.id
         card.findViewById<View>(R.id.planActiveLabel).isVisible = isActive
         card.findViewById<Button>(R.id.planActivateButton).apply {
-            isVisible = !isActive
+            isVisible = own && !isActive
             setOnClickListener { setActive(plan) }
         }
-        val rows = card.findViewById<LinearLayout>(R.id.planInfoRows)
+        card.findViewById<View>(R.id.planVisibility).isVisible = own
+        if (own) showVisibility(card, plan)
+
+        val shared = shared
+        when {
+            mode == Mode.PUBLIC -> addDetailRow(rows, R.string.plan_by, getString(R.string.username_value, ownerName))
+            shared != null -> addDetailRow(
+                rows, if (shared.fromMe) R.string.plan_shared_with else R.string.plan_shared_by,
+                getString(R.string.username_value, ownerName)
+            )
+            plan.fromUsername != null -> addDetailRow(rows, R.string.plan_copied_from, getString(R.string.username_value, plan.fromUsername))
+        }
         plan.goal?.let { addDetailRow(rows, R.string.plan_goal_label, getString(it.label)) }
         plan.level?.let { addDetailRow(rows, R.string.plan_level_label, getString(it.label)) }
         plan.daysPerWeek?.let { addDetailRow(rows, R.string.plan_days_label, it.toString()) }
@@ -179,8 +231,76 @@ class PlanActivity : ThemedActivity() {
         notes.text = styledText(plan.notes, notes.paint)
         notes.isVisible = plan.notes.isNotBlank()
         card.findViewById<View>(R.id.planNotesTitle).isVisible = plan.notes.isNotBlank()
-        card.findViewById<TextView>(R.id.planUpdatedText).text = getString(R.string.plan_updated_on, formatDate(plan.updatedAt))
+        card.findViewById<TextView>(R.id.planUpdatedText).text =
+            if (shared != null) getString(R.string.plan_shared_snapshot, formatDate(shared.createdAt))
+            else getString(R.string.plan_updated_on, formatDate(plan.updatedAt))
         content.addView(card)
+    }
+
+    // Private / public: a change is saved on the server right away
+    private fun showVisibility(card: View, plan: Plan) {
+        val group = card.findViewById<RadioGroup>(R.id.planVisibilityGroup)
+        group.check(if (plan.isPublic) R.id.planPublicOption else R.id.planPrivateOption)
+        card.findViewById<TextView>(R.id.planVisibilityHint)
+            .setText(if (plan.isPublic) R.string.plan_public_hint else R.string.plan_private_hint)
+        group.setOnCheckedChangeListener { _, checkedId -> setPublic(plan, checkedId == R.id.planPublicOption) }
+    }
+
+    private fun setPublic(plan: Plan, public: Boolean) {
+        val token = UserSession.token ?: return
+        if (saving) return
+        saving = true
+        lifecycleScope.launch {
+            try {
+                show(ApiClient.setPlanPublic(token, plan.id, public))
+            } catch (e: ApiException) {
+                showToast(e.userMessage(this@PlanActivity))
+                // the choice shown goes back to the saved one
+                show(plan)
+            } finally {
+                saving = false
+            }
+        }
+    }
+
+    // Your plans: "Ask the coach to change it". The plans of the other users: "Add to my plans", or
+    // "Open in my plans" if received and already added; nothing for the plans you shared.
+    private fun showBottomButton() {
+        val shared = shared
+        when {
+            mode == Mode.OWN -> return
+            shared != null && shared.fromMe -> bottomButton.isVisible = false
+            else -> {
+                bottomButton.isVisible = true
+                bottomButton.setText(if (shared?.savedPlanId != null) R.string.open_in_my_plans else R.string.add_to_my_plans)
+            }
+        }
+    }
+
+    // A copy of the plan among your plans (the plan received and already added: that one), then
+    // its page opens: there it can be changed and followed
+    private fun addToMyPlans() {
+        val token = UserSession.token ?: return
+        if (saving) return
+        saving = true
+        bottomButton.isEnabled = false
+        lifecycleScope.launch {
+            try {
+                val alreadyAdded = shared?.savedPlanId != null
+                val copy = when (mode) {
+                    Mode.SHARED -> ApiClient.saveSharedPlan(token, shareId)
+                    else -> ApiClient.copyPublicPlan(token, ownerId, planId)
+                }
+                if (!alreadyAdded) Toast.makeText(this@PlanActivity, R.string.plan_added, Toast.LENGTH_SHORT).show()
+                open(this@PlanActivity, copy.id)
+                finish()
+            } catch (e: ApiException) {
+                showToast(e.userMessage(this@PlanActivity))
+            } finally {
+                saving = false
+                bottomButton.isEnabled = true
+            }
+        }
     }
 
     // "+ Add exercise" / "+ Add day"
@@ -343,9 +463,28 @@ class PlanActivity : ThemedActivity() {
 
     companion object {
         private const val EXTRA_PLAN_ID = "plan_id"
+        private const val EXTRA_OWNER_ID = "owner_id"
+        private const val EXTRA_OWNER_NAME = "owner_name"
+        private const val EXTRA_SHARE_ID = "share_id"
 
+        // One of your plans
         fun open(context: Context, planId: Long) {
             context.startActivity(Intent(context, PlanActivity::class.java).putExtra(EXTRA_PLAN_ID, planId))
+        }
+
+        // A public plan of another user (from their profile)
+        fun openPublic(context: Context, ownerId: Long, ownerName: String, planId: Long) {
+            context.startActivity(
+                Intent(context, PlanActivity::class.java)
+                    .putExtra(EXTRA_PLAN_ID, planId)
+                    .putExtra(EXTRA_OWNER_ID, ownerId)
+                    .putExtra(EXTRA_OWNER_NAME, ownerName)
+            )
+        }
+
+        // A plan shared with Messages (sent or received)
+        fun openShared(context: Context, shareId: Long) {
+            context.startActivity(Intent(context, PlanActivity::class.java).putExtra(EXTRA_SHARE_ID, shareId))
         }
     }
 }

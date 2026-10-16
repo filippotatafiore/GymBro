@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Modal window of the "Publish" button of the profile: publish a finished session or a manual result -->
+<!-- Modal window of the "Publish" button of the profile: publish a finished session, a manual
+     result or a workout plan (it becomes public) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     style="@style/ModalCardStyle">
 
@@ -11,59 +12,51 @@
     <!-- spacer -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="24dp"/>
+        android:layout_height="20dp"/>
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:id="@+id/publishSessionOption"
+        style="@style/PublishOptionStyle">
 
-        <!-- both options with 2 lines of text: same size, icons at the same height -->
-        <LinearLayout
-            android:id="@+id/publishSessionOption"
-            style="@style/TrainingOptionStyle"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp">
+        <ImageView
+            style="@style/PublishOptionIconStyle"
+            android:src="@drawable/timer_icon"
+            android:importantForAccessibility="no"/>
 
-            <ImageView
-                style="@style/TrainingOptionIconStyle"
-                android:src="@drawable/timer_icon"
-                android:importantForAccessibility="no"/>
+        <TextView
+            style="@style/PublishOptionTextStyle"
+            android:text="@string/publish_from_session"/>
 
-            <TextView
-                style="@style/TrainingOptionTextStyle"
-                android:gravity="center"
-                android:textSize="16sp"
-                android:lines="2"
-                android:text="@string/publish_from_session"/>
+    </LinearLayout>
 
-        </LinearLayout>
+    <LinearLayout
+        android:id="@+id/publishManualOption"
+        style="@style/PublishOptionStyle">
 
-        <!-- spacer -->
-        <View
-            android:layout_width="16dp"
-            android:layout_height="match_parent"/>
+        <ImageView
+            style="@style/PublishOptionIconStyle"
+            android:padding="5dp"
+            android:src="@drawable/plus_icon"
+            android:importantForAccessibility="no"/>
 
-        <LinearLayout
-            android:id="@+id/publishManualOption"
-            style="@style/TrainingOptionStyle"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp">
+        <TextView
+            style="@style/PublishOptionTextStyle"
+            android:text="@string/publish_manual"/>
 
-            <ImageView
-                style="@style/TrainingOptionIconStyle"
-                android:padding="8dp"
-                android:src="@drawable/plus_icon"
-                android:importantForAccessibility="no"/>
+    </LinearLayout>
 
-            <TextView
-                style="@style/TrainingOptionTextStyle"
-                android:gravity="center"
-                android:textSize="16sp"
-                android:lines="2"
-                android:text="@string/publish_manual"/>
+    <LinearLayout
+        android:id="@+id/publishPlanOption"
+        style="@style/PublishOptionStyle">
 
-        </LinearLayout>
+        <ImageView
+            style="@style/PublishOptionIconStyle"
+            android:src="@drawable/dumbbell_icon"
+            android:importantForAccessibility="no"/>
+
+        <TextView
+            style="@style/PublishOptionTextStyle"
+            android:text="@string/publish_plan"/>
 
     </LinearLayout>
 

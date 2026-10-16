@@ -11,7 +11,10 @@ import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
 import androidx.annotation.LayoutRes
 import androidx.annotation.StringRes
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -109,4 +112,21 @@ fun showChoiceModal(
 fun TextView.showError(message: String) {
     text = message
     isVisible = true
+}
+
+// The page (root) ends above the keyboard while it is open, otherwise above the navigation bar of
+// the phone. bottomNav: the bottom strip of the page (it already leaves room for the navigation
+// bar), hidden while the keyboard is open. The pages are drawn under the system bars (ThemedActivity).
+fun keepAboveKeyboard(root: View, bottomNav: View? = null) {
+    ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+        val keyboardOpen = insets.isVisible(WindowInsetsCompat.Type.ime())
+        bottomNav?.isVisible = !keyboardOpen
+        val bottom = when {
+            keyboardOpen -> insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            bottomNav != null -> 0
+            else -> insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+        }
+        view.updatePadding(bottom = bottom)
+        insets
+    }
 }

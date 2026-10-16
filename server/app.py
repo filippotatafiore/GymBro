@@ -3,7 +3,9 @@ GymBro REST API.
 
 A small Flask server that stores the users of the app (with their body data) and the posts
 they publish (results of finished gym/run sessions or results added manually) in Cloud Firestore,
-the database of Firebase. It also computes the walking routes of the runs with OpenRouteService
+the database of Firebase, with the social part of the app: who follows whom, the feed of their
+posts, the public workout plans and the plans shared between users. It also computes the walking
+routes of the runs with OpenRouteService
 (or the Google Routes API) and answers the chat with the AI coach with a language model of Groq
 (or Google Gemini), so that the keys of these services stay on the server.
 
@@ -14,6 +16,7 @@ It runs online on Vercel, always reachable (see README.md). To run it on this PC
 
 import hashlib
 import json
+import math
 import os
 import re
 import secrets
@@ -104,9 +107,17 @@ app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # biggest accepted request (
 #                    user or by the coach: id, user_id, name, notes (advice of the coach), days
 #                    (list of {name, exercises}; an exercise: name, muscle_group, sets, reps,
 #                    rest_s, notes), what the user asked when creating it (goal, level,
-#                    days_per_week, minutes_per_session, preferences), created_at, updated_at
-#   counters/{name}  {last}: last id given to the users / posts / plans / sessions. The ids are numbers 1, 2, 3...
-#                    (like AUTOINCREMENT in SQL), the same ids used by the app.
+#                    days_per_week, minutes_per_session, preferences), created_at, updated_at,
+#                    public (true: everyone can see it on the profile of the user and add a copy of
+#                    it to their plans), from_username (a copy of the plan of that user, or null)
+#   follows/{a}_{b}  {follower_id: a, followed_id: b, created_at}: the user a follows the user b
+#   shares/{id}      a workout plan sent by a user to another one (Messages of the social page of
+#                    the app, only between users that follow each other): id, from_user_id,
+#                    to_user_id, plan_id (the plan of the sender), plan (copy of the plan when it
+#                    was sent), read (seen by the receiver), saved_plan_id (the copy added by the
+#                    receiver to their plans, null = not added), created_at
+#   counters/{name}  {last}: last id given to the users / posts / plans / sessions / shares. The ids
+#                    are numbers 1, 2, 3... (like AUTOINCREMENT in SQL), the same ids used by the app.
 
 class DatabaseNotSetUp(Exception):
     """The key of the Firebase service account is missing or invalid."""
@@ -336,17 +347,26 @@ def clean_exercises(exercises):
     return cleaned
 
 
+def token_user():
+    """(user, token hash) of the 'Authorization: Bearer <token>' header of the request, or
+    (None, None) if there is no valid token."""
+    header = request.headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return None, None
+    token_hash = hash_token(header[len("Bearer "):])
+    token = database().collection("tokens").document(token_hash).get()
+    user = get_user(token.get("user_id")) if token.exists else None
+    return (user, token_hash) if user is not None else (None, None)
+
+
 def login_required(view):
     """Lets the request through only with a valid 'Authorization: Bearer <token>' header."""
 
     @wraps(view)
     def wrapper(*args, **kwargs):
-        header = request.headers.get("Authorization", "")
-        if not header.startswith("Bearer "):
+        if not request.headers.get("Authorization", "").startswith("Bearer "):
             return error(401, "Login required")
-        token_hash = hash_token(header[len("Bearer "):])
-        token = database().collection("tokens").document(token_hash).get()
-        user = get_user(token.get("user_id")) if token.exists else None
+        user, token_hash = token_user()
         if user is None:
             return error(401, "Your session expired, please log in again")
         g.user = user
@@ -494,10 +514,13 @@ def upload_picture():
 
 @app.get("/api/users/<int:user_id>")
 def public_profile(user_id):
+    """Public profile: username, picture, how many posts, followers and followed users. With the
+    login also is_following / follows_you (see profile_json)."""
     user = get_user(user_id)
     if user is None:
         return error(404, "User not found")
-    return jsonify(user_json(user))
+    viewer, _token_hash = token_user()
+    return jsonify(profile_json(user, viewer))
 
 
 @app.get("/api/users/<int:user_id>/picture")
@@ -939,7 +962,8 @@ def update_account():
 @login_required
 def delete_account():
     """Deletes the account of the logged user and all their data: profile, logins, posts, sessions,
-    workout plans and profile picture. {"password": "..."} to confirm."""
+    workout plans, follows (in both directions), plans shared with other users or received, and
+    profile picture. {"password": "..."} to confirm."""
     data = request.get_json(silent=True) or {}
     if not check_password_hash(g.user["password_hash"], str(data.get("password", ""))):
         return error(403, "Wrong password")
@@ -947,12 +971,14 @@ def delete_account():
     db = database()
     user_id = g.user["id"]
 
-    def documents_of(collection):
-        query = db.collection(collection).where(filter=firestore.FieldFilter("user_id", "==", user_id))
+    def documents_of(collection, field="user_id"):
+        query = db.collection(collection).where(filter=firestore.FieldFilter(field, "==", user_id))
         return [snapshot.reference for snapshot in query.stream()]
 
     # the account itself and the logins at the end: if something fails before, the user can try again
-    refs = documents_of("posts") + documents_of("sessions") + documents_of("plans") + [
+    refs = documents_of("posts") + documents_of("sessions") + documents_of("plans") + \
+        documents_of("follows", "follower_id") + documents_of("follows", "followed_id") + \
+        documents_of("shares", "from_user_id") + documents_of("shares", "to_user_id") + [
         db.collection("pictures").document(str(user_id)),
         db.collection("usernames").document(lookup_key(g.user["username"])),
         db.collection("emails").document(lookup_key(g.user["email"])),
@@ -1427,8 +1453,11 @@ def read_plan_chat_answer(text):
 
 def plan_json(plan):
     keys = ("id", "name", "goal", "level", "days_per_week", "minutes_per_session", "preferences",
-            "notes", "days", "created_at", "updated_at")
-    return {key: plan.get(key) for key in keys}
+            "notes", "days", "created_at", "updated_at", "from_username")
+    data = {key: plan.get(key) for key in keys}
+    # plans created before this information existed: private
+    data["public"] = bool(plan.get("public"))
+    return data
 
 
 def plans_of(user_id):
@@ -1491,6 +1520,7 @@ def create_plan():
         "minutes_per_session": int(minutes),
         "preferences": preferences.strip(),
         "language": language,
+        "public": False,
         "created_at": now_iso(),
         "updated_at": now_iso(),
     })
@@ -1579,6 +1609,451 @@ def plan_chat(plan_id, messages):
         plan.update(changed)
     return jsonify({"reply": reply, "model": model, "provider": provider,
                     "plan": plan_json(plan) if changed is not None else None})
+
+
+@app.put("/api/me/plans/<int:plan_id>/public")
+@login_required
+def set_plan_public(plan_id):
+    """{"public": true}: everyone can see the plan on the profile of the user and add a copy of it to
+    their plans; false: only the user sees it. Returns the plan."""
+    ref, plan = own_plan(plan_id)
+    if plan is None:
+        return error(404, "Plan not found")
+    public = (request.get_json(silent=True) or {}).get("public")
+    if not isinstance(public, bool):
+        return error(400, "Invalid value of public")
+    ref.update({"public": public})
+    plan["public"] = public
+    return jsonify(plan_json(plan))
+
+
+# ------------------------------------------------------------------ SOCIAL (social page of the app)
+#
+# The users follow other users (follows/) and see their posts in the feed, with their personal
+# bests marked. They can share their workout plans with the users they follow and who follow them
+# back (shares/, "Messages" of the app), and make a plan public: everyone sees it on their profile.
+# A public or shared plan can be added to the own plans: a copy, then a plan like the others.
+
+SEARCH_RESULTS = 30      # users found by a search
+FEED_PAGE = 20           # posts of the feed sent at a time
+IN_QUERY_VALUES = 30     # values of an 'in' filter of Firestore (at most 30)
+# What a copy of a plan keeps (shared or added from another user)
+COPIED_PLAN_KEYS = ("name", "notes", "days", "goal", "level", "days_per_week", "minutes_per_session",
+                    "preferences", "language")
+
+
+def follow_ref(follower_id, followed_id):
+    """The document saying that follower_id follows followed_id."""
+    return database().collection("follows").document(f"{follower_id}_{followed_id}")
+
+
+def following_of(user_id):
+    """ids of the users followed by user_id."""
+    query = database().collection("follows").where(filter=firestore.FieldFilter("follower_id", "==", user_id))
+    return {snapshot.get("followed_id") for snapshot in query.stream()}
+
+
+def followers_of(user_id):
+    """ids of the users that follow user_id."""
+    query = database().collection("follows").where(filter=firestore.FieldFilter("followed_id", "==", user_id))
+    return {snapshot.get("follower_id") for snapshot in query.stream()}
+
+
+def count(collection, field, value):
+    """How many documents of the collection have field == value (counted by Firestore, without
+    reading them)."""
+    query = database().collection(collection).where(filter=firestore.FieldFilter(field, "==", value))
+    return int(query.count().get()[0][0].value)
+
+
+def users_by_id(user_ids):
+    """{id: user} of the users with these ids that exist (read all together)."""
+    db = database()
+    refs = [db.collection("users").document(str(user_id)) for user_id in set(user_ids)]
+    if not refs:
+        return {}
+    return {snapshot.get("id"): snapshot.to_dict() for snapshot in db.get_all(refs) if snapshot.exists}
+
+
+def social_user_json(user, following=None, followers=None):
+    """A user in the lists of the social page: id, username, has_picture and, given the users
+    followed by the logged user and their followers, is_following (the logged user follows them)
+    and follows_you (they follow the logged user)."""
+    data = {"id": user["id"], "username": user["username"], "has_picture": bool(user.get("has_picture"))}
+    if following is not None:
+        data["is_following"] = user["id"] in following
+        data["follows_you"] = user["id"] in followers
+    return data
+
+
+def profile_json(user, viewer=None):
+    """Public profile of a user, with how many posts, followers and followed users. viewer: the
+    logged user (if any), to know whether they follow each other."""
+    data = user_json(user)
+    data["posts_count"] = count("posts", "user_id", user["id"])
+    data["followers_count"] = count("follows", "followed_id", user["id"])
+    data["following_count"] = count("follows", "follower_id", user["id"])
+    if viewer is not None and viewer["id"] != user["id"]:
+        data["is_following"] = follow_ref(viewer["id"], user["id"]).get().exists
+        data["follows_you"] = follow_ref(user["id"], viewer["id"]).get().exists
+    return data
+
+
+def personal_best_ids(posts):
+    """ids of the posts of one user (newest first) that are their personal bests. The same rules of
+    the app (PersonalBests.kt), which shows them in the profile:
+    - runs: for every distance, the run done in the shortest time; the distances are grouped by
+      multiples of 0.5 km (10.2 km counts as 10 km, 10.3 km as 10.5 km)
+    - manual results: for every exercise (and way of measuring it), the best result, following the
+      "higher/lower is better" of the most recent post of that exercise
+    With equal results, the most recent post."""
+    runs = {}
+    manual = {}
+    for post in posts:
+        if post.get("kind") == "run" and post.get("distance_km") is not None and post.get("duration_s") is not None:
+            # like Math.round of the app: halves rounded up (round() of Python rounds them to even)
+            group = math.floor(post["distance_km"] * 2 + 0.5) / 2
+            if group > 0:  # less than 0.25 km: not a distance
+                runs.setdefault(group, []).append(post)
+        elif post.get("kind") == "manual" and post.get("metric") and post.get("amount") is not None:
+            manual.setdefault((post["title"].strip().lower(), post["metric"]), []).append(post)
+
+    # min / max: the first of the equal ones, so the most recent
+    best = {min(same, key=lambda post: post["duration_s"])["id"] for same in runs.values()}
+    for same in manual.values():
+        latest = max(same, key=lambda post: post["created_at"])
+        choose = min if latest.get("better") == "lower" else max
+        best.add(choose(same, key=lambda post: post["amount"])["id"])
+    return best
+
+
+def feed_key(post):
+    """Order of the posts in the feed (newest first) and position of a page."""
+    return post["created_at"], post["id"]
+
+
+@app.get("/api/users/search")
+@login_required
+def search_users():
+    """Users whose username contains ?q= (upper/lower case ignored), the logged user excluded: first
+    those whose username starts with it, then in alphabetical order (at most SEARCH_RESULTS). The
+    usernames are read all together (only username and picture): enough for the users of this app."""
+    text = str(request.args.get("q", "")).strip().lstrip("@").lower()
+    if not text:
+        return jsonify([])
+    found = []
+    for snapshot in database().collection("users").select(["id", "username", "has_picture"]).stream():
+        user = snapshot.to_dict()
+        if text in user.get("username", "").lower() and user.get("id") != g.user["id"]:
+            found.append(user)
+    found.sort(key=lambda user: (not user["username"].lower().startswith(text), user["username"].lower()))
+    following, followers = following_of(g.user["id"]), followers_of(g.user["id"])
+    return jsonify([social_user_json(user, following, followers) for user in found[:SEARCH_RESULTS]])
+
+
+@app.post("/api/users/<int:user_id>/follow")
+@login_required
+def follow(user_id):
+    """The logged user follows the user (nothing changes if they already follow them). Returns the
+    profile of the user, with the new number of followers."""
+    if user_id == g.user["id"]:
+        return error(400, "You cannot follow yourself")
+    user = get_user(user_id)
+    if user is None:
+        return error(404, "User not found")
+    follow_ref(g.user["id"], user_id).set({"follower_id": g.user["id"], "followed_id": user_id, "created_at": now_iso()})
+    return jsonify(profile_json(user, g.user))
+
+
+@app.delete("/api/users/<int:user_id>/follow")
+@login_required
+def unfollow(user_id):
+    """The logged user stops following the user. Returns the profile of the user."""
+    user = get_user(user_id)
+    if user is None:
+        return error(404, "User not found")
+    follow_ref(g.user["id"], user_id).delete()
+    return jsonify(profile_json(user, g.user))
+
+
+def follow_list(user_id, ids_of):
+    """The followers (ids_of = followers_of) or the followed users (following_of) of a user, in
+    alphabetical order."""
+    if get_user(user_id) is None:
+        return error(404, "User not found")
+    users = sorted(users_by_id(ids_of(user_id)).values(), key=lambda user: user["username"].lower())
+    following, followers = following_of(g.user["id"]), followers_of(g.user["id"])
+    return jsonify([social_user_json(user, following, followers) for user in users])
+
+
+@app.get("/api/users/<int:user_id>/followers")
+@login_required
+def user_followers(user_id):
+    return follow_list(user_id, followers_of)
+
+
+@app.get("/api/users/<int:user_id>/following")
+@login_required
+def user_following(user_id):
+    return follow_list(user_id, following_of)
+
+
+@app.get("/api/feed")
+@login_required
+def feed():
+    """The posts of the users followed by the logged user, newest first, FEED_PAGE at a time
+    (?before= the "next" of the previous page). Each post has its user and personal_best: true if it
+    is one of the personal bests of that user (see personal_best_ids).
+    -> {"posts": [...], "next": "2026-10-12T08:00:00Z|42", or null if there are no older posts}"""
+    before = None
+    if request.args.get("before"):
+        created_at, _, post_id = request.args["before"].rpartition("|")
+        if not created_at or not post_id.isdigit():
+            return error(400, "Invalid page")
+        before = (created_at, int(post_id))
+
+    # all the posts of the followed users: the personal bests need them (enough for this app)
+    followed = sorted(following_of(g.user["id"]))
+    posts = []
+    for start in range(0, len(followed), IN_QUERY_VALUES):
+        query = database().collection("posts").where(
+            filter=firestore.FieldFilter("user_id", "in", followed[start:start + IN_QUERY_VALUES]))
+        posts.extend(snapshot.to_dict() for snapshot in query.stream())
+    posts.sort(key=feed_key, reverse=True)
+
+    by_user = {}
+    for post in posts:
+        by_user.setdefault(post["user_id"], []).append(post)
+    bests = set()
+    for user_posts in by_user.values():
+        bests |= personal_best_ids(user_posts)
+
+    if before is not None:
+        posts = [post for post in posts if feed_key(post) < before]
+    page = posts[:FEED_PAGE]
+    users = users_by_id(post["user_id"] for post in page)
+    items = [{**post_json(post), "personal_best": post["id"] in bests, "user": social_user_json(users[post["user_id"]])}
+             for post in page if post["user_id"] in users]
+    next_page = f"{page[-1]['created_at']}|{page[-1]['id']}" if len(posts) > FEED_PAGE else None
+    return jsonify({"posts": items, "next": next_page})
+
+
+# ---------------------------------------------- public plans
+
+def public_plan(user_id, plan_id):
+    """A public plan of the user, or None (it does not exist, it is of another user or private)."""
+    snapshot = database().collection("plans").document(str(plan_id)).get()
+    plan = snapshot.to_dict() if snapshot.exists else None
+    if plan is None or plan.get("user_id") != user_id or not plan.get("public"):
+        return None
+    return plan
+
+
+def add_plan_copy(plan, from_username):
+    """Saves a copy of the plan among the plans of the logged user; None if they have too many plans."""
+    if len(plans_of(g.user["id"])) >= MAX_PLANS:
+        return None
+    copy = {key: plan.get(key) for key in COPIED_PLAN_KEYS}
+    copy.update({
+        "user_id": g.user["id"],
+        "public": False,
+        "from_username": from_username,
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    })
+    return insert_numbered(database().transaction(), "plans", copy)
+
+
+@app.get("/api/users/<int:user_id>/plans")
+def user_public_plans(user_id):
+    """The public plans of a user (everyone can see them), the last changed first."""
+    return jsonify([plan_json(plan) for plan in plans_of(user_id) if plan.get("public")])
+
+
+@app.get("/api/users/<int:user_id>/plans/<int:plan_id>")
+def user_public_plan(user_id, plan_id):
+    plan = public_plan(user_id, plan_id)
+    if plan is None:
+        return error(404, "Plan not found")
+    return jsonify(plan_json(plan))
+
+
+@app.post("/api/users/<int:user_id>/plans/<int:plan_id>/copy")
+@login_required
+def copy_public_plan(user_id, plan_id):
+    """Adds a copy of a public plan of another user to the plans of the logged user (then it is a
+    plan like the others: it can be changed, followed, published). Returns the new plan."""
+    plan = public_plan(user_id, plan_id)
+    if plan is None:
+        return error(404, "Plan not found")
+    if user_id == g.user["id"]:
+        return error(400, "This plan is already yours")
+    copy = add_plan_copy(plan, get_user(user_id)["username"])
+    if copy is None:
+        return error(400, f"You can save at most {MAX_PLANS} plans: delete one first")
+    return jsonify(plan_json(copy)), 201
+
+
+# ---------------------------------------------- plans shared between users (Messages)
+
+def shares_where(**filters):
+    """The shares with these values, e.g. shares_where(from_user_id=1, to_user_id=2)."""
+    query = database().collection("shares")
+    for field, value in filters.items():
+        query = query.where(filter=firestore.FieldFilter(field, "==", value))
+    return [snapshot.to_dict() for snapshot in query.stream()]
+
+
+def share_json(share):
+    """A plan shared by the logged user (from_me) or with them. plan: the plan as it was when it was
+    sent (its id is that of the plan of the sender)."""
+    return {
+        "id": share["id"],
+        "from_me": share["from_user_id"] == g.user["id"],
+        "plan": plan_json({**share["plan"], "id": share["plan_id"]}),
+        "read": bool(share.get("read")),
+        "saved_plan_id": share.get("saved_plan_id"),
+        "created_at": share["created_at"],
+    }
+
+
+def visible_share(share_id):
+    """(reference, share) of a plan shared by the logged user or with them, or (None, None)."""
+    ref = database().collection("shares").document(str(share_id))
+    snapshot = ref.get()
+    if not snapshot.exists or g.user["id"] not in (snapshot.get("from_user_id"), snapshot.get("to_user_id")):
+        return None, None
+    return ref, snapshot.to_dict()
+
+
+def relation(user):
+    """(user for the app, can_share) for another user: they can share plans if they follow each other."""
+    is_following = follow_ref(g.user["id"], user["id"]).get().exists
+    follows_you = follow_ref(user["id"], g.user["id"]).get().exists
+    data = social_user_json(user, {user["id"]} if is_following else set(), {user["id"]} if follows_you else set())
+    return data, is_following and follows_you
+
+
+@app.get("/api/me/conversations")
+@login_required
+def conversations():
+    """The users the logged user can share plans with (they follow each other) and those they already
+    shared plans with: [{"user": ..., "can_share": true, "unread": 2 (plans received and not seen),
+    "last": {"plan_name": ..., "from_me": false, "created_at": ...} or null}], the last shared first,
+    then in alphabetical order."""
+    me = g.user["id"]
+    following, followers = following_of(me), followers_of(me)
+    last = {}
+    unread = {}
+    for share in shares_where(from_user_id=me) + shares_where(to_user_id=me):
+        other = share["to_user_id"] if share["from_user_id"] == me else share["from_user_id"]
+        if other not in last or feed_key(share) > feed_key(last[other]):
+            last[other] = share
+        if share["to_user_id"] == me and not share.get("read"):
+            unread[other] = unread.get(other, 0) + 1
+
+    items = []
+    for user_id, user in users_by_id((following & followers) | set(last)).items():
+        share = last.get(user_id)
+        items.append({
+            "user": social_user_json(user, following, followers),
+            "can_share": user_id in following and user_id in followers,
+            "unread": unread.get(user_id, 0),
+            "last": None if share is None else {
+                "plan_name": share["plan"]["name"],
+                "from_me": share["from_user_id"] == me,
+                "created_at": share["created_at"],
+            },
+        })
+    items.sort(key=lambda item: item["user"]["username"].lower())
+    items.sort(key=lambda item: (item["last"] or {}).get("created_at", ""), reverse=True)
+    return jsonify(items)
+
+
+@app.get("/api/me/conversations/<int:user_id>")
+@login_required
+def conversation(user_id):
+    """The plans shared between the logged user and another user, oldest first:
+    {"user": ..., "can_share": true, "shares": [...] (see share_json)}"""
+    user = get_user(user_id)
+    if user is None or user_id == g.user["id"]:
+        return error(404, "User not found")
+    shares = shares_where(from_user_id=g.user["id"], to_user_id=user_id) + \
+        shares_where(from_user_id=user_id, to_user_id=g.user["id"])
+    shares.sort(key=feed_key)
+    data, can_share = relation(user)
+    return jsonify({"user": data, "can_share": can_share, "shares": [share_json(share) for share in shares]})
+
+
+@app.post("/api/me/conversations/<int:user_id>")
+@login_required
+def share_plan(user_id):
+    """Sends a plan of the logged user to another user: {"plan_id": 3}. Only between users that
+    follow each other. The other user receives the plan as it is now (the later changes are not sent).
+    Returns the share."""
+    user = get_user(user_id)
+    if user is None or user_id == g.user["id"]:
+        return error(404, "User not found")
+    if not relation(user)[1]:
+        return error(403, "You can share plans only with the users you follow and who follow you back")
+    _ref, plan = own_plan((request.get_json(silent=True) or {}).get("plan_id"))
+    if plan is None:
+        return error(404, "Plan not found")
+    share = {
+        "from_user_id": g.user["id"],
+        "to_user_id": user_id,
+        "plan_id": plan["id"],
+        "plan": {key: plan.get(key) for key in COPIED_PLAN_KEYS + ("created_at", "updated_at")},
+        "read": False,
+        "saved_plan_id": None,
+        "created_at": now_iso(),
+    }
+    return jsonify(share_json(insert_numbered(database().transaction(), "shares", share))), 201
+
+
+@app.post("/api/me/conversations/<int:user_id>/read")
+@login_required
+def read_conversation(user_id):
+    """The plans received from that user are marked as seen."""
+    db = database()
+    batch = db.batch()
+    for share in shares_where(from_user_id=user_id, to_user_id=g.user["id"], read=False):
+        batch.update(db.collection("shares").document(str(share["id"])), {"read": True})
+    batch.commit()
+    return "", 204
+
+
+@app.get("/api/me/shares/<int:share_id>")
+@login_required
+def get_share(share_id):
+    """A plan shared by the logged user or with them; "user": the other user."""
+    _ref, share = visible_share(share_id)
+    if share is None:
+        return error(404, "Shared plan not found")
+    other = get_user(share["to_user_id"] if share["from_user_id"] == g.user["id"] else share["from_user_id"])
+    data = share_json(share)
+    data["user"] = social_user_json(other) if other is not None else None
+    return jsonify(data)
+
+
+@app.post("/api/me/shares/<int:share_id>/save")
+@login_required
+def save_shared_plan(share_id):
+    """The receiver adds the plan received to their plans (a copy: then it is a plan like the others).
+    Already added (and not deleted since): the plan added before. Returns the plan."""
+    ref, share = visible_share(share_id)
+    if share is None or share["to_user_id"] != g.user["id"]:
+        return error(404, "Shared plan not found")
+    if share.get("saved_plan_id") is not None:
+        _plan_ref, saved = own_plan(share["saved_plan_id"])
+        if saved is not None:
+            return jsonify(plan_json(saved))
+    sender = get_user(share["from_user_id"])
+    copy = add_plan_copy(share["plan"], sender["username"] if sender is not None else None)
+    if copy is None:
+        return error(400, f"You can save at most {MAX_PLANS} plans: delete one first")
+    ref.update({"saved_plan_id": copy["id"], "read": True})
+    return jsonify(plan_json(copy)), 201
 
 
 if __name__ == "__main__":

@@ -39,8 +39,9 @@
         <!--************************************** top strip **************************************-->
 
 
-        <!-- the page scrolls: personal bests, workout plans and results can all be long -->
+        <!-- the page scrolls: personal bests, workout plans and posts can all be long -->
         <androidx.core.widget.NestedScrollView
+            android:id="@+id/profileScroll"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1">
@@ -51,35 +52,8 @@
             android:orientation="vertical"
             android:paddingBottom="8dp">
 
-        <!-- tap it to change the picture -->
-        <ImageView
-            android:id="@+id/profilePicture"
-            style="@style/ProfilePictureStyle"
-            android:contentDescription="@string/profile_picture"
-            android:layout_width="96dp"
-            android:layout_height="96dp"
-            android:layout_gravity="center_horizontal"
-            android:foreground="?android:attr/selectableItemBackgroundBorderless"/>
-
-        <TextView
-            android:id="@+id/profileUsername"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center"
-            android:textStyle="bold"
-            android:textColor="@color/textPrimary"
-            android:textSize="24sp"
-            tools:text="filippo"/>
-
-        <TextView
-            android:id="@+id/profileEmail"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:textColor="@color/textSecondary"
-            android:textSize="14sp"
-            tools:text="filippo@example.com"/>
+        <!-- picture (tap it to change it), posts, followers and followed users, username, email -->
+        <include layout="@layout/profile_header"/>
 
 
         <!-- ************************* personal bests ************************* -->
@@ -168,8 +142,9 @@
         </FrameLayout>
 
 
-        <!-- ************************* my results ************************* -->
+        <!-- ************************* posts ************************* -->
         <LinearLayout
+            android:id="@+id/postsSection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -182,7 +157,7 @@
                 style="@style/SectionTitleStyle"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:text="@string/my_results"/>
+                android:text="@string/posts_title"/>
 
             <Button
                 android:id="@+id/publishResultButton"

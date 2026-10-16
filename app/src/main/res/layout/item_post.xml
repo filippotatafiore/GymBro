@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- A post in the MY RESULTS list of the profile: tap it to see the details -->
+<!-- A post in the POSTS list of a profile: tap it to see the details. The trash can only on your
+     own profile; "PERSONAL BEST" if the post is one of the personal bests of the user. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     style="@style/ListRowStyle"
@@ -31,6 +32,15 @@
             android:id="@+id/postDate"
             style="@style/RowSubtitleStyle"
             tools:text="Oct 12, 2026"/>
+
+        <TextView
+            android:id="@+id/postBestBadge"
+            style="@style/BadgeStyle"
+            android:layout_marginTop="6dp"
+            android:drawableStart="@drawable/trophy_badge_icon"
+            android:text="@string/personal_best_badge"
+            android:visibility="gone"
+            tools:visibility="visible"/>
 
     </LinearLayout>
 

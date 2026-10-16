@@ -1,5 +1,6 @@
 package com.example.gymbro
 
+import android.text.format.DateUtils
 import java.text.DecimalFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -24,6 +25,12 @@ fun formatDuration(millis: Long): String {
 fun formatDateTime(epochMillis: Long): String =
     DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
         .format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
+
+// e.g. "5 minutes ago", "Yesterday", "Oct 10" (in the language of the phone)
+fun formatTimeAgo(instant: Instant): String =
+    DateUtils.getRelativeTimeSpanString(
+        instant.toEpochMilli(), System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS, DateUtils.FORMAT_ABBREV_MONTH
+    ).toString()
 
 // e.g. "Oct 10, 2026"
 fun formatDate(instant: Instant): String =
