@@ -16,7 +16,8 @@ enum class SessionType(
     @DrawableRes val icon: Int
 ) {
     GYM(R.string.gym, R.string.gym_session, R.drawable.dumbbell_icon),
-    RUN(R.string.run, R.string.run_session, R.drawable.shoe_icon)
+    RUN(R.string.run, R.string.run_session, R.drawable.shoe_icon),
+    SWIM(R.string.swim, R.string.swim_session, R.drawable.swim_icon)
 }
 
 // The training session in progress (if any) of the logged user. It is saved in SharedPreferences,

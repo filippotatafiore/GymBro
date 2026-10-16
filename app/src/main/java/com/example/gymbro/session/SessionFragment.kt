@@ -18,7 +18,7 @@ import com.google.android.gms.maps.MapView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// Common part of the gym and run sessions: the top strip with title, timer, pause and stop
+// Common part of the gym, run and swim sessions: the top strip with title, timer, pause and stop
 // buttons (res/layout/session_top_strip.xml, included in the layout of the session)
 abstract class SessionFragment(@LayoutRes layout: Int) : Fragment(layout) {
 
@@ -70,6 +70,7 @@ abstract class SessionFragment(@LayoutRes layout: Int) : Fragment(layout) {
 
     // Modal window asking to confirm: stop and save the session, and also publish it on the profile.
     // Run sessions: summary of the run (map with the whole path followed + final statistics).
+    // Swim sessions: the final statistics of the swim.
     protected fun showStopDialog() {
         val activity = requireActivity() as MainActivity
         // what will be saved: the session as it is when the window opens
@@ -80,13 +81,20 @@ abstract class SessionFragment(@LayoutRes layout: Int) : Fragment(layout) {
         }
 
         val gymSummary = dialog.findViewById<TextView>(R.id.stopSummary)
-        if (session.type == SessionType.RUN) {
-            gymSummary.isVisible = false
-            val runSummary = dialog.findViewById<View>(R.id.runSummary)
-            runSummary.isVisible = true
-            summaryMap = RunSummaryView.show(runSummary, session.toRunSummary())
-        } else {
-            gymSummary.text = getString(
+        when (session.type) {
+            SessionType.RUN -> {
+                gymSummary.isVisible = false
+                val runSummary = dialog.findViewById<View>(R.id.runSummary)
+                runSummary.isVisible = true
+                summaryMap = RunSummaryView.show(runSummary, session.toRunSummary())
+            }
+            SessionType.SWIM -> {
+                gymSummary.isVisible = false
+                val swimSummary = dialog.findViewById<View>(R.id.swimSummary)
+                swimSummary.isVisible = true
+                SwimSummaryView.show(swimSummary, session.toSwimSummary())
+            }
+            SessionType.GYM -> gymSummary.text = getString(
                 R.string.session_summary, getString(session.type.label), formatDuration(session.durationMillis)
             )
         }

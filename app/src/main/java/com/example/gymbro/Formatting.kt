@@ -2,6 +2,7 @@ package com.example.gymbro
 
 import android.text.format.DateUtils
 import java.text.DecimalFormat
+import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -55,3 +56,15 @@ fun formatSpeed(kmh: Double): String = String.format(Locale.getDefault(), "%.1f 
 
 // e.g. 312.6 -> "313 kcal"
 fun formatKcal(kcal: Double): String = String.format(Locale.getDefault(), "%.0f kcal", kcal)
+
+// e.g. 9850 -> "9,850" (steps)
+fun formatCount(count: Int): String = NumberFormat.getIntegerInstance().format(count)
+
+// e.g. 164.6 -> "165 spm" (steps per minute)
+fun formatCadence(stepsPerMinute: Double): String = String.format(Locale.getDefault(), "%.0f spm", stepsPerMinute)
+
+// Swim distances and pool lengths, e.g. 1500.0 -> "1,500 m", 33.3 -> "33.3 m"
+fun formatMeters(meters: Double): String = DecimalFormat("#,##0.#").format(meters) + " m"
+
+// Average time per 100 m (swim), e.g. 125 s -> "02:05 /100 m"
+fun formatPace100(secondsPer100m: Long): String = formatDuration(secondsPer100m * 1000) + " /100 m"

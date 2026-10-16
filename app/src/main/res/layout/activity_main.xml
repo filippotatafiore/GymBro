@@ -5,6 +5,7 @@
     - the home (start training button + last sessions)   -> fragment_home.xml
     - the gym session in progress                        -> fragment_gym_session.xml
     - the run session in progress                        -> fragment_run_session.xml
+    - the swim session in progress                       -> fragment_swim_session.xml
     (see MainActivity.showCurrentPage)
     The calendar slides in from the left (DrawerLayout), like the menu of the profile.
 -->

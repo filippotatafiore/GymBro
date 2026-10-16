@@ -5,7 +5,7 @@ import com.example.gymbro.session.Route
 import java.time.Instant
 
 // `json` = how the value is written in the requests/answers of the REST API
-enum class PostKind(val json: String) { MANUAL("manual"), GYM("gym"), RUN("run") }
+enum class PostKind(val json: String) { MANUAL("manual"), GYM("gym"), RUN("run"), SWIM("swim") }
 
 // How a manual result is measured
 enum class Metric(val json: String) { TIME("time"), WEIGHT("weight") }
@@ -13,7 +13,7 @@ enum class Metric(val json: String) { TIME("time"), WEIGHT("weight") }
 // Which result is better
 enum class Better(val json: String) { HIGHER("higher"), LOWER("lower") }
 
-// A post published by a user on the profile: a result added manually, or a finished gym/run session
+// A post published by a user on the profile: a result added manually, or a finished gym/run/swim session
 data class Post(
     val id: Long,
     val kind: PostKind,
@@ -22,13 +22,17 @@ data class Post(
     val better: Better? = null,              // manual
     val amount: Double? = null,              // manual: seconds (time) or kg (weight)
     val notes: String? = null,               // manual
-    val durationSeconds: Long? = null,       // gym / run: training time
-    val distanceKm: Double? = null,          // run: rounded to 0.1 km
+    val durationSeconds: Long? = null,       // gym / run / swim: training time
+    val distanceKm: Double? = null,          // run: rounded to 0.1 km; swim: laps x pool length
     val kcal: Double? = null,                // run: calories burned (estimated)
     val maxSpeedKmh: Double? = null,         // run
     val goalKm: Double? = null,              // run: goal distance (null = no goal)
     val route: Route? = null,                // run: path followed (null = not recorded)
     val exercises: List<Exercise>? = null,   // gym
-    val sessionStart: Instant? = null,       // gym / run: when the session was done
-    val createdAt: Instant
+    val sessionStart: Instant? = null,       // gym / run / swim: when the session was done
+    val createdAt: Instant,
+    val steps: Int? = null,                  // run: counted by the step sensor (null = not counted)
+    val poolLengthM: Double? = null,         // swim: length of the pool in meters
+    val laps: Int? = null,                   // swim: lengths of the pool swum
+    val goalLaps: Int? = null                // swim: goal in lengths (null = no goal)
 )

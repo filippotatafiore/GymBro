@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!-- Modal window shown when the stop button of a session is pressed.
-     Run sessions: summary of the run (map + statistics) above the buttons.
+     Run sessions: summary of the run (map + statistics) above the buttons; swim sessions: the
+     statistics of the swim.
      ScrollView: on small screens the window can scroll. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -35,6 +36,15 @@
         <include
             android:id="@+id/runSummary"
             layout="@layout/view_run_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone"/>
+
+        <!-- swim sessions -->
+        <include
+            android:id="@+id/swimSummary"
+            layout="@layout/view_swim_summary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"

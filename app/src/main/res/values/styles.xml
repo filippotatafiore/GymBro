@@ -244,6 +244,15 @@
         <item name="android:fontFeatureSettings">tnum</item>
     </style>
 
+    <!-- Big buttons that add laps to a swim (+2, +4, +8, +10) -->
+    <style name="LapButtonStyle" parent="PrimaryButtonStyle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_height">76dp</item>
+        <item name="android:textSize">30sp</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+
     <!-- e.g. CHEST: small label in the favorite color -->
     <style name="ExerciseMuscleGroupStyle" parent="RowSubtitleStyle">
         <item name="android:textAllCaps">true</item>

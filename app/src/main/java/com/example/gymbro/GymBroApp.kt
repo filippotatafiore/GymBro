@@ -14,6 +14,7 @@ import com.example.gymbro.repository.UserRepository
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.RunTracker
 import com.example.gymbro.session.RunTrackingService
+import com.example.gymbro.session.SwimTracker
 import com.example.gymbro.session.mapsRenderer
 import com.google.android.gms.maps.MapsInitializer
 import kotlinx.coroutines.CoroutineScope
@@ -31,7 +32,7 @@ class GymBroApp : Application() {
             // Converts the saved data to the new structure of the tables
             .addMigrations(
                 AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5,
-                AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7
+                AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8
             )
             // While developing: for older structures without a migration, the local database is
             // recreated empty instead of being converted
@@ -46,6 +47,7 @@ class GymBroApp : Application() {
         super.onCreate()
         ActiveSession.init(this)
         RunTracker.init(this)
+        SwimTracker.init(this)
         RunTrackingService.createNotificationChannels(this)
         // Google Maps: asks the latest renderer, and remembers the one available on this phone
         MapsInitializer.initialize(this, MapsInitializer.Renderer.LATEST) { renderer -> mapsRenderer = renderer }

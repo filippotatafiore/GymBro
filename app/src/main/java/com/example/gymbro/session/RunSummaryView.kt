@@ -9,6 +9,8 @@ import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import com.example.gymbro.R
 import com.example.gymbro.data.TrainingSession
+import com.example.gymbro.formatCadence
+import com.example.gymbro.formatCount
 import com.example.gymbro.formatDistance
 import com.example.gymbro.formatDuration
 import com.example.gymbro.formatKcal
@@ -26,17 +28,18 @@ data class RunSummary(
     val kcal: Double?,
     val maxSpeedKmh: Double?,
     val goalKm: Double?,        // null = no goal
-    val route: Route?           // null = not recorded (runs saved before the routes existed)
+    val route: Route?,          // null = not recorded (runs saved before the routes existed)
+    val steps: Int?             // null = not counted (no step sensor, or runs saved before)
 )
 
 fun TrainingSession.toRunSummary() =
-    RunSummary(durationMillis / 1000, distanceKm, kcal, maxSpeedKmh, goalKm, route)
+    RunSummary(durationMillis / 1000, distanceKm, kcal, maxSpeedKmh, goalKm, route, steps)
 
 fun Post.toRunSummary() =
-    RunSummary(durationSeconds ?: 0, distanceKm, kcal, maxSpeedKmh, goalKm, route)
+    RunSummary(durationSeconds ?: 0, distanceKm, kcal, maxSpeedKmh, goalKm, route, steps)
 
 // Fills res/layout/view_run_summary.xml: a fixed map centered and zoomed on the whole path
-// followed, with the final statistics below it
+// followed, with the final statistics below it (with the steps: also cadence and length of a step)
 object RunSummaryView {
 
     private const val NONE = "—"
@@ -47,7 +50,7 @@ object RunSummaryView {
         val km = summary.distanceKm
         val seconds = summary.durationSeconds
 
-        StatGrid(view.findViewById(R.id.summaryStats), columns = 3).show(listOf(
+        val stats = mutableListOf(
             context.getString(R.string.stat_distance) to (km?.let { formatDistance(it) } ?: NONE),
             context.getString(R.string.stat_time) to formatDuration(seconds * 1000),
             context.getString(R.string.stat_avg_pace) to
@@ -56,7 +59,15 @@ object RunSummaryView {
                     (if (km != null && seconds > 0) formatSpeed(km / (seconds / 3600.0)) else NONE),
             context.getString(R.string.stat_max_speed) to (summary.maxSpeedKmh?.let { formatSpeed(it) } ?: NONE),
             context.getString(R.string.stat_calories) to (summary.kcal?.let { formatKcal(it) } ?: NONE),
-        ))
+        )
+        summary.steps?.let { steps ->
+            stats += context.getString(R.string.stat_steps) to formatCount(steps)
+            stats += context.getString(R.string.stat_cadence) to
+                    (RunMath.cadence(steps, seconds)?.let { formatCadence(it) } ?: NONE)
+            stats += context.getString(R.string.stat_stride) to
+                    (RunMath.strideMeters(km ?: 0.0, steps)?.let { context.getString(R.string.stride_meters, it) } ?: NONE)
+        }
+        StatGrid(view.findViewById(R.id.summaryStats), columns = 3).show(stats)
 
         // e.g. "Goal 5 km · reached" (green) / "Goal 5 km · not reached" (red)
         val goalText = view.findViewById<TextView>(R.id.summaryGoal)

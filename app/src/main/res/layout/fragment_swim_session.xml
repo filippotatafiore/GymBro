@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Swim session in progress (SwimSessionFragment.kt): the laps swum in a ring that fills up to the
+     goal, the distance and the statistics, the voice counting (say "GymBro", then the laps) and
+     the big buttons that add laps -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".session.SwimSessionFragment"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <include layout="@layout/session_top_strip"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <!-- laps: ring (LapRingView) with the counter in the middle -->
+            <FrameLayout
+                android:layout_width="176dp"
+                android:layout_height="176dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="4dp">
+
+                <com.example.gymbro.session.LapRingView
+                    android:id="@+id/lapRing"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"/>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal">
+
+                    <TextView
+                        android:id="@+id/lapCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:includeFontPadding="false"
+                        android:textStyle="bold"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="56sp"
+                        android:fontFeatureSettings="tnum"
+                        tools:text="24"/>
+
+                    <!-- "LAPS" or "OF 60 LAPS" -->
+                    <TextView
+                        android:id="@+id/lapGoalText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textColor="@color/textSecondary"
+                        android:textSize="12sp"
+                        android:letterSpacing="0.08"
+                        tools:text="OF 60 LAPS"/>
+
+                </LinearLayout>
+
+            </FrameLayout>
+
+            <!-- distance / goal distance: red, green once the goal is reached (white without a goal) -->
+            <TextView
+                android:id="@+id/swimDistance"
+                style="@style/SessionTimerStyle"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="6dp"
+                android:textSize="24sp"
+                tools:text="600 / 1,500 m"
+                tools:textColor="@color/errorRed"/>
+
+            <!-- with a goal: e.g. "36 laps to go" -->
+            <TextView
+                android:id="@+id/swimToGo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:textStyle="bold"
+                android:textColor="@color/textSecondary"
+                android:textSize="14sp"
+                android:fontFeatureSettings="tnum"
+                tools:text="36 laps to go"/>
+
+            <!-- tiles: res/layout/item_stat.xml (StatGrid.kt) -->
+            <LinearLayout
+                android:id="@+id/swimStats"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical"/>
+
+            <!-- voice counting: tap to turn it on, to allow the microphone or to listen at once -->
+            <LinearLayout
+                android:id="@+id/voiceCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="4dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="12dp"
+                android:background="@drawable/list_row_background"
+                android:foreground="@drawable/row_ripple"
+                android:clickable="true"
+                android:focusable="true">
+
+                <!-- microphone drawn with Canvas (VoiceLevelView.kt) -->
+                <com.example.gymbro.session.VoiceLevelView
+                    android:id="@+id/voiceLevel"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"/>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/SessionTitleStyle"
+                        android:textSize="12sp"
+                        android:text="@string/voice_counting"/>
+
+                    <TextView
+                        android:id="@+id/voiceStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="15sp"
+                        tools:text="Say “GymBro”, then the laps you swam"/>
+
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/voiceToggle"
+                    style="@style/SmallRoundIconButtonStyle"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="@string/voice_turn_off"
+                    android:src="@drawable/mic_off_icon"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <!-- e.g. "Undo +4": removes the last laps added (hidden when there is nothing to undo) -->
+    <TextView
+        android:id="@+id/undoLapsButton"
+        style="@style/LinkButtonStyle"
+        android:layout_gravity="center_horizontal"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:visibility="invisible"
+        tools:text="Undo +4"
+        tools:visibility="visible"/>
+
+    <!-- laps completed: +2 / +4 / +8 / +10 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/addLaps2"
+                style="@style/LapButtonStyle"
+                android:layout_marginEnd="6dp"
+                tools:text="+2"/>
+
+            <Button
+                android:id="@+id/addLaps4"
+                style="@style/LapButtonStyle"
+                android:layout_marginStart="6dp"
+                tools:text="+4"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/addLaps8"
+                style="@style/LapButtonStyle"
+                android:layout_marginEnd="6dp"
+                tools:text="+8"/>
+
+            <Button
+                android:id="@+id/addLaps10"
+                style="@style/LapButtonStyle"
+                android:layout_marginStart="6dp"
+                tools:text="+10"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

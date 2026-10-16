@@ -92,13 +92,18 @@ app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # biggest accepted request (
 #                      gym:    a finished gym session: duration_s, session_start, exercises
 #                      run:    a finished run session: duration_s, session_start, distance_km
 #                              (rounded to 0.1 km) and, if known, kcal, max_speed_kmh, goal_km,
-#                              route (list of lines, as Google encoded polylines)
+#                              route (list of lines, as Google encoded polylines), steps (counted
+#                              by the step sensor of the phone)
+#                      swim:   a finished swim session: duration_s, session_start, pool_length_m,
+#                              laps (lengths of the pool swum), distance_km (laps x pool length)
+#                              and, if set, goal_laps
 #                    session_id: the session of sessions/ that was published (if any)
 #   sessions/{id}    a finished training session of a user (LAST SESSIONS and calendar of the
-#                    app): id, user_id, type ('gym' or 'run'), client_id (chosen by the app: the
+#                    app): id, user_id, type ('gym', 'run' or 'swim'), client_id (chosen by the app: the
 #                    same session sent twice is saved once), start_ms, duration_ms (milliseconds),
 #                    published_post_id (null = not published), created_at and, depending on the type:
-#                      run: distance_km, kcal, max_speed_kmh, goal_km, route (as in posts)
+#                      run: distance_km, kcal, max_speed_kmh, goal_km, route, steps (as in posts)
+#                      swim: pool_length_m, laps, distance_km, goal_laps (as in posts)
 #                      gym: exercises (as done in the session: name, muscle_group, sets, reps,
 #                           weight_kg, rest_s, notes, done), plan_id, plan_name, plan_day (index of
 #                           the day of the plan), plan_day_name (null: session without a plan)
@@ -273,7 +278,7 @@ def user_json(user, private=False):
 def post_json(post):
     keys = ("id", "user_id", "kind", "title", "metric", "better", "amount", "notes", "duration_s",
             "distance_km", "kcal", "max_speed_kmh", "goal_km", "route", "exercises", "session_start",
-            "created_at")
+            "created_at", "steps", "pool_length_m", "laps", "goal_laps")
     # the values not stored (e.g. the distance of a gym session) are null
     return {key: post.get(key) for key in keys}
 
@@ -315,6 +320,30 @@ def optional_number(data, key, minimum, maximum):
         return True, None
     value = number(data, key, minimum, maximum)
     return value is not None, value
+
+
+def optional_whole(data, key, minimum, maximum):
+    """The same of optional_number, for whole numbers (e.g. steps, laps): the value is an int."""
+    ok, value = optional_number(data, key, minimum, maximum)
+    if value is None:
+        return ok, None
+    return value == int(value), int(value)
+
+
+def swim_values(data):
+    """The values of a swim session (pool length, laps, goal), validated: (values, None) or
+    (None, problem). The distance is calculated here: laps x pool length."""
+    pool = number(data, "pool_length_m", 5, 100)
+    ok_laps, laps = optional_whole(data, "laps", 0, 10_000)
+    ok_goal, goal = optional_whole(data, "goal_laps", 1, 10_000)
+    if pool is None:
+        return None, "Invalid pool length"
+    if not ok_laps or laps is None:
+        return None, "Invalid laps"
+    if not ok_goal:
+        return None, "Invalid goal"
+    return {"pool_length_m": pool, "laps": laps, "goal_laps": goal,
+            "distance_km": round(laps * pool / 1000, 4)}, None
 
 
 def clean_exercises(exercises):
@@ -562,9 +591,9 @@ def publish_post():
         if len(post["notes"]) > 200:
             return error(400, "The notes must be at most 200 characters")
 
-    elif kind in ("gym", "run"):
+    elif kind in ("gym", "run", "swim"):
         # gym: e.g. "Gym · Day 1 · Push" (the day of the plan followed)
-        post["title"] = (clean_text(data.get("title"), 60) or "Gym session") if kind == "gym" else "Run"
+        post["title"] = {"gym": clean_text(data.get("title"), 60) or "Gym session", "run": "Run", "swim": "Swim"}[kind]
         post["duration_s"] = number(data, "duration_s", 1, 7 * 24 * 3600)
         post["session_start"] = session_start(data)
         if post["duration_s"] is None or post["session_start"] is None:
@@ -584,17 +613,25 @@ def publish_post():
                 post["route"] = clean_route(data["route"])
                 if post["route"] is None:
                     return error(400, "Invalid route")
+            ok, post["steps"] = optional_whole(data, "steps", 0, 1_000_000)
+            if not ok:
+                return error(400, "Invalid steps")
+        elif kind == "swim":
+            values, problem = swim_values(data)
+            if values is None:
+                return error(400, problem)
+            post.update(values)
         else:
             post["exercises"] = clean_exercises(data.get("exercises"))
             if post["exercises"] is None:
                 return error(400, "Invalid exercises")
 
     else:
-        return error(400, "The kind of post must be 'manual', 'gym' or 'run'")
+        return error(400, "The kind of post must be 'manual', 'gym', 'run' or 'swim'")
 
     # the session of LAST SESSIONS that is published (optional): it is marked as published
     session_ref = None
-    if kind in ("gym", "run") and data.get("session_id") is not None:
+    if kind in ("gym", "run", "swim") and data.get("session_id") is not None:
         session_ref, session = own_document("sessions", data["session_id"])
         if session is None:
             return error(404, "Session not found")
@@ -800,15 +837,15 @@ def delete_post(post_id):
 def session_json(session):
     keys = ("id", "type", "client_id", "start_ms", "duration_ms", "distance_km", "kcal", "max_speed_kmh",
             "goal_km", "route", "exercises", "plan_id", "plan_name", "plan_day", "plan_day_name",
-            "published_post_id", "created_at")
+            "published_post_id", "created_at", "steps", "pool_length_m", "laps", "goal_laps")
     return {key: session.get(key) for key in keys}
 
 
 def clean_session(data):
     """A finished training session sent by the app, validated: (session, None) or (None, problem)."""
     kind = data.get("type")
-    if kind not in ("gym", "run"):
-        return None, "The type of session must be 'gym' or 'run'"
+    if kind not in ("gym", "run", "swim"):
+        return None, "The type of session must be 'gym', 'run' or 'swim'"
     client_id = clean_text(data.get("client_id"), 64)
     # not in the future (one day of margin for a wrong clock of the phone), at most one week long
     start = number(data, "start_ms", 0, time.time() * 1000 + 24 * 3600 * 1000)
@@ -827,6 +864,14 @@ def clean_session(data):
             session["route"] = clean_route(data["route"])
             if session["route"] is None:
                 return None, "Invalid route"
+        ok, session["steps"] = optional_whole(data, "steps", 0, 1_000_000)
+        if not ok:
+            return None, "Invalid steps"
+    elif kind == "swim":
+        values, problem = swim_values(data)
+        if values is None:
+            return None, problem
+        session.update(values)
     else:
         session["exercises"] = clean_exercises(data.get("exercises") or [])
         ok_plan, plan_id = optional_number(data, "plan_id", 1, 10 ** 12)

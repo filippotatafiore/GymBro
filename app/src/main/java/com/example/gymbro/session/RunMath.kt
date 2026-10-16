@@ -54,6 +54,14 @@ object RunMath {
     // kcal burned moving for some minutes at a speed (m/min): every liter of O2 is about 5 kcal
     fun kcal(metersPerMinute: Double, minutes: Double, weightKg: Double): Double =
         vo2(metersPerMinute) * weightKg / 1000 * 5 * minutes
+
+    // Average cadence: steps per minute (null without steps or time)
+    fun cadence(steps: Int, seconds: Long): Double? =
+        if (steps > 0 && seconds > 0) steps / (seconds / 60.0) else null
+
+    // Average length of a step in meters (null without steps or distance)
+    fun strideMeters(km: Double, steps: Int): Double? =
+        if (steps > 0 && km > 0) km * 1000 / steps else null
 }
 
 // Google "encoded polyline" format: a line of positions written as a short text, e.g.

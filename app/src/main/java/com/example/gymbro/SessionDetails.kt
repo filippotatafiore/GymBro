@@ -24,18 +24,23 @@ import com.example.gymbro.profile.icon
 import com.example.gymbro.session.Exercise
 import com.example.gymbro.session.RunSummary
 import com.example.gymbro.session.SessionType
+import com.example.gymbro.session.SwimSummary
 import com.example.gymbro.session.addRunSummary
+import com.example.gymbro.session.addSwimSummary
 import com.example.gymbro.session.bindExerciseRow
 import com.example.gymbro.session.close
 import com.example.gymbro.session.toRunSummary
+import com.example.gymbro.session.toSwimSummary
 import com.google.android.gms.maps.MapView
 
 // Windows with all the information of a finished session (tap it in LAST SESSIONS) or of a post
 // (tap it in the profile). Layout: res/layout/dialog_post_details.xml
 
-// e.g. "Run · 5.3 km", "Gym · Day 1 · Push", "Gym" (lists of sessions: LAST SESSIONS, calendar)
+// e.g. "Run · 5.3 km", "Swim · 1,500 m", "Gym · Day 1 · Push", "Gym" (lists of sessions: LAST
+// SESSIONS, calendar)
 fun TrainingSession.displayTitle(context: Context): String = when (type) {
     SessionType.RUN -> context.getString(R.string.run_post_title, formatDistance(distanceKm ?: 0.0))
+    SessionType.SWIM -> context.getString(R.string.swim_post_title, formatMeters(toSwimSummary().meters))
     SessionType.GYM -> planDayName?.let { context.getString(R.string.gym_day_title, it) } ?: context.getString(type.label)
 }
 
@@ -48,12 +53,14 @@ fun showSessionDetails(context: Context, owner: LifecycleOwner, session: Trainin
             context, owner, session.displayTitle(context), date,
             session.durationMillis, session.exercises.orEmpty(), session.planName
         )
+        SessionType.SWIM -> showSwimDetails(context, owner, session.displayTitle(context), date, session.toSwimSummary())
     }
 }
 
 // Details of a post (tap it in a profile or in the feed of the social page):
 // - run: map with the whole path followed and the final statistics
 // - gym: training time and exercises
+// - swim: distance, laps, pool and pace
 // - manual: the result and how it is evaluated
 fun showPostDetails(context: Context, owner: LifecycleOwner, post: Post) {
     val title = post.displayTitle(context)
@@ -67,6 +74,8 @@ fun showPostDetails(context: Context, owner: LifecycleOwner, post: Post) {
         PostKind.GYM -> showGymDetails(
             context, owner, title, sessionDate, (post.durationSeconds ?: 0L) * 1000, post.exercises.orEmpty()
         )
+
+        PostKind.SWIM -> showSwimDetails(context, owner, title, sessionDate, post.toSwimSummary())
 
         PostKind.MANUAL -> {
             val (dialog, content) = detailsDialog(context, owner, post.icon(), title, published)
@@ -86,6 +95,13 @@ fun showRunDetails(context: Context, owner: LifecycleOwner, title: String, subti
     var map: MapView? = null
     val (dialog, content) = detailsDialog(context, owner, R.drawable.shoe_icon, title, subtitle) { map?.close() }
     map = content.addRunSummary(summary)
+    dialog.show()
+}
+
+// Swim: the final statistics (distance, time, laps, pool, pace) and the goal
+fun showSwimDetails(context: Context, owner: LifecycleOwner, title: String, subtitle: String, summary: SwimSummary) {
+    val (dialog, content) = detailsDialog(context, owner, R.drawable.swim_icon, title, subtitle)
+    content.addSwimSummary(summary)
     dialog.show()
 }
 

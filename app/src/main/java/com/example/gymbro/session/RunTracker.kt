@@ -12,9 +12,9 @@ import java.io.File
 // The route planned before a run: destination, optional stop on the way, and the path between them
 data class RunPlan(val destination: GeoPoint, val stop: GeoPoint?, val path: List<GeoPoint>)
 
-// The run in progress of the logged user: goal, path followed and statistics.
-// The GPS positions arrive from RunTrackingService (also with the screen off or on another page)
-// and the run page shows them in real time. Everything is saved in files of the user, so the run
+// The run in progress of the logged user: goal, path followed, steps and statistics.
+// The GPS positions and the values of the step sensor arrive from RunTrackingService (also with
+// the screen off or on another page) and the run page shows them in real time. Everything is saved in files of the user, so the run
 // is not lost when the app is closed. All the functions must be called from the main thread.
 object RunTracker {
 
@@ -28,6 +28,7 @@ object RunTracker {
     private const val KEY_DESTINATION = "plan_destination"
     private const val KEY_STOP = "plan_stop"
     private const val KEY_PATH = "plan_path"
+    private const val KEY_STEPS = "steps"                  // -1 = not counted (no step sensor or permission)
 
     private lateinit var appContext: Context
 
@@ -55,6 +56,10 @@ object RunTracker {
     var lastLocation: Location? = null
         private set
 
+    // The last value of the step sensor: the steps made since the phone was turned on. The next
+    // value tells how many steps were made meanwhile. null: no value since the sensor (re)started.
+    private var lastStepTotal: Float? = null
+
     // Path and statistics of the run in progress
     val current: RunTrack
         get() {
@@ -78,6 +83,11 @@ object RunTracker {
         get() = prefs.getBoolean(KEY_GOAL_NOTIFIED, false)
         set(value) = prefs.edit { putBoolean(KEY_GOAL_NOTIFIED, value) }
 
+    // Steps of the run in progress, null = not counted (the phone has no step sensor, or the
+    // "physical activity" permission was not given)
+    val steps: Int?
+        get() = prefs.getInt(KEY_STEPS, -1).takeIf { it >= 0 }
+
     val plan: RunPlan?
         get() {
             val destination = prefs.getString(KEY_DESTINATION, null)?.let { parsePoint(it) } ?: return null
@@ -86,12 +96,13 @@ object RunTracker {
             return RunPlan(destination, stop, path)
         }
 
-    // A new run starts: the previous data are deleted
-    fun start(goalKm: Double?, plan: RunPlan?, weightKg: Double) {
+    // A new run starts: the previous data are deleted. countSteps: the step sensor can be used.
+    fun start(goalKm: Double?, plan: RunPlan?, weightKg: Double, countSteps: Boolean) {
         clear()
         prefs.edit {
             putString(KEY_GOAL_KM, goalKm?.toString())
             putString(KEY_WEIGHT, weightKg.toString())
+            putInt(KEY_STEPS, if (countSteps) 0 else -1)
             if (plan != null) {
                 putString(KEY_DESTINATION, plan.destination.toText())
                 putString(KEY_STOP, plan.stop?.toText())
@@ -104,9 +115,25 @@ object RunTracker {
     }
 
     // The GPS (re)starts: the next position starts a new line, so the time without GPS (e.g. app
-    // closed) is not drawn as a straight line nor counted
+    // closed) is not drawn as a straight line nor counted (the same for the steps)
     fun onTrackingStarted() {
         breakLine()
+        lastStepTotal = null
+    }
+
+    // A new value of the step sensor (from RunTrackingService): the steps made since the previous
+    // value are added, except during a pause
+    fun onStepTotal(total: Float) {
+        val previous = lastStepTotal
+        lastStepTotal = total
+        val counted = steps ?: return
+        // first value, or the phone was restarted (the sensor starts again from 0)
+        if (previous == null || total < previous) return
+        if (ActiveSession.type != SessionType.RUN || ActiveSession.isPaused) return
+        val made = (total - previous).toInt()
+        if (made <= 0) return
+        prefs.edit { putInt(KEY_STEPS, counted + made) }
+        notifyChanged()
     }
 
     // A new GPS position (from RunTrackingService)

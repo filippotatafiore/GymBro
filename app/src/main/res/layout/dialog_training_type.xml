@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<!-- Modal window shown when "start training" is pressed: choose between a gym and a run session -->
+<!-- Modal window shown when "start training" is pressed: choose between a gym, a run and a swim session -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -41,7 +41,7 @@
 
         <!-- spacer -->
         <View
-            android:layout_width="16dp"
+            android:layout_width="12dp"
             android:layout_height="match_parent"/>
 
         <!-- Run button -->
@@ -57,6 +57,27 @@
             <TextView
                 style="@style/TrainingOptionTextStyle"
                 android:text="@string/run"/>
+
+        </LinearLayout>
+
+        <!-- spacer -->
+        <View
+            android:layout_width="12dp"
+            android:layout_height="match_parent"/>
+
+        <!-- Swim button -->
+        <LinearLayout
+            android:id="@+id/swimOption"
+            style="@style/TrainingOptionStyle">
+
+            <ImageView
+                style="@style/TrainingOptionIconStyle"
+                android:src="@drawable/swim_icon"
+                android:importantForAccessibility="no"/>
+
+            <TextView
+                style="@style/TrainingOptionTextStyle"
+                android:text="@string/swim"/>
 
         </LinearLayout>
 

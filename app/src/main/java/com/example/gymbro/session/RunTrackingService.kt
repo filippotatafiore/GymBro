@@ -11,6 +11,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
@@ -26,13 +30,26 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 
-// Receives the GPS positions during a run and passes them to RunTracker, also when the screen is
-// off or the app is on another page. It is a "foreground service": Android keeps it running and
-// shows its notification ("Run in progress") for the whole run.
+// Receives the GPS positions and the steps during a run and passes them to RunTracker, also when
+// the screen is off or the app is on another page. It is a "foreground service": Android keeps it
+// running and shows its notification ("Run in progress") for the whole run.
+// Steps: the step counter sensor of the phone (a low-power chip that recognizes the steps from the
+// movements of the phone), read with SensorManager.
 class RunTrackingService : Service() {
 
     private lateinit var fusedLocation: FusedLocationProviderClient
+    private lateinit var sensorManager: SensorManager
     private var tracking = false
+
+    // The step counter gives the steps made since the phone was turned on: RunTracker counts the
+    // difference between two values
+    private val stepListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            if (tracking) RunTracker.onStepTotal(event.values[0])
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+    }
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
@@ -46,6 +63,7 @@ class RunTrackingService : Service() {
     override fun onCreate() {
         super.onCreate()
         fusedLocation = LocationServices.getFusedLocationProviderClient(this)
+        sensorManager = getSystemService(SensorManager::class.java)
     }
 
     // Called by start(): starts the GPS the first time (the next calls do nothing)
@@ -64,6 +82,7 @@ class RunTrackingService : Service() {
     override fun onDestroy() {
         tracking = false
         fusedLocation.removeLocationUpdates(locationCallback)
+        sensorManager.unregisterListener(stepListener)
         // the "Run in progress" notification disappears with the service
         stopForeground(STOP_FOREGROUND_REMOVE)
         getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID)
@@ -72,13 +91,19 @@ class RunTrackingService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    // A GPS position every 2 seconds, as precise as possible
+    // A GPS position every 2 seconds, as precise as possible, and the steps (if they are counted)
     @SuppressLint("MissingPermission")  // checked in onStartCommand
     private fun startLocationUpdates() {
         tracking = true
         RunTracker.onTrackingStarted()
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L).build()
         fusedLocation.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
+        if (RunTracker.steps != null && canCountSteps(this)) {
+            // the values arrive on the main thread, like the GPS positions
+            sensorManager.registerListener(
+                stepListener, sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER), SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
     }
 
     // e.g. "2.31 / 5 km" (or "2.31 km" without a goal); tap: opens the app
@@ -139,6 +164,12 @@ class RunTrackingService : Service() {
         fun stop(context: Context) {
             context.stopService(Intent(context, RunTrackingService::class.java))
         }
+
+        // The phone has a step counter sensor, and the user gave the "physical activity" permission
+        fun canCountSteps(context: Context): Boolean =
+            context.getSystemService(SensorManager::class.java).getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) ==
+                PackageManager.PERMISSION_GRANTED
 
         fun hasLocationPermission(context: Context) =
             listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION).any {

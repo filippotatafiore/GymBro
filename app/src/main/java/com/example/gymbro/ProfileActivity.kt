@@ -575,9 +575,10 @@ class ProfileActivity : ThemedActivity() {
         RunTrackingService.stop(this)
         SessionRepository.clear()
         UserSession.clear()
-        // session in progress of the user (ActiveSession) and plan saved by the older versions of the
-        // app: emptied right now (commit), otherwise a write in background would create the file again
-        for (name in listOf("active_session_$userId", "active_plan_$userId")) {
+        // session in progress of the user (ActiveSession, swim and its settings) and plan saved by the
+        // older versions of the app: emptied right now (commit), otherwise a write in background
+        // would create the file again
+        for (name in listOf("active_session_$userId", "swim_$userId", "swim_settings_$userId", "active_plan_$userId")) {
             getSharedPreferences(name, MODE_PRIVATE).edit(commit = true) { clear() }
             deleteSharedPreferences(name)
         }

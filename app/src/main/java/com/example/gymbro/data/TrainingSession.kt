@@ -14,7 +14,7 @@ data class TrainingSession(
     val type: SessionType,
     val startTime: Long,                    // milliseconds since 1970
     val durationMillis: Long,               // training time, pauses excluded
-    val distanceKm: Double? = null,         // run sessions only: rounded to 0.1 km
+    val distanceKm: Double? = null,         // run: rounded to 0.1 km; swim: laps x pool length
     val kcal: Double? = null,               // run sessions only: calories burned (estimated)
     val maxSpeedKmh: Double? = null,        // run sessions only
     val goalKm: Double? = null,             // run sessions only: goal distance (null = no goal)
@@ -24,5 +24,9 @@ data class TrainingSession(
     val planId: Long? = null,               // gym sessions only: the workout plan followed (null = none)
     val planName: String? = null,           // name of the plan at the time of the session
     val planDay: Int? = null,               // index of the day of the plan followed
-    val planDayName: String? = null         // e.g. "Day 1 · Push"
+    val planDayName: String? = null,        // e.g. "Day 1 · Push"
+    val steps: Int? = null,                 // run sessions only: counted by the step sensor (null = not counted)
+    val poolLengthM: Double? = null,        // swim sessions only: length of the pool in meters
+    val laps: Int? = null,                  // swim sessions only: lengths of the pool swum
+    val goalLaps: Int? = null               // swim sessions only: goal in lengths (null = no goal)
 )

@@ -77,14 +77,38 @@
             android:layout_marginStart="4dp"
             android:text="@string/stat_distance"/>
 
-        <!-- distance / goal: red, green once the goal is reached (white without a goal) -->
-        <TextView
-            android:id="@+id/runDistance"
-            style="@style/SessionTimerStyle"
-            android:layout_marginStart="4dp"
-            android:textSize="30sp"
-            tools:text="2.31 / 5 km"
-            tools:textColor="@color/errorRed"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="true">
+
+            <!-- distance / goal: red, green once the goal is reached (white without a goal) -->
+            <TextView
+                android:id="@+id/runDistance"
+                style="@style/SessionTimerStyle"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:textSize="30sp"
+                tools:text="2.31 / 5 km"
+                tools:textColor="@color/errorRed"/>
+
+            <!-- with a goal: e.g. "2.69 km to go" -->
+            <TextView
+                android:id="@+id/runToGo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:textStyle="bold"
+                android:textColor="@color/textSecondary"
+                android:textSize="15sp"
+                android:fontFeatureSettings="tnum"
+                android:visibility="gone"
+                tools:text="2.69 km to go"
+                tools:visibility="visible"/>
+
+        </LinearLayout>
 
         <!-- tiles: res/layout/item_stat.xml (StatGrid.kt) -->
         <LinearLayout

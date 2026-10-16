@@ -13,7 +13,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 // version: to be increased every time the structure of the tables changes.
 @Database(
     entities = [SessionEntity::class, ChatMessage::class, PlanEntity::class, PostEntity::class, ProfileEntity::class],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -101,6 +101,19 @@ abstract class AppDatabase : RoomDatabase() {
                         "`followersCount` INTEGER NOT NULL, `followingCount` INTEGER NOT NULL, `picture` BLOB, " +
                         "PRIMARY KEY(`userId`))"
                 )
+            }
+        }
+
+        // Version 7 -> 8: steps of the runs (step sensor) and swim sessions (pool length, laps swum,
+        // goal in laps), in the sessions and in the posts. The saved data are kept.
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                for (table in listOf("training_sessions", "posts")) {
+                    db.execSQL("ALTER TABLE $table ADD COLUMN steps INTEGER")
+                    db.execSQL("ALTER TABLE $table ADD COLUMN poolLengthM REAL")
+                    db.execSQL("ALTER TABLE $table ADD COLUMN laps INTEGER")
+                    db.execSQL("ALTER TABLE $table ADD COLUMN goalLaps INTEGER")
+                }
             }
         }
     }

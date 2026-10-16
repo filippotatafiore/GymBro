@@ -287,8 +287,9 @@ object ApiClient {
         return publish(token, body)
     }
 
-    // A finished gym or run session (run: distance, statistics and route followed). The session is
-    // marked as published on the server. gymTitle: e.g. "Gym · Day 1 · Push"
+    // A finished gym, run or swim session (run: distance, statistics, steps and route followed;
+    // swim: pool length, laps and goal). The session is marked as published on the server.
+    // gymTitle: e.g. "Gym · Day 1 · Push"
     suspend fun publishSession(token: String, session: TrainingSession, gymTitle: String? = null): Post {
         val body = JSONObject()
             .put("session_id", session.id)
@@ -302,10 +303,16 @@ object ApiClient {
                 .putOpt("max_speed_kmh", session.maxSpeedKmh)
                 .putOpt("goal_km", session.goalKm)
                 .putOpt("route", session.route?.toJson())
+                .putOpt("steps", session.steps)
             SessionType.GYM -> body
                 .put("kind", PostKind.GYM.json)
                 .putOpt("title", gymTitle)
                 .put("exercises", JSONArray(session.exercises.orEmpty().map { it.toJson() }))
+            SessionType.SWIM -> body
+                .put("kind", PostKind.SWIM.json)
+                .put("pool_length_m", session.poolLengthM ?: 0.0)
+                .put("laps", session.laps ?: 0)
+                .putOpt("goal_laps", session.goalLaps)
         }
         return publish(token, body)
     }
@@ -481,12 +488,18 @@ object ApiClient {
                 .putOpt("max_speed_kmh", session.maxSpeedKmh)
                 .putOpt("goal_km", session.goalKm)
                 .putOpt("route", session.route?.toJson())
+                .putOpt("steps", session.steps)
             SessionType.GYM -> body
                 .put("exercises", JSONArray(session.exercises.orEmpty().map { it.toJson() }))
                 .putOpt("plan_id", session.planId)
                 .putOpt("plan_name", session.planName)
                 .putOpt("plan_day", session.planDay)
                 .putOpt("plan_day_name", session.planDayName)
+            // the distance is calculated by the server: laps x pool length
+            SessionType.SWIM -> body
+                .putOpt("pool_length_m", session.poolLengthM)
+                .putOpt("laps", session.laps)
+                .putOpt("goal_laps", session.goalLaps)
         }
         return parse(request("POST", "/api/me/sessions", token = token, json = body).decodeToString()) { parseSession(it) }
     }
@@ -499,7 +512,7 @@ object ApiClient {
     private fun parseSession(json: JSONObject) = TrainingSession(
         id = json.getLong("id"),
         clientId = json.getString("client_id"),
-        type = if (json.getString("type") == "run") SessionType.RUN else SessionType.GYM,
+        type = SessionType.entries.firstOrNull { it.name.lowercase() == json.getString("type") } ?: SessionType.GYM,
         startTime = json.getLong("start_ms"),
         durationMillis = json.getLong("duration_ms"),
         distanceKm = json.doubleOrNull("distance_km"),
@@ -514,7 +527,11 @@ object ApiClient {
         planId = if (json.isNull("plan_id")) null else json.getLong("plan_id"),
         planName = json.stringOrNull("plan_name"),
         planDay = if (json.isNull("plan_day")) null else json.getInt("plan_day"),
-        planDayName = json.stringOrNull("plan_day_name")
+        planDayName = json.stringOrNull("plan_day_name"),
+        steps = json.intOrNull("steps"),
+        poolLengthM = json.doubleOrNull("pool_length_m"),
+        laps = json.intOrNull("laps"),
+        goalLaps = json.intOrNull("goal_laps")
     )
 
 
@@ -617,11 +634,17 @@ object ApiClient {
             (0 until array.length()).map { Exercise.fromJson(array.getJSONObject(it)) }
         },
         sessionStart = json.stringOrNull("session_start")?.let { Instant.parse(it) },
-        createdAt = Instant.parse(json.getString("created_at"))
+        createdAt = Instant.parse(json.getString("created_at")),
+        steps = json.intOrNull("steps"),
+        poolLengthM = json.doubleOrNull("pool_length_m"),
+        laps = json.intOrNull("laps"),
+        goalLaps = json.intOrNull("goal_laps")
     )
 
     // null if the value is missing or null in the JSON
     private fun JSONObject.stringOrNull(key: String): String? = if (isNull(key)) null else getString(key)
 
     private fun JSONObject.doubleOrNull(key: String): Double? = if (isNull(key)) null else getDouble(key)
+
+    private fun JSONObject.intOrNull(key: String): Int? = if (isNull(key)) null else getInt(key)
 }

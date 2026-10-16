@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.gymbro.R
 import com.example.gymbro.createModal
+import com.example.gymbro.formatCount
 import com.example.gymbro.formatDistance
 import com.example.gymbro.formatKcal
 import com.example.gymbro.formatLiveDistance
@@ -34,8 +35,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Run session in progress: map that follows the current GPS position and draws the path followed,
-// statistics in real time, and a window when the goal distance is reached.
-// The GPS positions are received by RunTrackingService and collected by RunTracker.
+// statistics in real time (also the steps, from the step sensor), and a window when the goal
+// distance is reached. The GPS positions and the steps are received by RunTrackingService and
+// collected by RunTracker.
 class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMapReadyCallback {
 
     private val locationPermissions = arrayOf(
@@ -46,6 +48,7 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
     private var map: GoogleMap? = null
     private lateinit var gpsStatus: View
     private lateinit var distanceText: TextView
+    private lateinit var toGoText: TextView
     private lateinit var liveStats: StatGrid
 
     // No position shown yet: the first one is shown with a close zoom, then the user's zoom is kept
@@ -83,6 +86,7 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
         gpsStatus = view.findViewById(R.id.gpsStatus)
         gpsStatus.isVisible = RunTracker.lastLocation == null
         distanceText = view.findViewById(R.id.runDistance)
+        toGoText = view.findViewById(R.id.runToGo)
         liveStats = StatGrid(view.findViewById(R.id.liveStats), columns = 3)
 
         // Without an API key Google Maps shows only a blank map: explain what is missing
@@ -218,7 +222,8 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
         }
     }
 
-    // Distance (red until the goal is reached, then green) and the other statistics
+    // Distance (red until the goal is reached, then green), what is left to the goal and the other
+    // statistics
     private fun showStats() {
         val context = context ?: return
         val run = RunTracker.current
@@ -235,18 +240,20 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
             else -> R.color.errorRed
         }))
 
-        val stats = mutableListOf(
+        toGoText.isVisible = goal != null && km < goal
+        if (goal != null) {
+            toGoText.text = getString(R.string.run_to_go, formatLiveDistance((goal - km).coerceAtLeast(0.0)))
+        }
+
+        liveStats.show(listOf(
             getString(R.string.stat_speed) to formatSpeed(run.currentSpeedMps(System.currentTimeMillis()) * 3.6),
             getString(R.string.stat_avg_speed) to formatSpeed(if (seconds > 0) km / (seconds / 3600.0) else 0.0),
             getString(R.string.stat_avg_pace) to (if (km >= 0.05) formatPace(seconds, km) else getString(R.string.no_pace)),
             getString(R.string.stat_calories) to formatKcal(run.kcal),
             getString(R.string.stat_max_speed) to formatSpeed(run.maxSpeedMps * 3.6),
-        )
-        if (goal != null) {
-            stats += getString(R.string.stat_to_go) to
-                    getString(R.string.live_distance_km, formatLiveDistance((goal - km).coerceAtLeast(0.0)))
-        }
-        liveStats.show(stats)
+            // "—": the steps are not counted (no step sensor, or no permission)
+            getString(R.string.stat_steps) to (RunTracker.steps?.let { formatCount(it) } ?: getString(R.string.no_value)),
+        ))
     }
 
     // The first time the distance reaches the goal: window to keep running or finish the run

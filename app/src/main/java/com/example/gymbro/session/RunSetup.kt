@@ -19,7 +19,8 @@ import com.example.gymbro.network.UserSession
 import com.example.gymbro.repository.UserRepository
 import com.example.gymbro.showError
 
-// Before a run starts (before the timer): permissions (location, notifications), then the goal:
+// Before a run starts (before the timer): permissions (location, notifications, physical activity
+// for the steps), then the goal:
 // a distance in km or miles, a route planned on the map (RoutePlannerActivity) or no goal.
 // The body weight (for the calories) comes from the profile: it is asked only if it is missing.
 // Created by MainActivity, which then starts the run (MainActivity.startRun).
@@ -28,10 +29,11 @@ class RunSetup(private val activity: MainActivity) {
     private val permissions = arrayOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION,
-        Manifest.permission.POST_NOTIFICATIONS  // notification "Run in progress" / "Goal reached"
+        Manifest.permission.POST_NOTIFICATIONS,  // notification "Run in progress" / "Goal reached"
+        Manifest.permission.ACTIVITY_RECOGNITION // steps counted by the step sensor
     )
 
-    // Asks the permissions; the GPS is needed, the notifications are optional
+    // Asks the permissions; the GPS is needed, the notifications and the steps are optional
     private val permissionRequest = activity.registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {

@@ -31,13 +31,18 @@ data class PostEntity(
     val route: Route?,
     val exercises: List<Exercise>?,
     val sessionStart: Long?,                // milliseconds since 1970
-    val createdAt: Long
+    val createdAt: Long,
+    val steps: Int? = null,
+    val poolLengthM: Double? = null,
+    val laps: Int? = null,
+    val goalLaps: Int? = null
 ) {
     fun toPost() = Post(
         id = id, kind = kind, title = title, metric = metric, better = better, amount = amount, notes = notes,
         durationSeconds = durationSeconds, distanceKm = distanceKm, kcal = kcal, maxSpeedKmh = maxSpeedKmh,
         goalKm = goalKm, route = route, exercises = exercises,
-        sessionStart = sessionStart?.let { Instant.ofEpochMilli(it) }, createdAt = Instant.ofEpochMilli(createdAt)
+        sessionStart = sessionStart?.let { Instant.ofEpochMilli(it) }, createdAt = Instant.ofEpochMilli(createdAt),
+        steps = steps, poolLengthM = poolLengthM, laps = laps, goalLaps = goalLaps
     )
 
     companion object {
@@ -46,7 +51,8 @@ data class PostEntity(
             better = post.better, amount = post.amount, notes = post.notes, durationSeconds = post.durationSeconds,
             distanceKm = post.distanceKm, kcal = post.kcal, maxSpeedKmh = post.maxSpeedKmh, goalKm = post.goalKm,
             route = post.route, exercises = post.exercises, sessionStart = post.sessionStart?.toEpochMilli(),
-            createdAt = post.createdAt.toEpochMilli()
+            createdAt = post.createdAt.toEpochMilli(), steps = post.steps, poolLengthM = post.poolLengthM,
+            laps = post.laps, goalLaps = post.goalLaps
         )
     }
 }

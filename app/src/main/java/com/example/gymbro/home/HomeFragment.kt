@@ -69,7 +69,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
-    // Modal window with the "Gym" and "Run" buttons.
+    // Modal window with the "Gym", "Run" and "Swim" buttons.
     // Its look is in res/layout/dialog_training_type.xml, its animation in res/anim/modal_*.xml
     private fun showTrainingTypeDialog() {
         val dialog = createModal(requireContext(), R.layout.dialog_training_type, viewLifecycleOwner)
@@ -83,6 +83,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             dialog.dismiss()
             // before the run starts: permissions and goal (distance or route)
             (requireActivity() as MainActivity).prepareRun()
+        }
+        dialog.findViewById<View>(R.id.swimOption).setOnClickListener {
+            dialog.dismiss()
+            // before the swim starts: microphone, pool length and goal
+            (requireActivity() as MainActivity).prepareSwim()
         }
         dialog.show()
     }

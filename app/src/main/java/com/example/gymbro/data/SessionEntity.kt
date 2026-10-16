@@ -34,7 +34,11 @@ data class SessionEntity(
     val planDayName: String? = null,
     val serverId: Long? = null,             // id on the server (null = not sent yet)
     @ColumnInfo(defaultValue = "0")
-    val deleted: Boolean = false            // deleted on this phone, not on the server yet
+    val deleted: Boolean = false,           // deleted on this phone, not on the server yet
+    val steps: Int? = null,                 // run
+    val poolLengthM: Double? = null,        // swim
+    val laps: Int? = null,
+    val goalLaps: Int? = null
 ) {
     fun toSession() = TrainingSession(
         id = serverId ?: 0,
@@ -43,7 +47,7 @@ data class SessionEntity(
         type = type, startTime = startTime, durationMillis = durationMillis, distanceKm = distanceKm,
         kcal = kcal, maxSpeedKmh = maxSpeedKmh, goalKm = goalKm, route = route, exercises = exercises,
         publishedPostId = publishedPostId, planId = planId, planName = planName, planDay = planDay,
-        planDayName = planDayName
+        planDayName = planDayName, steps = steps, poolLengthM = poolLengthM, laps = laps, goalLaps = goalLaps
     )
 
     companion object {
@@ -54,7 +58,8 @@ data class SessionEntity(
             maxSpeedKmh = session.maxSpeedKmh, goalKm = session.goalKm, route = session.route,
             exercises = session.exercises, publishedPostId = session.publishedPostId,
             clientId = session.clientId, planId = session.planId, planName = session.planName,
-            planDay = session.planDay, planDayName = session.planDayName, serverId = serverId
+            planDay = session.planDay, planDayName = session.planDayName, serverId = serverId,
+            steps = session.steps, poolLengthM = session.poolLengthM, laps = session.laps, goalLaps = session.goalLaps
         )
     }
 }

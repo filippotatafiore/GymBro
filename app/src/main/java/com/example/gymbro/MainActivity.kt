@@ -37,6 +37,9 @@ import com.example.gymbro.session.RunSetup
 import com.example.gymbro.session.RunTracker
 import com.example.gymbro.session.RunTrackingService
 import com.example.gymbro.session.SessionType
+import com.example.gymbro.session.SwimSessionFragment
+import com.example.gymbro.session.SwimSetup
+import com.example.gymbro.session.SwimTracker
 import com.example.gymbro.session.publishSession
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -60,6 +63,9 @@ class MainActivity : ThemedActivity() {
 
     // Day of the active workout plan asked before a gym session starts
     private val gymSetup = GymSetup(this)
+
+    // Microphone permission, pool length and goal asked before a swim starts
+    private val swimSetup = SwimSetup(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -161,11 +167,24 @@ class MainActivity : ThemedActivity() {
         runSetup.begin()
     }
 
-    // The timer starts now; the GPS positions are received by RunTrackingService
+    // The timer starts now; the GPS positions and the steps are received by RunTrackingService
     fun startRun(goalKm: Double?, plan: RunPlan?, weightKg: Double) {
-        RunTracker.start(goalKm, plan, weightKg)
+        RunTracker.start(goalKm, plan, weightKg, countSteps = RunTrackingService.canCountSteps(this))
         ActiveSession.start(SessionType.RUN)
         RunTrackingService.start(this)
+        onSessionChanged()
+    }
+
+    // Swim: first the microphone permission, the pool length and the goal (SwimSetup), which then
+    // calls startSwim
+    fun prepareSwim() {
+        swimSetup.begin()
+    }
+
+    // The timer starts now; the laps are added on the swim page (buttons or voice)
+    fun startSwim(poolLengthM: Double, goalLaps: Int?) {
+        SwimTracker.start(poolLengthM, goalLaps)
+        ActiveSession.start(SessionType.SWIM)
         onSessionChanged()
     }
 
@@ -174,24 +193,31 @@ class MainActivity : ThemedActivity() {
         val type = ActiveSession.type ?: return null
         val run = if (type == SessionType.RUN) RunTracker.current else null
         val gym = type == SessionType.GYM
+        val swim = type == SessionType.SWIM
         return TrainingSession(
             // a new id for each session: the server saves it only once, also if sent again
             clientId = UUID.randomUUID().toString(),
             type = type,
             startTime = ActiveSession.startTime,
             durationMillis = ActiveSession.elapsedMillis(),
-            // run: distance rounded to the nearest 0.1 km (the one used for the personal bests)
-            distanceKm = run?.let { RunMath.roundKm(it.distanceKm) },
+            // run: distance rounded to the nearest 0.1 km (the one used for the personal bests);
+            // swim: laps x pool length
+            distanceKm = run?.let { RunMath.roundKm(it.distanceKm) } ?: if (swim) SwimTracker.meters / 1000 else null,
             kcal = run?.kcal,
             maxSpeedKmh = run?.let { it.maxSpeedMps * 3.6 },
             goalKm = if (run != null) RunTracker.goalKm else null,
             route = run?.route?.filter { it.size >= 2 },
+            steps = if (run != null) RunTracker.steps else null,
             // gym: the exercises as they were done, and the day of the plan followed
             exercises = if (gym) ActiveSession.exercises else null,
             planId = if (gym) ActiveSession.planId else null,
             planName = if (gym) ActiveSession.planName else null,
             planDay = if (gym) ActiveSession.planDay else null,
-            planDayName = if (gym) ActiveSession.planDayName else null
+            planDayName = if (gym) ActiveSession.planDayName else null,
+            // swim: the pool, the laps swum and the goal
+            poolLengthM = if (swim) SwimTracker.poolLengthM else null,
+            laps = if (swim) SwimTracker.laps else null,
+            goalLaps = if (swim) SwimTracker.goalLaps else null
         )
     }
 
@@ -204,6 +230,7 @@ class MainActivity : ThemedActivity() {
             RunTrackingService.stop(this)
             RunTracker.clear()
         }
+        if (session.type == SessionType.SWIM) SwimTracker.clear()
         ActiveSession.clear()
 
         // Saved (and published) in background: database and network must not block the app.
@@ -234,12 +261,13 @@ class MainActivity : ThemedActivity() {
         bottomNav.refresh()
     }
 
-    // Shows home / gym session / run session, depending on the session in progress
+    // Shows home / gym session / run session / swim session, depending on the session in progress
     private fun showCurrentPage() {
         val page = when (ActiveSession.type) {
             null -> HomeFragment::class.java
             SessionType.GYM -> GymSessionFragment::class.java
             SessionType.RUN -> RunSessionFragment::class.java
+            SessionType.SWIM -> SwimSessionFragment::class.java
         }
         val shown = supportFragmentManager.findFragmentById(R.id.page_container)
         if (shown?.javaClass == page) return

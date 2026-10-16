@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Modal window shown before a swim starts (SwimSetup.kt): the length of the pool (the last one
+     used, 25 m the first time) and an optional goal, in laps or as a distance in km or miles -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout style="@style/ModalCardStyle">
+
+        <TextView
+            style="@style/ModalTitleStyle"
+            android:text="@string/swim_setup_title"/>
+
+        <TextView
+            style="@style/ModalMessageStyle"
+            android:text="@string/swim_setup_message"/>
+
+        <!-- pool length, in meters -->
+        <TextView
+            style="@style/FormLabelStyle"
+            android:layout_marginTop="20dp"
+            android:text="@string/pool_length_label"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/poolLengthInput"
+                style="@style/InputStyle"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="0dp"
+                android:inputType="numberDecimal"
+                android:importantForAutofill="no"
+                tools:ignore="LabelFor"
+                tools:text="25"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="4dp"
+                android:textStyle="bold"
+                android:textColor="@color/textSecondary"
+                android:textSize="16sp"
+                android:text="@string/unit_meters"/>
+
+        </LinearLayout>
+
+        <!-- goal (optional): a number of laps, or a distance -->
+        <TextView
+            style="@style/FormLabelStyle"
+            android:text="@string/swim_goal_label"/>
+
+        <EditText
+            android:id="@+id/swimGoalInput"
+            style="@style/InputStyle"
+            android:layout_marginTop="8dp"
+            android:hint="@string/swim_goal_hint"
+            android:inputType="numberDecimal"
+            android:importantForAutofill="no"/>
+
+        <RadioGroup
+            android:id="@+id/swimGoalUnit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:checkedButton="@+id/goalUnitLaps">
+
+            <RadioButton
+                android:id="@+id/goalUnitLaps"
+                style="@style/SegmentStyle"
+                android:layout_marginEnd="4dp"
+                android:text="@string/unit_laps"/>
+
+            <RadioButton
+                android:id="@+id/goalUnitKm"
+                style="@style/SegmentStyle"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:text="@string/unit_km"/>
+
+            <RadioButton
+                android:id="@+id/goalUnitMiles"
+                style="@style/SegmentStyle"
+                android:layout_marginStart="4dp"
+                android:text="@string/unit_miles"/>
+
+        </RadioGroup>
+
+        <!-- e.g. "= 40 laps · 1,000 m": a distance becomes the laps that reach it (rounded up) -->
+        <TextView
+            android:id="@+id/swimGoalPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:textColor="?attr/accentTextColor"
+            android:textSize="16sp"
+            android:fontFeatureSettings="tnum"
+            android:visibility="gone"
+            tools:text="= 40 laps · 1,000 m"
+            tools:visibility="visible"/>
+
+        <TextView
+            android:id="@+id/swimSetupError"
+            style="@style/ErrorTextStyle"/>
+
+        <Button
+            android:id="@+id/startSwimButton"
+            style="@style/PrimaryButtonStyle"
+            android:layout_marginTop="24dp"
+            android:text="@string/start_swim"/>
+
+    </LinearLayout>
+
+</ScrollView>

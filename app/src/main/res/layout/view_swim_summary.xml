@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Summary of a swim: the final statistics (SwimSummaryView.kt). Shown in the details of a swim
+     (LAST SESSIONS, posts) and in the window to stop a swim. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- tiles: res/layout/item_stat.xml -->
+    <LinearLayout
+        android:id="@+id/swimSummaryStats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"/>
+
+    <!-- e.g. "Goal 60 laps · reached" (green) or "not reached" (red) -->
+    <TextView
+        android:id="@+id/swimSummaryGoal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:visibility="gone"
+        tools:text="Goal 60 laps · reached"
+        tools:visibility="visible"/>
+
+</LinearLayout>

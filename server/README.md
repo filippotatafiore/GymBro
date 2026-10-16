@@ -67,15 +67,20 @@ Body of `POST /api/me/posts`, depending on the kind of post:
 - manual result: `{"kind": "manual", "title": "Deadlift", "metric": "weight" | "time",
   "better": "higher" | "lower", "amount": 150, "notes": "optional"}` (amount: kg or seconds)
 - run session: `{"kind": "run", "duration_s": 3600, "distance_km": 10.4, "session_start": "2026-10-12T08:00:00Z",
-  "kcal": 780, "max_speed_kmh": 14.2, "goal_km": 10, "route": ["_p~iF~ps|U_ulLnnqC"]}`
-  (kcal, max_speed_kmh, goal_km and route are optional; route = the lines followed, as
-  [Google encoded polylines](https://developers.google.com/maps/documentation/utilities/polylinealgorithm))
+  "kcal": 780, "max_speed_kmh": 14.2, "goal_km": 10, "route": ["_p~iF~ps|U_ulLnnqC"], "steps": 9850}`
+  (kcal, max_speed_kmh, goal_km, route and steps are optional; route = the lines followed, as
+  [Google encoded polylines](https://developers.google.com/maps/documentation/utilities/polylinealgorithm);
+  steps = counted by the step sensor of the phone)
 - gym session: `{"kind": "gym", "duration_s": 2700, "session_start": "...", "exercises":
   [{"name": "Bench Press", "muscle_group": "Chest", "sets": 4, "reps": 8, "weight_kg": 60}]}`
+- swim session: `{"kind": "swim", "duration_s": 1800, "session_start": "...", "pool_length_m": 25,
+  "laps": 60, "goal_laps": 60}` (goal_laps is optional; the server adds `distance_km` = laps x
+  pool length, here 1.5)
 
 Body of `POST /api/me/sessions` (LAST SESSIONS and calendar of the app): `{"client_id": "uuid",
-"type": "gym" | "run", "start_ms": 1791830919733, "duration_ms": 2700000, ...}`; run: `distance_km`,
-`kcal`, `max_speed_kmh`, `goal_km`, `route` (as in the posts); gym: `exercises` (as done in the
+"type": "gym" | "run" | "swim", "start_ms": 1791830919733, "duration_ms": 2700000, ...}`; run:
+`distance_km`, `kcal`, `max_speed_kmh`, `goal_km`, `route`, `steps` (as in the posts); swim:
+`pool_length_m`, `laps`, `goal_laps` (as in the posts); gym: `exercises` (as done in the
 session: `name`, `muscle_group`, `sets`, `reps` as a text, `weight_kg`, `rest_s`, `notes`, `done`),
 `plan_id`, `plan_name`, `plan_day`, `plan_day_name`. The same `client_id` is saved only once (the
 app can send a session again after an error). A post published from a session has `"session_id"`
