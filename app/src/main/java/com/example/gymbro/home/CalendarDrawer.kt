@@ -22,7 +22,7 @@ import com.example.gymbro.R
 import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.displayTitle
 import com.example.gymbro.formatDuration
-import com.example.gymbro.session.TrainingSessions
+import com.example.gymbro.repository.SessionRepository
 import com.example.gymbro.showSessionDetails
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -86,11 +86,11 @@ class CalendarDrawer(private val activity: MainActivity) {
         })
         activity.onBackPressedDispatcher.addCallback(activity, closeOnBack)
 
-        // The sessions of the logged user, downloaded from the server (see TrainingSessions): the
-        // dots are updated automatically when a session is saved or deleted
+        // The sessions of the logged user saved on this phone, also offline (see SessionRepository):
+        // the dots are updated automatically when a session is saved, deleted or downloaded
         activity.lifecycleScope.launch {
             activity.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                TrainingSessions.sessions.collect { sessions ->
+                SessionRepository.sessions().collect { sessions ->
                     sessionsByDay = sessions.groupBy {
                         Instant.ofEpochMilli(it.startTime).atZone(ZoneId.systemDefault()).toLocalDate()
                     }

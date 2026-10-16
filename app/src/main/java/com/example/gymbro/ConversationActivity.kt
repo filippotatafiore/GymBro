@@ -19,6 +19,7 @@ import com.example.gymbro.network.ConversationDetails
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.PlanPicker
+import com.example.gymbro.repository.PlanRepository
 import com.example.gymbro.social.Avatars
 import com.example.gymbro.social.SharedPlanAdapter
 import kotlinx.coroutines.launch
@@ -132,13 +133,14 @@ class ConversationActivity : ThemedActivity() {
         }
     }
 
-    // Window with the plans of the user: the one tapped is shared
+    // Window with the plans of the user: the one tapped is shared (only online: the changes made
+    // offline are sent first, so the other user receives the plan as it is now)
     private fun choosePlanToShare() {
-        val token = UserSession.token ?: return
         shareButton.isEnabled = false
         lifecycleScope.launch {
             try {
-                val plans = ApiClient.getPlans(token)
+                PlanRepository.sync()
+                val plans = PlanRepository.all()
                 PlanPicker.show(
                     this@ConversationActivity, this@ConversationActivity,
                     getString(R.string.share_plan_title), getString(R.string.share_plan_message, username),

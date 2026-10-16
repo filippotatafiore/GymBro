@@ -9,21 +9,19 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
 import com.example.gymbro.R
-import com.example.gymbro.network.ApiClient
-import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.Sex
 import com.example.gymbro.network.User
 import com.example.gymbro.network.UserSession
-import com.example.gymbro.network.userMessage
+import com.example.gymbro.repository.UserRepository
 import com.example.gymbro.showError
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.time.Year
 import java.util.Locale
 
 // Personal information of the user (body data: height, weight, year of birth, sex), with the BMI
-// updated while typing, saved on the server (res/layout/form_personal_info.xml, inside [root]).
+// updated while typing, saved on this phone and on the server, also offline (see UserRepository)
+// (res/layout/form_personal_info.xml, inside [root]).
 // The weight is used for the calories of the runs, all of them by the AI coach for the workout
 // plans. An empty field = not set. Used by the "Personal information" page of the menu of the
 // profile and by the window shown after the registration. onSaved: the updated user.
@@ -91,21 +89,10 @@ class PersonalInfoForm(private val root: View, private val scope: CoroutineScope
             R.id.sexOther -> Sex.OTHER
             else -> null
         }
-        val token = UserSession.token ?: return
         error.isVisible = false
         context.getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(save.windowToken, 0)
 
-        scope.launch {
-            save.isEnabled = false
-            try {
-                val user = ApiClient.updateProfile(token, height, weight, birthYear, sex)
-                UserSession.updateUser(user)
-                onSaved(user)
-            } catch (e: ApiException) {
-                error.showError(e.userMessage(context))
-            } finally {
-                save.isEnabled = true
-            }
-        }
+        UserRepository.saveBodyData(height, weight, birthYear, sex)
+        UserSession.user?.let { onSaved(it) }
     }
 }

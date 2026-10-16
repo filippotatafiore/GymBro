@@ -11,7 +11,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.gymbro.R
 import com.example.gymbro.gymBroApp
 import com.example.gymbro.network.ApiException
-import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.ExerciseEditor
 import com.example.gymbro.plan.ExerciseNotInPlanException
@@ -23,7 +22,8 @@ import kotlinx.coroutines.launch
 // Gym session in progress: the exercises of the day of the workout plan followed (or added during
 // the session), saved with the session when it stops. Every exercise can be marked as done and
 // changed (e.g. the weight used): the changes can be kept only for this session or saved also in
-// the plan. The exercises are kept in ActiveSession (also when the app is closed).
+// the plan. The exercises are kept in ActiveSession (also when the app is closed). Everything works
+// also offline: the changes of the plan are sent to the server when it is reachable again.
 class GymSessionFragment : SessionFragment(R.layout.fragment_gym_session) {
 
     private lateinit var adapter: GymExerciseAdapter
@@ -116,36 +116,35 @@ class GymSessionFragment : SessionFragment(R.layout.fragment_gym_session) {
 
     // The changes of an exercise also in the plan (the next sessions start from them)
     private fun saveInPlan(planIndex: Int, oldName: String, changes: PlanExercise) {
-        val token = UserSession.token ?: return
         val planId = ActiveSession.planId ?: return
         val day = ActiveSession.planDay ?: return
         updatePlan {
-            SessionPlanChanges.replace(token, planId, day, planIndex, oldName, changes)
+            SessionPlanChanges.replace(planId, day, planIndex, oldName, changes).synced
         }
     }
 
     // A new exercise also in the plan: it remembers its position in the day of the plan
     private fun addToPlan(index: Int, exercise: PlanExercise) {
-        val token = UserSession.token ?: return
         val planId = ActiveSession.planId ?: return
         val day = ActiveSession.planDay ?: return
         updatePlan {
-            val planIndex = SessionPlanChanges.add(token, planId, day, exercise)
+            val (planIndex, saved) = SessionPlanChanges.add(planId, day, exercise)
             // (nothing to show: the page may be closed meanwhile, or the session stopped)
             val exercises = ActiveSession.exercises
             if (index in exercises.indices) {
                 ActiveSession.exercises = exercises.toMutableList().also { it[index] = it[index].copy(planIndex = planIndex) }
             }
+            saved.synced
         }
     }
 
-    // Saves a change of the plan in background: it completes also if the page is closed meanwhile
-    private fun updatePlan(update: suspend () -> Unit) {
+    // Saves a change of the plan in background: it completes also if the page is closed meanwhile.
+    // update: true if saved also on the server (offline: on this phone, see OfflineNotice)
+    private fun updatePlan(update: suspend () -> Boolean) {
         val app = requireContext().gymBroApp
         app.applicationScope.launch {
             try {
-                update()
-                Toast.makeText(app, R.string.plan_updated_toast, Toast.LENGTH_SHORT).show()
+                if (update()) Toast.makeText(app, R.string.plan_updated_toast, Toast.LENGTH_SHORT).show()
             } catch (e: ExerciseNotInPlanException) {
                 Toast.makeText(app, R.string.exercise_not_in_plan, Toast.LENGTH_LONG).show()
             } catch (e: ApiException) {

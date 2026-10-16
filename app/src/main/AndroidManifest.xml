@@ -5,6 +5,9 @@
     <!-- Internet: REST API (login, profile, results) and Google Maps -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Connection state: the changes made offline are synchronized when the phone is back online -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- GPS: position on the map and path followed during a run -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />

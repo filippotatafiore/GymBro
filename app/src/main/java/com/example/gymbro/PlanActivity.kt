@@ -26,20 +26,23 @@ import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.ExerciseEditor
 import com.example.gymbro.plan.Plan
-import com.example.gymbro.plan.PlanCache
 import com.example.gymbro.plan.PlanForm
+import com.example.gymbro.repository.PlanRepository
+import com.example.gymbro.repository.UserRepository
 import com.example.gymbro.session.exerciseDetails
 import kotlinx.coroutines.launch
 
-// Page of a gym workout plan. The plan is read from the server every time the page is shown: it also
-// shows the changes made by the coach in the chat.
-// - your plans (WORKOUT PLANS of your profile), changed by hand and saved on the server right away:
+// Page of a gym workout plan. The plan is read every time the page is shown: it also shows the
+// changes made by the coach in the chat.
+// - your plans (WORKOUT PLANS of your profile): the version saved on this phone is shown at once,
+//   then the one of the server (see PlanRepository). The changes by hand are saved at once on this
+//   phone and on the server, also offline (sent to the server when it is reachable again):
 //   - tap an exercise: change it, replace it with another one, or delete it
 //   - "+ Add exercise" under a day, "+ Add day" at the end
 //   - tap a day: rename or delete it; tap the title: rename the plan
-//   - private or public (everyone sees it on your profile)
+//   - private or public (everyone sees it on your profile): only online
 //   "Ask the coach to change it": chat about this plan (ChatActivity), where the coach sees the plan
-//   as it is now and can change it.
+//   as it is now and can change it (only online).
 // - a public plan of another user (their profile, see openPublic) or a plan shared with Messages
 //   (see openShared): only to see, with "Add to my plans": a copy, then a plan like the others.
 class PlanActivity : ThemedActivity() {
@@ -114,13 +117,14 @@ class PlanActivity : ThemedActivity() {
         loadPlan()
     }
 
-    // Reads the plan from the server (in background)
+    // Reads the plan (in background): your plans from this phone and then from the server, the
+    // others only from the server
     private fun loadPlan() {
         val token = UserSession.token ?: return
         lifecycleScope.launch {
             try {
                 when (mode) {
-                    Mode.OWN -> show(ApiClient.getPlan(token, planId))
+                    Mode.OWN -> loadOwnPlan()
                     Mode.PUBLIC -> show(ApiClient.getPublicPlan(ownerId, planId))
                     Mode.SHARED -> {
                         val shared = ApiClient.getSharedPlan(token, shareId)
@@ -139,6 +143,24 @@ class PlanActivity : ThemedActivity() {
             } finally {
                 loading.isVisible = false
             }
+        }
+    }
+
+    // One of your plans: the version saved on this phone at once (also offline), then the one of the
+    // server (with the changes made offline sent first). Throws ApiException (404: deleted).
+    private suspend fun loadOwnPlan() {
+        PlanRepository.plan(planId)?.let {
+            show(it)
+            loading.isVisible = false
+        }
+        val problem = PlanRepository.trySync()
+        val synced = PlanRepository.plan(planId)
+        when {
+            synced != null -> if (synced != plan) show(synced)
+            // not on this phone and the server is not reachable
+            problem != null -> throw problem
+            // deleted (e.g. on another phone)
+            else -> throw ApiException(404, getString(R.string.plan_not_found))
         }
     }
 
@@ -237,7 +259,7 @@ class PlanActivity : ThemedActivity() {
         content.addView(card)
     }
 
-    // Private / public: a change is saved on the server right away
+    // Private / public: like publishing, only online (saved on the server right away)
     private fun showVisibility(card: View, plan: Plan) {
         val group = card.findViewById<RadioGroup>(R.id.planVisibilityGroup)
         group.check(if (plan.isPublic) R.id.planPublicOption else R.id.planPrivateOption)
@@ -247,12 +269,11 @@ class PlanActivity : ThemedActivity() {
     }
 
     private fun setPublic(plan: Plan, public: Boolean) {
-        val token = UserSession.token ?: return
         if (saving) return
         saving = true
         lifecycleScope.launch {
             try {
-                show(ApiClient.setPlanPublic(token, plan.id, public))
+                show(PlanRepository.setPublic(plan.id, public))
             } catch (e: ApiException) {
                 showToast(e.userMessage(this@PlanActivity))
                 // the choice shown goes back to the saved one
@@ -291,6 +312,8 @@ class PlanActivity : ThemedActivity() {
                     Mode.SHARED -> ApiClient.saveSharedPlan(token, shareId)
                     else -> ApiClient.copyPublicPlan(token, ownerId, planId)
                 }
+                // also on this phone: it can be seen and followed offline
+                PlanRepository.store(copy)
                 if (!alreadyAdded) Toast.makeText(this@PlanActivity, R.string.plan_added, Toast.LENGTH_SHORT).show()
                 open(this@PlanActivity, copy.id)
                 finish()
@@ -311,18 +334,20 @@ class PlanActivity : ThemedActivity() {
         content.addView(link)
     }
 
-    // Saves a change on the server, then shows the saved plan. onError: the message of the error
-    // (e.g. shown in the open window); onSaved: e.g. closes the window.
+    // Saves a change on this phone and on the server (offline: on the server later, see
+    // PlanRepository), then shows the saved plan. onError: the message of the error (e.g. shown in
+    // the open window); onSaved: e.g. closes the window.
     private fun save(changed: Plan, onError: (String) -> Unit = ::showToast, onSaved: () -> Unit = {}) {
-        val token = UserSession.token ?: return
         if (saving) return
         saving = true
         lifecycleScope.launch {
             try {
-                show(ApiClient.updatePlan(token, changed))
+                show(PlanRepository.update(changed).plan)
                 onSaved()
             } catch (e: ApiException) {
                 onError(e.userMessage(this@PlanActivity))
+                // e.g. deleted on another phone
+                if (e.code == 404) finish()
             } finally {
                 saving = false
             }
@@ -334,19 +359,12 @@ class PlanActivity : ThemedActivity() {
     }
 
 
-    // The gym sessions will follow this plan (the server remembers it for the account)
+    // The gym sessions will follow this plan (the server remembers it for the account): at once on
+    // this phone, on the server now or (offline) when it is reachable again
     private fun setActive(plan: Plan) {
-        val token = UserSession.token ?: return
-        lifecycleScope.launch {
-            try {
-                UserSession.updateUser(ApiClient.setActivePlan(token, plan.id))
-                PlanCache.save(plan)
-                Toast.makeText(this@PlanActivity, R.string.plan_now_active, Toast.LENGTH_SHORT).show()
-                show(plan)
-            } catch (e: ApiException) {
-                showToast(e.userMessage(this@PlanActivity))
-            }
-        }
+        UserRepository.setActivePlan(plan.id)
+        Toast.makeText(this, R.string.plan_now_active, Toast.LENGTH_SHORT).show()
+        show(plan)
     }
 
 
@@ -440,23 +458,19 @@ class PlanActivity : ThemedActivity() {
 
     // --------------------------------------------------------- DELETE
 
-    // After a confirmation: deletes the plan on the server and the chat about it on the phone
+    // After a confirmation: deletes the plan (on this phone at once, on the server now or, offline,
+    // when it is reachable again, see PlanRepository) and the chat about it on the phone
     private fun confirmDeletePlan() {
         showConfirmModal(this, this, R.string.delete_plan_title, R.string.delete_plan_message, R.string.delete) {
-            val token = UserSession.token ?: return@showConfirmModal
             val userId = UserSession.userId ?: return@showConfirmModal
             lifecycleScope.launch {
-                try {
-                    ApiClient.deletePlan(token, planId)
-                    CoachChat.clear(this@PlanActivity, CoachChat.Conversation(userId, planId))
-                    // it was the active plan: the server has no active plan now
-                    UserSession.user?.takeIf { it.activePlanId == planId }?.let {
-                        UserSession.updateUser(it.copy(activePlanId = null))
-                    }
-                    finish()
-                } catch (e: ApiException) {
-                    showToast(e.userMessage(this@PlanActivity))
+                PlanRepository.delete(planId)
+                CoachChat.clear(this@PlanActivity, CoachChat.Conversation(userId, planId))
+                // it was the active plan: the server has no active plan when the plan is deleted
+                UserSession.user?.takeIf { it.activePlanId == planId }?.let {
+                    UserSession.changeLocally(it.copy(activePlanId = null))
                 }
+                finish()
             }
         }
     }

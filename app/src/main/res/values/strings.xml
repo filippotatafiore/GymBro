@@ -77,7 +77,6 @@
     <string name="goal_distance">Distance</string>
     <string name="goal_route">Route</string>
     <string name="body_weight_label">Your body weight, to estimate the calories (it will be saved in your profile)</string>
-    <string name="error_saving_profile">Weight not saved in your profile: %1$s</string>
     <string name="run_without_goal">Just run, without a goal</string>
     <string name="error_invalid_body_weight">Insert your body weight (30–300 kg)</string>
     <string name="goal_distance_title">Goal distance</string>
@@ -296,6 +295,8 @@
 
     <!-- gym session following a workout plan -->
     <string name="gym_day_title">Gym · %1$s</string>
+    <string name="saved_offline">No connection: saved on this phone. It will be synchronized when you are back online.</string>
+    <string name="session_not_synced">%1$s · not synced yet</string>
     <string name="session_saved_offline">Session saved on this phone: it will be saved online (and can be published) when the server is reachable.</string>
     <string name="plan_not_loaded">Your active plan could not be loaded: %1$s</string>
     <string name="choose_day_title">Which day?</string>
@@ -354,8 +355,6 @@
     <string name="accent_green">Green</string>
     <string name="accent_teal">Teal</string>
     <string name="appearance_hint">Saved in your account: the same look on all your devices.</string>
-    <string name="appearance_saving">Saving…</string>
-    <string name="appearance_not_saved">Look not saved: %1$s</string>
 
     <!-- after the registration -->
     <string name="welcome_personal_info_title">Welcome to GymBro!</string>

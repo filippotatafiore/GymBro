@@ -2,6 +2,16 @@ package com.example.gymbro
 
 import android.content.res.ColorStateList
 import android.graphics.BitmapFactory
+import com.example.gymbro.data.ProfileEntity
+import com.example.gymbro.plan.Plan
+import com.example.gymbro.repository.PlanRepository
+import com.example.gymbro.repository.ProfileRepository
+import com.example.gymbro.repository.SessionRepository
+import com.example.gymbro.repository.UserRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import android.net.Uri
 import android.os.Bundle
 import android.util.Patterns
@@ -54,9 +64,7 @@ import com.example.gymbro.profile.ProfileHeader
 import com.example.gymbro.profile.ProfilePictures
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.RunTrackingService
-import com.example.gymbro.session.TrainingSessions
 import com.example.gymbro.session.publishSession
-import com.example.gymbro.social.Avatars
 import kotlinx.coroutines.launch
 
 import androidx.core.widget.NestedScrollView
@@ -81,8 +89,10 @@ class ProfileActivity : ThemedActivity() {
     private val menuHistory = Stack<Int>() // Stack to store previous menus
     // Menu shown now: saved in menuHistory when another one is opened, to come back to it
     private var currentMenu = R.layout.profile_menu
-    // A change of the look (favorite color, theme) is being saved
-    private var savingAppearance = false
+    // The plans saved on this phone (the active one is shown first)
+    private var plans = emptyList<Plan>()
+    // A post was just published: the list shows its top, where the new post appears
+    private var scrollToNewPost = false
 
     private lateinit var bottomNav: BottomNavBar
     private lateinit var header: ProfileHeader
@@ -251,6 +261,21 @@ class ProfileActivity : ThemedActivity() {
         findViewById<Button>(R.id.publishResultButton).setOnClickListener { showPublishChoice() }
         findViewById<Button>(R.id.newPlanButton).setOnClickListener { showCreatePlanDialog() }
 
+        // The profile saved on this phone (also offline), updated at every change: posts and personal
+        // bests, workout plans, followers, followed users and picture (see the repositories)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch { ProfileRepository.posts().collect { showPosts(it) } }
+                launch { ProfileRepository.profile().collect { showSavedProfile(it) } }
+                launch {
+                    PlanRepository.plans().collect {
+                        plans = it
+                        showPlans()
+                    }
+                }
+            }
+        }
+
 
         // --------------------------------------------------------- NAVBAR
 
@@ -267,6 +292,8 @@ class ProfileActivity : ThemedActivity() {
         super.onResume()
         bottomNav.refresh()
         UserSession.user?.let { showUser(it) }
+        // e.g. a plan made active in its page
+        showPlans()
         refreshProfile()
     }
 
@@ -289,38 +316,44 @@ class ProfileActivity : ThemedActivity() {
         FollowListActivity.open(this, user.id, user.username, tab)
     }
 
-    // Downloads profile data, picture, posts, followers and workout plans from the server (in background)
+    // Downloads the profile from the server and saves it on this phone (in background): the pages
+    // show it through the repositories. The changes made offline are sent first (personal
+    // information, look, workout plans). Offline the profile saved on this phone stays.
     private fun refreshProfile() {
-        val token = UserSession.token ?: return
         lifecycleScope.launch {
             try {
-                val user = ApiClient.getMe(token)
-                UserSession.updateUser(user)
-                showUser(user)
-
-                val picture = if (user.hasPicture) ApiClient.getPicture(user.id) else null
-                if (picture != null) {
-                    header.picture.setImageBitmap(picture)
-                } else {
-                    header.picture.setImageResource(R.drawable.default_avatar)
-                }
-
-                header.showCounts(ApiClient.getProfile(token, user.id))
-                showPosts(user.id)
-                showPlans(token)
+                showUser(ProfileRepository.refresh())
             } catch (e: ApiException) {
-                Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
-                // the login is no longer valid (e.g. logged out from the server)
-                if (e.code == 401) logout()
+                when (e.code) {
+                    0 -> {}
+                    // the login is no longer valid (e.g. logged out from the server)
+                    401 -> {
+                        Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
+                        logout()
+                        return@launch
+                    }
+                    else -> Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
+                }
             }
+            PlanRepository.trySync()
         }
     }
 
+    // Followers, followed users and picture saved on this phone (null: never downloaded)
+    private suspend fun showSavedProfile(profile: ProfileEntity?) {
+        profile ?: return
+        header.showFollows(profile.followersCount, profile.followingCount)
+        val jpeg = profile.picture
+        val picture = jpeg?.let { withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(it, 0, it.size) } }
+        if (picture != null) header.picture.setImageBitmap(picture) else header.picture.setImageResource(R.drawable.default_avatar)
+    }
+
     // Shows the posts of the user and the personal bests chosen among them ("PERSONAL BEST" also on
-    // their posts). scrollToTop: shows the top of the list, where a new post appears.
-    private suspend fun showPosts(userId: Long, scrollToTop: Boolean = false) {
-        val posts = ApiClient.getPosts(userId)
+    // their posts). After a new post: the top of the list, where it appears.
+    private fun showPosts(posts: List<Post>) {
         val bests = PersonalBests.from(posts)
+        val scrollToTop = scrollToNewPost
+        scrollToNewPost = false
         postAdapter.show(posts, bests.map { it.id }.toSet()) {
             if (scrollToTop) postList.scrollToPosition(0)
         }
@@ -332,29 +365,17 @@ class ProfileActivity : ThemedActivity() {
     }
 
     // Workout plans of the user, the last changed first
-    private suspend fun showPlans(token: String) {
+    private fun showPlans() {
         // the active plan first, with "ACTIVE"
         val activePlanId = UserSession.user?.activePlanId
-        val plans = ApiClient.getPlans(token).sortedByDescending { it.id == activePlanId }
+        val sorted = plans.sortedByDescending { it.id == activePlanId }
         val activeChanged = planAdapter.activePlanId != activePlanId
         planAdapter.activePlanId = activePlanId
-        planAdapter.submitList(plans) {
+        planAdapter.submitList(sorted) {
             @Suppress("NotifyDataSetChanged")  // the badge of every card may change
             if (activeChanged) planAdapter.notifyDataSetChanged()
         }
-        emptyPlansText.isVisible = plans.isEmpty()
-    }
-
-    // Reloads posts and personal bests (after publishing or deleting a post)
-    private fun reloadPosts(scrollToTop: Boolean = false) {
-        val userId = UserSession.userId ?: return
-        lifecycleScope.launch {
-            try {
-                showPosts(userId, scrollToTop)
-            } catch (e: ApiException) {
-                Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
-            }
-        }
+        emptyPlansText.isVisible = sorted.isEmpty()
     }
 
     // Back to the welcome page. The session in progress (if any) is kept for when this user logs in
@@ -363,7 +384,7 @@ class ProfileActivity : ThemedActivity() {
         RunTrackingService.stop(this)
         val token = UserSession.token
         UserSession.clear()
-        TrainingSessions.clear()
+        SessionRepository.clear()
 
         // Invalidate the token on the server too (if the server is not reachable there is nothing to do).
         // applicationScope: this page is closed right away.
@@ -378,16 +399,12 @@ class ProfileActivity : ThemedActivity() {
         WelcomeActivity.open(this)
     }
 
-    // The new picture is uploaded to the server right away
+    // The new picture is uploaded to the server right away (only online), then saved on this phone
     private fun changePicture(uri: Uri) {
-        val token = UserSession.token ?: return
         lifecycleScope.launch {
             try {
                 val jpeg = ProfilePictures.prepare(this@ProfileActivity, uri)
-                ApiClient.uploadPicture(token, jpeg)
-                header.picture.setImageBitmap(BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size))
-                // the small picture of the lists (social page) is downloaded again
-                UserSession.userId?.let { Avatars.forget(it) }
+                ProfileRepository.changePicture(jpeg)
             } catch (e: ApiException) {
                 Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
@@ -399,7 +416,8 @@ class ProfileActivity : ThemedActivity() {
 
     // --------------------------------------------------------- PERSONAL INFORMATION
 
-    // "Personal information" page of the menu: body data of the user (see PersonalInfoForm)
+    // "Personal information" page of the menu: body data of the user (see PersonalInfoForm), saved
+    // also offline
     private fun showPersonalInfoForm() {
         PersonalInfoForm(menuContainer, lifecycleScope) {
             Toast.makeText(this, R.string.profile_saved, Toast.LENGTH_SHORT).show()
@@ -411,8 +429,8 @@ class ProfileActivity : ThemedActivity() {
     // --------------------------------------------------------- CUSTOMIZE ACCOUNT
 
     // "Customize account" page of the menu: theme (dark / light) and favorite color. A choice is
-    // saved in the account first, then applied to the whole app (this page is recreated with the
-    // menu still open, the other pages when they are shown again).
+    // applied at once to the whole app (this page is recreated with the menu still open, the other
+    // pages when they are shown again) and saved in the account, also offline (see UserRepository).
     private fun showCustomizeForm() {
         val themeGroup = menuContainer.findViewById<RadioGroup>(R.id.themeGroup)
         themeGroup.check(if (Appearance.theme == AppTheme.DARK) R.id.themeDark else R.id.themeLight)
@@ -452,27 +470,14 @@ class ProfileActivity : ThemedActivity() {
         swatch.findViewById<View>(R.id.swatchCheck).isVisible = chosen
     }
 
-    // Saves the new look in the account, then applies it: a new theme recreates all the pages
-    // (Android), a new color this page (and the others when shown again, see ThemedActivity)
+    // Applies the new look and saves it in the account (in background, also offline): a new theme
+    // recreates all the pages (Android), a new color this page (and the others when shown again,
+    // see ThemedActivity)
     private fun changeAppearance(accent: Accent, theme: AppTheme) {
-        if (savingAppearance || (accent == Appearance.accent && theme == Appearance.theme)) return
-        val token = UserSession.token ?: return
-        val status = menuContainer.findViewById<TextView>(R.id.appearanceStatus)
-        savingAppearance = true
-        status?.setText(R.string.appearance_saving)
-        lifecycleScope.launch {
-            try {
-                val themeChanged = theme != Appearance.theme
-                UserSession.updateUser(ApiClient.setAppearance(token, accent, theme))
-                if (!themeChanged) recreate()
-            } catch (e: ApiException) {
-                Toast.makeText(this@ProfileActivity, getString(R.string.appearance_not_saved, e.userMessage(this@ProfileActivity)), Toast.LENGTH_LONG).show()
-                // the choices shown go back to the look in use (the menu stays open)
-                recreate()
-            } finally {
-                savingAppearance = false
-            }
-        }
+        if (accent == Appearance.accent && theme == Appearance.theme) return
+        val themeChanged = theme != Appearance.theme
+        UserRepository.setAppearance(accent, theme)
+        if (!themeChanged) recreate()
     }
 
 
@@ -564,14 +569,14 @@ class ProfileActivity : ThemedActivity() {
         dialog.show()
     }
 
-    // The data of the deleted account on this phone: session in progress, saved plan, chats with
-    // the coach, sessions waiting to be sent, login
+    // The data of the deleted account on this phone: session in progress, sessions, workout plans,
+    // posts, profile, chats with the coach, login
     private fun deleteLocalData(userId: Long) {
         RunTrackingService.stop(this)
-        TrainingSessions.clear()
+        SessionRepository.clear()
         UserSession.clear()
-        // session in progress and saved plan of the user (ActiveSession, PlanCache): emptied right
-        // now (commit), otherwise a write in background would create the file again
+        // session in progress of the user (ActiveSession) and plan saved by the older versions of the
+        // app: emptied right now (commit), otherwise a write in background would create the file again
         for (name in listOf("active_session_$userId", "active_plan_$userId")) {
             getSharedPreferences(name, MODE_PRIVATE).edit(commit = true) { clear() }
             deleteSharedPreferences(name)
@@ -579,7 +584,9 @@ class ProfileActivity : ThemedActivity() {
         val database = gymBroApp.database
         gymBroApp.applicationScope.launch {
             database.chatMessageDao().deleteAllOfUser(userId)
-            database.pendingSessionDao().deleteAll(userId)
+            SessionRepository.deleteAll(userId)
+            PlanRepository.deleteAll(userId)
+            ProfileRepository.deleteAll(userId)
         }
     }
 
@@ -606,12 +613,12 @@ class ProfileActivity : ThemedActivity() {
     }
 
     // The private workout plans: the one tapped becomes public (everyone sees it on the profile and
-    // can add it to their plans; it can be made private again in its page)
+    // can add it to their plans; it can be made private again in its page). Only online.
     private fun showPlanToPublishPicker() {
-        val token = UserSession.token ?: return
         lifecycleScope.launch {
             try {
-                val privatePlans = ApiClient.getPlans(token).filter { !it.isPublic }
+                PlanRepository.sync()
+                val privatePlans = PlanRepository.all().filter { !it.isPublic }
                 PlanPicker.show(
                     this@ProfileActivity, this@ProfileActivity,
                     getString(R.string.publish_plan_title), getString(R.string.publish_plan_message),
@@ -620,10 +627,9 @@ class ProfileActivity : ThemedActivity() {
                     picker.busy = true
                     lifecycleScope.launch {
                         try {
-                            ApiClient.setPlanPublic(token, plan.id, true)
+                            PlanRepository.setPublic(plan.id, true)
                             picker.dialog.dismiss()
                             Toast.makeText(this@ProfileActivity, R.string.plan_published, Toast.LENGTH_SHORT).show()
-                            showPlans(token)
                         } catch (e: ApiException) {
                             picker.showError(e.userMessage(this@ProfileActivity))
                         } finally {
@@ -652,10 +658,10 @@ class ProfileActivity : ThemedActivity() {
                 publishing = true
                 lifecycleScope.launch {
                     try {
+                        scrollToNewPost = true
                         publishSession(this@ProfileActivity, session)
                         dialog.dismiss()
                         Toast.makeText(this@ProfileActivity, R.string.session_published, Toast.LENGTH_SHORT).show()
-                        reloadPosts(scrollToTop = true)
                     } catch (e: ApiException) {
                         Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
                     } finally {
@@ -667,14 +673,15 @@ class ProfileActivity : ThemedActivity() {
         list.layoutManager = LinearLayoutManager(this)
         list.adapter = adapter
 
-        // The sessions of LAST SESSIONS not published yet, downloaded again from the server in background
+        // The sessions of LAST SESSIONS not published yet (synchronized first with the server, if it
+        // is reachable: publishing needs it)
         lifecycleScope.launch {
             try {
-                TrainingSessions.refresh(this@ProfileActivity)
+                SessionRepository.sync()
             } catch (e: ApiException) {
                 noSessionsText.text = e.userMessage(this@ProfileActivity)
             }
-            val sessions = TrainingSessions.sessions.value.filter { it.publishedPostId == null }
+            val sessions = SessionRepository.all().filter { it.publishedPostId == null }
             adapter.submitList(sessions)
             noSessionsText.isVisible = sessions.isEmpty()
         }
@@ -737,9 +744,10 @@ class ProfileActivity : ThemedActivity() {
             lifecycleScope.launch {
                 confirm.isEnabled = false
                 try {
-                    ApiClient.publishManual(token, exercise.name, metric, better, amount, notesInput.text.toString().trim())
+                    val post = ApiClient.publishManual(token, exercise.name, metric, better, amount, notesInput.text.toString().trim())
                     dialog.dismiss()
-                    reloadPosts(scrollToTop = true)
+                    scrollToNewPost = true
+                    ProfileRepository.addPost(post)
                 } catch (e: ApiException) {
                     error.showError(e.userMessage(this@ProfileActivity))
                 } finally {
@@ -813,6 +821,8 @@ class ProfileActivity : ThemedActivity() {
             lifecycleScope.launch {
                 try {
                     val plan = ApiClient.createPlan(token, request)
+                    // also on this phone: it can be seen, followed and changed offline
+                    PlanRepository.store(plan)
                     dialog.dismiss()
                     PlanActivity.open(this@ProfileActivity, plan.id)
                 } catch (e: ApiException) {
@@ -849,20 +859,16 @@ class ProfileActivity : ThemedActivity() {
 
     // --------------------------------------------------------- POSTS
 
-    // Asks for confirmation, then deletes the post (posts and personal bests are reloaded)
+    // Asks for confirmation, then deletes the post (only online): posts and personal bests are
+    // updated through ProfileRepository
     private fun confirmDeletePost(post: Post) {
         showConfirmModal(
             this, this,
             R.string.delete_post_title, R.string.delete_post_message, R.string.delete
         ) {
-            val token = UserSession.token ?: return@showConfirmModal
             lifecycleScope.launch {
                 try {
-                    ApiClient.deletePost(token, post.id)
-                    // if the post was a session of LAST SESSIONS, that session can be published again
-                    // (the server knows it already)
-                    TrainingSessions.markUnpublished(post.id)
-                    reloadPosts()
+                    ProfileRepository.deletePost(post)
                 } catch (e: ApiException) {
                     Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
                 }

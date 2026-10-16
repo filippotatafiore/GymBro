@@ -249,14 +249,18 @@ object ApiClient {
     // null if the user has no profile picture. sampleSize: 1 = the whole picture (512 px), 4 = a
     // quarter of its side (enough for the small pictures of the lists)
     suspend fun getPicture(userId: Long, sampleSize: Int = 1): Bitmap? {
-        val bytes = try {
-            request("GET", "/api/users/$userId/picture")
-        } catch (e: ApiException) {
-            if (e.code == 404) return null else throw e
-        }
+        val bytes = getPictureBytes(userId) ?: return null
         val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
         return withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options) }
     }
+
+    // The profile picture as JPEG (e.g. to save it on the phone), null if the user has none
+    suspend fun getPictureBytes(userId: Long): ByteArray? =
+        try {
+            request("GET", "/api/users/$userId/picture")
+        } catch (e: ApiException) {
+            if (e.code == 404) null else throw e
+        }
 
     // Posts of a user, newest first
     suspend fun getPosts(userId: Long): List<Post> {

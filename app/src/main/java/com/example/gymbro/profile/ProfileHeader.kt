@@ -31,8 +31,12 @@ class ProfileHeader(
 
     fun showCounts(profile: UserProfile) {
         showPostsCount(profile.postsCount)
-        followersCount.text = profile.followersCount.toString()
-        followingCount.text = profile.followingCount.toString()
+        showFollows(profile.followersCount, profile.followingCount)
+    }
+
+    fun showFollows(followers: Int, following: Int) {
+        followersCount.text = followers.toString()
+        followingCount.text = following.toString()
     }
 
     // e.g. after publishing or deleting a post

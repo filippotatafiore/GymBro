@@ -25,6 +25,8 @@ import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.Plan
 import com.example.gymbro.profile.PersonalInfoForm
+import com.example.gymbro.repository.SessionRepository
+import com.example.gymbro.repository.SyncManager
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.GymSessionFragment
 import com.example.gymbro.session.GymSetup
@@ -35,7 +37,6 @@ import com.example.gymbro.session.RunSetup
 import com.example.gymbro.session.RunTracker
 import com.example.gymbro.session.RunTrackingService
 import com.example.gymbro.session.SessionType
-import com.example.gymbro.session.TrainingSessions
 import com.example.gymbro.session.publishSession
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -109,18 +110,9 @@ class MainActivity : ThemedActivity() {
         if (UserSession.askPersonalInfo) askPersonalInfo()
         // a run in progress is tracked again if the app was closed meanwhile (or after a new login)
         if (ActiveSession.type == SessionType.RUN) RunTrackingService.start(this)
-        refreshSessions()
-    }
-
-    // LAST SESSIONS and calendar: the sessions waiting on the phone are sent, then all the sessions
-    // are downloaded from the server (in background; an error is shown by the home, see TrainingSessions)
-    private fun refreshSessions() {
-        lifecycleScope.launch {
-            try {
-                TrainingSessions.refresh(this@MainActivity)
-            } catch (_: ApiException) {
-            }
-        }
+        // LAST SESSIONS and calendar show the sessions saved on this phone (also offline): what
+        // changed on this phone is sent, then the sessions of the server are downloaded
+        SyncManager.syncInBackground()
     }
 
     override fun onPause() {
@@ -203,9 +195,10 @@ class MainActivity : ThemedActivity() {
         )
     }
 
-    // Saves the session on the server (it appears in LAST SESSIONS of this user, on every phone),
-    // publishes it on the profile if requested, and goes back to the home. Server not reachable:
-    // the session waits on the phone and is sent later (it can be published then).
+    // Saves the session on this phone (it appears at once in LAST SESSIONS and in the calendar) and
+    // on the server (the same on every phone of the user), publishes it on the profile if requested,
+    // and goes back to the home. Server not reachable: the session is sent later (it can be
+    // published then: publishing needs the server).
     fun saveSession(session: TrainingSession, publish: Boolean) {
         if (session.type == SessionType.RUN) {
             RunTrackingService.stop(this)
@@ -217,7 +210,7 @@ class MainActivity : ThemedActivity() {
         // applicationScope: the work completes even if this page is closed meanwhile.
         val app = gymBroApp
         app.applicationScope.launch {
-            val saved = TrainingSessions.save(app, session)
+            val saved = SessionRepository.save(session)
             if (saved == null) {
                 Toast.makeText(app, R.string.session_saved_offline, Toast.LENGTH_LONG).show()
                 return@launch

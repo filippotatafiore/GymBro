@@ -45,7 +45,10 @@ class SessionHistoryAdapter(
 
         holder.icon.setImageResource(session.type.icon)
         holder.type.text = session.displayTitle(context)
-        holder.date.text = formatDateTime(session.startTime)
+        // finished offline: saved only on this phone for now
+        holder.date.text =
+            if (session.id == 0L) context.getString(R.string.session_not_synced, formatDateTime(session.startTime))
+            else formatDateTime(session.startTime)
         holder.duration.text = formatDuration(session.durationMillis)
 
         // publish button: a check mark (not clickable) once the session is published
@@ -67,7 +70,7 @@ class SessionHistoryAdapter(
     companion object {
         // Lets the list animate only the rows that changed
         private val DIFF = object : DiffUtil.ItemCallback<TrainingSession>() {
-            override fun areItemsTheSame(old: TrainingSession, new: TrainingSession) = old.id == new.id
+            override fun areItemsTheSame(old: TrainingSession, new: TrainingSession) = old.clientId == new.clientId
             override fun areContentsTheSame(old: TrainingSession, new: TrainingSession) = old == new
         }
     }

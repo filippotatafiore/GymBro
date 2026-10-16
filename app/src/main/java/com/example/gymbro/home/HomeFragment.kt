@@ -19,7 +19,7 @@ import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.gymBroApp
 import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.userMessage
-import com.example.gymbro.session.TrainingSessions
+import com.example.gymbro.repository.SessionRepository
 import com.example.gymbro.session.publishSession
 import com.example.gymbro.showConfirmModal
 import com.example.gymbro.showSessionDetails
@@ -29,8 +29,8 @@ import kotlinx.coroutines.launch
 // Home shown when no session is in progress: start training button + last sessions of the logged user
 class HomeFragment : Fragment(R.layout.fragment_home) {
 
-    // Sessions being published right now (avoids publishing twice with a double tap)
-    private val publishing = mutableSetOf<Long>()
+    // Sessions being published right now (clientId: avoids publishing twice with a double tap)
+    private val publishing = mutableSetOf<String>()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         view.findViewById<Button>(R.id.new_session_Button).setOnClickListener {
@@ -54,11 +54,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         sessionList.adapter = adapter
         val emptyText = view.findViewById<TextView>(R.id.emptySessionsText)
 
-        // The sessions of this user, downloaded from the server (by MainActivity, every time the
-        // page is shown): the list is updated every time a session is saved, published or deleted
+        // The sessions of this user saved on this phone (also offline), synchronized with the server
+        // by MainActivity every time the page is shown: the list is updated every time a session is
+        // saved, published, deleted or downloaded
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                combine(TrainingSessions.sessions, TrainingSessions.refreshFailed) { sessions, failed -> sessions to failed }
+                combine(SessionRepository.sessions(), SessionRepository.refreshFailed) { sessions, failed -> sessions to failed }
                     .collect { (sessions, failed) ->
                         adapter.submitList(sessions)
                         emptyText.isVisible = sessions.isEmpty()
@@ -86,9 +87,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         dialog.show()
     }
 
-    // Publishes the session on the profile (its button becomes a check mark)
+    // Publishes the session on the profile (its button becomes a check mark). Only online: a session
+    // finished offline is sent to the server first.
     private fun publish(session: TrainingSession) {
-        if (!publishing.add(session.id)) return
+        if (!publishing.add(session.clientId)) return
         val context = requireContext().applicationContext
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -98,12 +100,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             } catch (e: ApiException) {
                 Toast.makeText(context, e.userMessage(context), Toast.LENGTH_LONG).show()
             } finally {
-                publishing.remove(session.id)
+                publishing.remove(session.clientId)
             }
         }
     }
 
-    // Asks for confirmation, then deletes the session from LAST SESSIONS (on the server)
+    // Asks for confirmation, then deletes the session from LAST SESSIONS: at once on this phone, on the
+    // server now or (offline) when it is reachable again
     private fun confirmDelete(session: TrainingSession) {
         showConfirmModal(
             requireContext(), viewLifecycleOwner,
@@ -112,7 +115,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             val app = requireContext().gymBroApp
             app.applicationScope.launch {
                 try {
-                    TrainingSessions.delete(session)
+                    SessionRepository.delete(session)
                 } catch (e: ApiException) {
                     Toast.makeText(app, e.userMessage(app), Toast.LENGTH_LONG).show()
                 }

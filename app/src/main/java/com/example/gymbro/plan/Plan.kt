@@ -97,19 +97,6 @@ data class Plan(
         .put("notes", notes)
         .put("days", JSONArray(days.map { it.toJson() }))
 
-    // The whole plan, as the server sends it (saved on the phone by PlanCache)
-    fun toStoredJson(): JSONObject = toJson()
-        .put("id", id)
-        .put("goal", goal?.json ?: JSONObject.NULL)
-        .put("level", level?.json ?: JSONObject.NULL)
-        .put("days_per_week", daysPerWeek ?: JSONObject.NULL)
-        .put("minutes_per_session", minutesPerSession ?: JSONObject.NULL)
-        .put("preferences", preferences)
-        .put("created_at", createdAt.toString())
-        .put("updated_at", updatedAt.toString())
-        .put("public", isPublic)
-        .put("from_username", fromUsername ?: JSONObject.NULL)
-
 
     // --------------------------------------------------------- CHANGES (they return the changed plan)
 

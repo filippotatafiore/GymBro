@@ -9,6 +9,7 @@ import com.example.gymbro.network.ApiClient
 import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
+import com.example.gymbro.repository.PlanRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -90,8 +91,12 @@ object CoachChat {
     private suspend fun askCoach(app: GymBroApp, conversation: Conversation, token: String) {
         val dao = app.database.chatMessageDao()
         try {
+            // chat about a plan: the changes made offline are sent first, so that the coach sees them
+            if (conversation.planId != null) PlanRepository.trySync()
             val history = dao.getLast(conversation.userId, conversation.planId, MAX_SENT_MESSAGES).reversed()
             val reply = ApiClient.askCoach(token, history, conversation.planId)
+            // the plan changed by the coach: also on this phone
+            reply.plan?.let { PlanRepository.store(it) }
             dao.insert(
                 ChatMessage(
                     userId = conversation.userId, planId = conversation.planId, role = ChatRole.ASSISTANT,

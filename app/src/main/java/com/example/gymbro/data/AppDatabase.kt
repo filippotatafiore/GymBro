@@ -7,12 +7,22 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 // Local database of the app (a SQLite file on the phone). The instance is in GymBroApp.database.
+// The app is "offline first": the pages show the data saved here (finished sessions, workout plans,
+// posts and profile of the logged user, chats with the coach), and the repositories
+// (package repository) keep them in sync with the server.
 // version: to be increased every time the structure of the tables changes.
-@Database(entities = [PendingSession::class, ChatMessage::class], version = 6, exportSchema = false)
+@Database(
+    entities = [SessionEntity::class, ChatMessage::class, PlanEntity::class, PostEntity::class, ProfileEntity::class],
+    version = 7,
+    exportSchema = false
+)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun pendingSessionDao(): PendingSessionDao
+    abstract fun sessionDao(): SessionDao
     abstract fun chatMessageDao(): ChatMessageDao
+    abstract fun planDao(): PlanDao
+    abstract fun postDao(): PostDao
+    abstract fun profileDao(): ProfileDao
 
     companion object {
         // Version 2 -> 3: statistics and route of the run sessions. The saved sessions are kept
@@ -55,6 +65,42 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE training_sessions ADD COLUMN planName TEXT")
                 db.execSQL("ALTER TABLE training_sessions ADD COLUMN planDay INTEGER")
                 db.execSQL("ALTER TABLE training_sessions ADD COLUMN planDayName TEXT")
+            }
+        }
+
+        // Version 6 -> 7: offline first. The sessions table keeps also the copy of the sessions of
+        // the server (serverId) and the sessions deleted offline (deleted); the sessions waiting to
+        // be sent are kept. New tables: workout plans, posts and profile of the user.
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE training_sessions ADD COLUMN serverId INTEGER")
+                db.execSQL("ALTER TABLE training_sessions ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
+                // the sessions saved by the oldest versions had no clientId
+                db.execSQL(
+                    "UPDATE training_sessions SET clientId = 'local-' || userId || '-' || id || '-' || startTime " +
+                        "WHERE clientId IS NULL"
+                )
+                // the same tables that Room creates in a new database
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `plans` (`id` INTEGER NOT NULL, `userId` INTEGER NOT NULL, " +
+                        "`name` TEXT NOT NULL, `goal` TEXT, `level` TEXT, `daysPerWeek` INTEGER, " +
+                        "`minutesPerSession` INTEGER, `preferences` TEXT NOT NULL, `notes` TEXT NOT NULL, " +
+                        "`days` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, " +
+                        "`isPublic` INTEGER NOT NULL, `fromUsername` TEXT, `changed` INTEGER NOT NULL, " +
+                        "`deleted` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `posts` (`id` INTEGER NOT NULL, `userId` INTEGER NOT NULL, " +
+                        "`kind` TEXT NOT NULL, `title` TEXT NOT NULL, `metric` TEXT, `better` TEXT, `amount` REAL, " +
+                        "`notes` TEXT, `durationSeconds` INTEGER, `distanceKm` REAL, `kcal` REAL, " +
+                        "`maxSpeedKmh` REAL, `goalKm` REAL, `route` TEXT, `exercises` TEXT, " +
+                        "`sessionStart` INTEGER, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `profiles` (`userId` INTEGER NOT NULL, " +
+                        "`followersCount` INTEGER NOT NULL, `followingCount` INTEGER NOT NULL, `picture` BLOB, " +
+                        "PRIMARY KEY(`userId`))"
+                )
             }
         }
     }

@@ -15,13 +15,9 @@ import com.example.gymbro.MainActivity
 import com.example.gymbro.R
 import androidx.core.view.isVisible
 import com.example.gymbro.createModal
-import com.example.gymbro.gymBroApp
-import com.example.gymbro.network.ApiClient
-import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserSession
-import com.example.gymbro.network.userMessage
+import com.example.gymbro.repository.UserRepository
 import com.example.gymbro.showError
-import kotlinx.coroutines.launch
 
 // Before a run starts (before the timer): permissions (location, notifications), then the goal:
 // a distance in km or miles, a route planned on the map (RoutePlannerActivity) or no goal.
@@ -106,21 +102,11 @@ class RunSetup(private val activity: MainActivity) {
         dialog.show()
     }
 
-    // The weight typed is saved in the profile of the user (phone and server): it is not asked again
+    // The weight typed is saved in the profile of the user (phone and server, also offline: see
+    // UserRepository): it is not asked again
     private fun saveWeightInProfile(kg: Double) {
         val user = UserSession.user ?: return
-        val token = UserSession.token ?: return
-        UserSession.updateUser(user.copy(weightKg = kg))
-
-        // applicationScope: the saving completes even if this page is closed meanwhile
-        val app = activity.gymBroApp
-        app.applicationScope.launch {
-            try {
-                UserSession.updateUser(ApiClient.updateProfile(token, user.heightCm, kg, user.birthYear, user.sex))
-            } catch (e: ApiException) {
-                Toast.makeText(app, app.getString(R.string.error_saving_profile, e.userMessage(app)), Toast.LENGTH_LONG).show()
-            }
-        }
+        UserRepository.saveBodyData(user.heightCm, kg, user.birthYear, user.sex)
     }
 
     // Goal distance typed by the user, in km or miles (saved in km)

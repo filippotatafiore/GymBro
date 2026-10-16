@@ -12,16 +12,16 @@ import com.example.gymbro.R
 import com.example.gymbro.createModal
 import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.formatDate
-import com.example.gymbro.network.ApiClient
-import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.Plan
-import com.example.gymbro.plan.PlanCache
+import com.example.gymbro.repository.PlanRepository
+import com.example.gymbro.repository.SessionRepository
 import kotlinx.coroutines.launch
 import java.time.Instant
 
-// Before a gym session starts: which day of the active workout plan to follow.
+// Before a gym session starts: which day of the active workout plan to follow. It works also
+// offline: the plan and the last sessions are those saved on this phone.
 // - no active plan: the session starts without plan (the exercises are added during the session)
 // - a plan with one day: that day
 // - more days: a window lists them, with the day done in the last session of the plan highlighted
@@ -39,32 +39,22 @@ class GymSetup(private val activity: MainActivity) {
             when {
                 plan == null || plan.days.isEmpty() -> activity.startGym(null, 0)
                 plan.days.size == 1 -> activity.startGym(plan, 0)
-                else -> {
-                    // the last sessions (usually already downloaded by the home page)
-                    if (TrainingSessions.sessions.value.isEmpty()) {
-                        try {
-                            TrainingSessions.refresh(activity)
-                        } catch (_: ApiException) {
-                        }
-                    }
-                    chooseDay(plan, lastSessionOfPlan(TrainingSessions.sessions.value, plan.id))
-                }
+                // the last sessions saved on this phone (also those finished offline)
+                else -> chooseDay(plan, lastSessionOfPlan(SessionRepository.all(), plan.id))
             }
         }
     }
 
-    // The active plan from the server, saved on the phone for when the server is not reachable.
-    // null: the plan does not exist anymore, or it cannot be read (the session starts without plan).
+    // The active plan saved on this phone, synchronized first with the server if it is reachable
+    // (e.g. changed by the coach). null: the plan does not exist anymore, or it was never downloaded
+    // (the session starts without plan).
     private suspend fun loadPlan(planId: Long): Plan? {
-        val token = UserSession.token ?: return null
-        return try {
-            ApiClient.getPlan(token, planId).also { PlanCache.save(it) }
-        } catch (e: ApiException) {
-            if (e.code == 404) return null
-            PlanCache.load(planId) ?: run {
-                Toast.makeText(activity, activity.getString(R.string.plan_not_loaded, e.userMessage(activity)), Toast.LENGTH_LONG).show()
-                null
+        val problem = PlanRepository.trySync()
+        return PlanRepository.plan(planId) ?: run {
+            if (problem != null) {
+                Toast.makeText(activity, activity.getString(R.string.plan_not_loaded, problem.userMessage(activity)), Toast.LENGTH_LONG).show()
             }
+            null
         }
     }
 
@@ -99,3 +89,9 @@ class GymSetup(private val activity: MainActivity) {
         dialog.show()
     }
 }
+
+// The most recent gym session that followed the plan with this id (null if none): it tells which
+// day of the plan was done last. Plain Kotlin: tested in GymSessionsTest.kt
+fun lastSessionOfPlan(sessions: List<TrainingSession>, planId: Long): TrainingSession? =
+    sessions.filter { it.type == SessionType.GYM && it.planId == planId && it.planDay != null }
+        .maxByOrNull { it.startTime }

@@ -5,10 +5,11 @@ import com.example.gymbro.session.Route
 import com.example.gymbro.session.SessionType
 
 // A finished training session of the user (LAST SESSIONS and calendar of the home), saved on the
-// server: the same sessions on every phone where the user logs in. Before being sent to the server
-// a session waits in the local database (see PendingSession).
+// server (the same sessions on every phone where the user logs in) and on this phone, also to see
+// them offline (SessionEntity, SessionRepository). A session finished offline is sent later.
 data class TrainingSession(
     val id: Long = 0,                       // id on the server (0 = not sent yet)
+    val localId: Long = 0,                  // id in the local database
     val clientId: String,                   // chosen by the app: the server saves the same session only once
     val type: SessionType,
     val startTime: Long,                    // milliseconds since 1970

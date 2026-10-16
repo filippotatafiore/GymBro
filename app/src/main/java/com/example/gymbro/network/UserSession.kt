@@ -10,6 +10,8 @@ import com.example.gymbro.Appearance
 // The logged user, saved on the phone (SharedPreferences) so that the login is kept when the app
 // is closed. The token is the proof of the login: it is sent to the REST API with every request.
 // The look chosen by the user (favorite color, theme) is applied every time the user is updated.
+// The body data, the look and the active plan can be changed also offline (see UserRepository):
+// the pending... flags say which changes were not sent to the server yet.
 object UserSession {
 
     private const val KEY_TOKEN = "token"
@@ -25,6 +27,9 @@ object UserSession {
     private const val KEY_ACCENT = "accent"
     private const val KEY_THEME = "theme"
     private const val KEY_ASK_PERSONAL_INFO = "ask_personal_info"
+    private const val KEY_PENDING_BODY_DATA = "pending_body_data"
+    private const val KEY_PENDING_APPEARANCE = "pending_appearance"
+    private const val KEY_PENDING_ACTIVE_PLAN = "pending_active_plan"
 
     private lateinit var prefs: SharedPreferences
 
@@ -62,12 +67,45 @@ object UserSession {
         get() = prefs.getBoolean(KEY_ASK_PERSONAL_INFO, false)
         set(value) = prefs.edit { putBoolean(KEY_ASK_PERSONAL_INFO, value) }
 
+    // Changed on this phone and not sent to the server yet (see UserRepository)
+    var pendingBodyData: Boolean
+        get() = prefs.getBoolean(KEY_PENDING_BODY_DATA, false)
+        set(value) = prefs.edit { putBoolean(KEY_PENDING_BODY_DATA, value) }
+
+    var pendingAppearance: Boolean
+        get() = prefs.getBoolean(KEY_PENDING_APPEARANCE, false)
+        set(value) = prefs.edit { putBoolean(KEY_PENDING_APPEARANCE, value) }
+
+    var pendingActivePlan: Boolean
+        get() = prefs.getBoolean(KEY_PENDING_ACTIVE_PLAN, false)
+        set(value) = prefs.edit { putBoolean(KEY_PENDING_ACTIVE_PLAN, value) }
+
     fun save(token: String, user: User) {
         prefs.edit { putString(KEY_TOKEN, token) }
         updateUser(user)
     }
 
+    // The user as answered by the server. The values changed on this phone and not sent yet are
+    // kept: they will be sent to the server (the value chosen offline wins).
     fun updateUser(user: User) {
+        val local = this.user
+        var merged = user
+        if (local != null && local.id == user.id) {
+            if (pendingBodyData) {
+                merged = merged.copy(heightCm = local.heightCm, weightKg = local.weightKg, birthYear = local.birthYear, sex = local.sex)
+            }
+            if (pendingAppearance) merged = merged.copy(accent = local.accent, theme = local.theme)
+            if (pendingActivePlan) merged = merged.copy(activePlanId = local.activePlanId)
+        }
+        store(merged)
+    }
+
+    // A change made on this phone (see UserRepository, which sends it to the server)
+    fun changeLocally(user: User) {
+        store(user)
+    }
+
+    private fun store(user: User) {
         prefs.edit {
             putLong(KEY_ID, user.id)
             putString(KEY_USERNAME, user.username)

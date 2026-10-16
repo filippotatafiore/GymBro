@@ -6,7 +6,11 @@ import androidx.room.Room
 import com.example.gymbro.data.AppDatabase
 import com.example.gymbro.network.ApiClient
 import com.example.gymbro.network.UserSession
-import com.example.gymbro.plan.PlanCache
+import com.example.gymbro.repository.PlanRepository
+import com.example.gymbro.repository.ProfileRepository
+import com.example.gymbro.repository.SessionRepository
+import com.example.gymbro.repository.SyncManager
+import com.example.gymbro.repository.UserRepository
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.RunTracker
 import com.example.gymbro.session.RunTrackingService
@@ -20,12 +24,14 @@ import kotlinx.coroutines.SupervisorJob
 // before any activity: holds what is shared by the whole app
 class GymBroApp : Application() {
 
-    // Local database (Room): the chats with the AI coach, and the finished sessions not sent to the server yet
+    // Local database (Room): finished sessions, workout plans, posts and profile of the user (also
+    // to see and change them offline, see the repository package), chats with the AI coach
     val database: AppDatabase by lazy {
         Room.databaseBuilder(this, AppDatabase::class.java, "gymbro.db")
-            // Converts the saved sessions to the new structure of the tables
+            // Converts the saved data to the new structure of the tables
             .addMigrations(
-                AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6
+                AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5,
+                AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7
             )
             // While developing: for older structures without a migration, the local database is
             // recreated empty instead of being converted
@@ -46,8 +52,14 @@ class GymBroApp : Application() {
         // before any page: the light / dark theme and the favorite color of the last user
         Appearance.init(this)
         UserSession.init(this)
-        PlanCache.init(this)
         ApiClient.init(this)
+        // the data of the user saved on this phone, synchronized with the server
+        SessionRepository.init(this)
+        PlanRepository.init(this)
+        ProfileRepository.init(this)
+        UserRepository.init(this)
+        // last: it may synchronize at once (if the phone is online)
+        SyncManager.init(this)
     }
 }
 
