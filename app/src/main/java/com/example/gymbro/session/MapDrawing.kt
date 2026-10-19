@@ -1,6 +1,7 @@
 package com.example.gymbro.session
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -29,6 +30,15 @@ import com.google.android.gms.maps.model.RoundCap
 
 // The way Google Maps draws the maps on this phone, known when the app starts (GymBroApp)
 var mapsRenderer: MapsInitializer.Renderer? = null
+
+// Google Maps API key of the installed app (AndroidManifest.xml, from local.properties), or null
+fun mapsApiKey(context: Context): String? {
+    val appInfo = context.packageManager.getApplicationInfo(
+        context.packageName,
+        PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong())
+    )
+    return appInfo.metaData?.getString("com.google.android.geo.API_KEY")?.takeIf { it.isNotBlank() }
+}
 
 // Map in the theme of the app: dark or light (see Appearance). The dark color scheme of Google Maps
 // needs its "latest" renderer: with the "legacy" one (on some phones and emulators) a dark style is

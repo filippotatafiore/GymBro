@@ -10,9 +10,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import androidx.fragment.app.viewModels
 import com.example.gymbro.R
 import com.example.gymbro.createModal
 import com.example.gymbro.formatCount
@@ -21,6 +19,8 @@ import com.example.gymbro.formatKcal
 import com.example.gymbro.formatLiveDistance
 import com.example.gymbro.formatPace
 import com.example.gymbro.formatSpeed
+import com.example.gymbro.observe
+import com.example.gymbro.viewmodel.RunSessionViewModel
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.LocationSource
@@ -31,14 +31,14 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 // Run session in progress: map that follows the current GPS position and draws the path followed,
 // statistics in real time (also the steps, from the step sensor), and a window when the goal
 // distance is reached. The GPS positions and the steps are received by RunTrackingService and
-// collected by RunTracker.
+// collected by RunTracker; path and statistics: RunSessionViewModel.
 class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMapReadyCallback {
+
+    private val viewModel: RunSessionViewModel by viewModels { RunSessionViewModel.Factory }
 
     private val locationPermissions = arrayOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -62,6 +62,9 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
     private var dotListener: LocationSource.OnLocationChangedListener? = null
     private var shownLocation: Location? = null
 
+    // The path and the position now (null: not received yet)
+    private var track: RunSessionViewModel.Track? = null
+
     // Path followed: one line per part (a new part starts after a pause)
     private val trackLines = mutableListOf<Polyline>()
     private var startMarker: Marker? = null
@@ -84,7 +87,7 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
         super.onViewCreated(view, savedInstanceState)
 
         gpsStatus = view.findViewById(R.id.gpsStatus)
-        gpsStatus.isVisible = RunTracker.lastLocation == null
+        gpsStatus.isVisible = viewModel.waitingForGps
         distanceText = view.findViewById(R.id.runDistance)
         toGoText = view.findViewById(R.id.runToGo)
         liveStats = StatGrid(view.findViewById(R.id.liveStats), columns = 3)
@@ -102,21 +105,19 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
 
         // While the page is visible: redraw at every new GPS position, and update every second
         // the statistics that change with the time (average speed and pace)
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { RunTracker.changes.collect { showTrack() } }
-                while (true) {
-                    showStats()
-                    delay(1000)
-                }
-            }
+        viewLifecycleOwner.observe(viewModel.track) { track ->
+            this.track = track
+            checkGoal(track)
+            showTrack()
         }
+        viewLifecycleOwner.observe(viewModel.stats) { stats -> showStats(stats) }
     }
 
     override fun onDestroyView() {
         map = null
         dotListener = null
         shownLocation = null
+        track = null
         trackLines.clear()
         startMarker = null
         goalDialog = null
@@ -136,7 +137,7 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
         googleMap.setLocationSource(object : LocationSource {
             override fun activate(listener: LocationSource.OnLocationChangedListener) {
                 dotListener = listener
-                RunTracker.lastLocation?.let { listener.onLocationChanged(it) }
+                track?.lastLocation?.let { listener.onLocationChanged(it) }
             }
 
             override fun deactivate() {
@@ -169,7 +170,7 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
 
     // Route planned before the run (dashed), with its stop and destination
     private fun drawPlan(map: GoogleMap) {
-        val plan = RunTracker.plan ?: return
+        val plan = viewModel.plan ?: return
         if (plan.path.size >= 2) map.addPolyline(plannedLine(requireContext(), plan.path.map { it.toLatLng() }))
         plan.stop?.let { stop ->
             map.addMarker(MarkerOptions().position(stop.toLatLng()).title(getString(R.string.stop_marker))
@@ -178,15 +179,14 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
         map.addMarker(MarkerOptions().position(plan.destination.toLatLng()).title(getString(R.string.destination)))
     }
 
-    // Path followed, position of the user, statistics and goal: called at every new GPS position
+    // Path followed and position of the user: called at every new GPS position
     private fun showTrack() {
-        showStats()
-        checkGoal()
+        val track = track ?: return
         val map = map ?: return
         val context = context ?: return
 
         // the path: the finished parts do not change, only the last one grows
-        val segments = RunTracker.current.segments
+        val segments = track.segments
         while (trackLines.size > segments.size) trackLines.removeAt(trackLines.lastIndex).remove()
         segments.forEachIndexed { i, segment ->
             if (i < trackLines.size && i < segments.lastIndex) return@forEachIndexed
@@ -203,7 +203,7 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
         }
 
         // blue dot and camera
-        val location = RunTracker.lastLocation ?: return
+        val location = track.lastLocation ?: return
         if (location === shownLocation) return
         shownLocation = location
         gpsStatus.isVisible = false
@@ -224,12 +224,11 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
 
     // Distance (red until the goal is reached, then green), what is left to the goal and the other
     // statistics
-    private fun showStats() {
+    private fun showStats(stats: RunSessionViewModel.Stats) {
         val context = context ?: return
-        val run = RunTracker.current
-        val km = run.distanceKm
-        val goal = RunTracker.goalKm
-        val seconds = ActiveSession.elapsedMillis() / 1000
+        val km = stats.distanceKm
+        val goal = stats.goalKm
+        val seconds = stats.seconds
 
         distanceText.text =
             if (goal != null) getString(R.string.run_progress, formatLiveDistance(km), formatDistance(goal))
@@ -246,28 +245,28 @@ class RunSessionFragment : SessionFragment(R.layout.fragment_run_session), OnMap
         }
 
         liveStats.show(listOf(
-            getString(R.string.stat_speed) to formatSpeed(run.currentSpeedMps(System.currentTimeMillis()) * 3.6),
-            getString(R.string.stat_avg_speed) to formatSpeed(if (seconds > 0) km / (seconds / 3600.0) else 0.0),
+            getString(R.string.stat_speed) to formatSpeed(stats.speedKmh),
+            getString(R.string.stat_avg_speed) to formatSpeed(stats.avgSpeedKmh),
             getString(R.string.stat_avg_pace) to (if (km >= 0.05) formatPace(seconds, km) else getString(R.string.no_pace)),
-            getString(R.string.stat_calories) to formatKcal(run.kcal),
-            getString(R.string.stat_max_speed) to formatSpeed(run.maxSpeedMps * 3.6),
+            getString(R.string.stat_calories) to formatKcal(stats.kcal),
+            getString(R.string.stat_max_speed) to formatSpeed(stats.maxSpeedKmh),
             // "—": the steps are not counted (no step sensor, or no permission)
-            getString(R.string.stat_steps) to (RunTracker.steps?.let { formatCount(it) } ?: getString(R.string.no_value)),
+            getString(R.string.stat_steps) to (stats.steps?.let { formatCount(it) } ?: getString(R.string.no_value)),
         ))
     }
 
     // The first time the distance reaches the goal: window to keep running or finish the run
-    private fun checkGoal() {
-        if (!RunTracker.goalReached || RunTracker.goalSeen || goalDialog != null || view == null) return
-        val goal = RunTracker.goalKm ?: return
+    private fun checkGoal(track: RunSessionViewModel.Track) {
+        if (!track.showGoalReached || goalDialog != null || view == null) return
+        val goal = viewModel.goalKm ?: return
 
         val dialog = createModal(requireContext(), R.layout.dialog_goal_reached, viewLifecycleOwner) {
             goalDialog = null
-            RunTracker.goalSeen = true
+            viewModel.goalReachedSeen()
         }
         dialog.findViewById<TextView>(R.id.goalReachedMessage).text = getString(
             R.string.goal_reached_message,
-            getString(R.string.live_distance_km, formatLiveDistance(RunTracker.current.distanceKm)),
+            getString(R.string.live_distance_km, formatLiveDistance(viewModel.distanceKm)),
             formatDistance(goal)
         )
         // keep running: the distance stays green

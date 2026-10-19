@@ -1,7 +1,7 @@
 package com.example.gymbro.repository
 
 import androidx.room.withTransaction
-import com.example.gymbro.GymBroApp
+import com.example.gymbro.data.AppDatabase
 import com.example.gymbro.data.SessionEntity
 import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.network.ApiClient
@@ -25,37 +25,69 @@ import kotlinx.coroutines.sync.withLock
 // - a session deleted offline is hidden at once and deleted on the server at the next sync
 // - sync: sends what changed on this phone, then downloads the sessions of the server (e.g. those
 //   finished on another phone)
-object SessionRepository {
-
-    private lateinit var app: GymBroApp
-    private val dao get() = app.database.sessionDao()
+interface SessionRepository {
 
     // The last download failed (e.g. no connection): the home shows it if there are no sessions
+    val refreshFailed: StateFlow<Boolean>
+
+    // The sessions of the logged user saved on this phone, newest first, updated at every change
+    fun sessions(): Flow<List<TrainingSession>>
+
+    // The same, read once
+    suspend fun all(): List<TrainingSession>
+
+    // Sends the sessions finished or deleted on this phone, then downloads all the sessions of the
+    // server. Throws ApiException (e.g. server not reachable): the sessions on this phone stay.
+    suspend fun sync()
+
+    // Saves a finished session of the logged user on this phone (it appears at once in LAST
+    // SESSIONS), then sends it. Returns it as saved on the server, or null if the server is not
+    // reachable (it is sent at the next sync).
+    suspend fun save(session: TrainingSession): TrainingSession?
+
+    // The session as saved on the server: sent now if it was finished offline (before publishing
+    // it). Throws ApiException if the server is not reachable.
+    suspend fun sent(session: TrainingSession): TrainingSession
+
+    // Removes a session from LAST SESSIONS and from the calendar: at once on this phone, on the
+    // server now or (offline) at the next sync. Throws ApiException for the other errors.
+    suspend fun delete(session: TrainingSession)
+
+    // After publishing a session / deleting its post (the server knows it already)
+    suspend fun markPublished(session: TrainingSession, postId: Long)
+    suspend fun markUnpublished(postId: Long)
+
+    // Logout: the sessions stay on this phone for when the user logs in again
+    fun clear()
+
+    // Account deleted
+    suspend fun deleteAll(userId: Long)
+}
+
+class SessionRepositoryImpl(
+    private val database: AppDatabase,
+    private val notices: Notices
+) : SessionRepository {
+
+    private val dao get() = database.sessionDao()
+
     private val failed = MutableStateFlow(false)
-    val refreshFailed: StateFlow<Boolean> = failed.asStateFlow()
+    override val refreshFailed: StateFlow<Boolean> = failed.asStateFlow()
 
     // One sync at a time: the same session is never sent twice in parallel
     private val mutex = Mutex()
 
-    fun init(app: GymBroApp) {
-        this.app = app
-    }
-
-    // The sessions of the logged user saved on this phone, newest first, updated at every change
-    fun sessions(): Flow<List<TrainingSession>> {
+    override fun sessions(): Flow<List<TrainingSession>> {
         val userId = UserSession.userId ?: return flowOf(emptyList())
         return dao.observe(userId).map { rows -> rows.map { it.toSession() } }
     }
 
-    // The same, read once
-    suspend fun all(): List<TrainingSession> {
+    override suspend fun all(): List<TrainingSession> {
         val userId = UserSession.userId ?: return emptyList()
         return dao.getAll(userId).map { it.toSession() }
     }
 
-    // Sends the sessions finished or deleted on this phone, then downloads all the sessions of the
-    // server. Throws ApiException (e.g. server not reachable): the sessions on this phone stay.
-    suspend fun sync() {
+    override suspend fun sync() {
         val userId = UserSession.userId ?: return
         val token = UserSession.token ?: return
         mutex.withLock {
@@ -79,10 +111,7 @@ object SessionRepository {
         }
     }
 
-    // Saves a finished session of the logged user on this phone (it appears at once in LAST
-    // SESSIONS), then sends it. Returns it as saved on the server, or null if the server is not
-    // reachable (it is sent at the next sync).
-    suspend fun save(session: TrainingSession): TrainingSession? {
+    override suspend fun save(session: TrainingSession): TrainingSession? {
         val userId = UserSession.userId ?: return null
         val token = UserSession.token ?: return null
         val localId = dao.insert(SessionEntity.of(userId, session))
@@ -96,9 +125,7 @@ object SessionRepository {
         }
     }
 
-    // The session as saved on the server: sent now if it was finished offline (before publishing
-    // it). Throws ApiException if the server is not reachable.
-    suspend fun sent(session: TrainingSession): TrainingSession {
+    override suspend fun sent(session: TrainingSession): TrainingSession {
         if (session.id != 0L) return session
         val userId = UserSession.userId ?: throw ApiException(401, "Login required")
         val token = UserSession.token ?: throw ApiException(401, "Login required")
@@ -108,9 +135,7 @@ object SessionRepository {
         }
     }
 
-    // Removes a session from LAST SESSIONS and from the calendar: at once on this phone, on the
-    // server now or (offline) at the next sync. Throws ApiException for the other errors.
-    suspend fun delete(session: TrainingSession) {
+    override suspend fun delete(session: TrainingSession) {
         val userId = UserSession.userId ?: return
         val token = UserSession.token ?: return
         mutex.withLock {
@@ -125,7 +150,7 @@ object SessionRepository {
                 deleteOnServer(token, row)
             } catch (e: ApiException) {
                 // offline: deleted at the next sync; another error: the session is shown again
-                if (e.code == 0) OfflineNotice.show(app) else {
+                if (e.code == 0) notices.savedOffline() else {
                     dao.setDeleted(userId, session.clientId, false)
                     throw e
                 }
@@ -133,24 +158,21 @@ object SessionRepository {
         }
     }
 
-    // After publishing a session / deleting its post (the server knows it already)
-    suspend fun markPublished(session: TrainingSession, postId: Long) {
+    override suspend fun markPublished(session: TrainingSession, postId: Long) {
         val userId = UserSession.userId ?: return
         dao.setPublished(userId, session.id, postId)
     }
 
-    suspend fun markUnpublished(postId: Long) {
+    override suspend fun markUnpublished(postId: Long) {
         val userId = UserSession.userId ?: return
         dao.clearPublished(userId, postId)
     }
 
-    // Logout: the sessions stay on this phone for when the user logs in again
-    fun clear() {
+    override fun clear() {
         failed.value = false
     }
 
-    // Account deleted
-    suspend fun deleteAll(userId: Long) {
+    override suspend fun deleteAll(userId: Long) {
         dao.deleteAll(userId)
     }
 
@@ -180,7 +202,7 @@ object SessionRepository {
     // The copies of the sessions of the server are replaced by those just downloaded (also the
     // sessions finished or deleted on another phone). The sessions waiting on this phone stay.
     private suspend fun replaceCopies(userId: Long, downloaded: List<TrainingSession>) {
-        app.database.withTransaction {
+        database.withTransaction {
             val rows = dao.getEveryRow(userId)
             val deletedHere = rows.filter { it.deleted }.mapNotNull { it.serverId }.toSet()
             val unsent = rows.filter { it.serverId == null && !it.deleted }.associateBy { it.clientId }

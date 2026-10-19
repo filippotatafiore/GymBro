@@ -18,6 +18,12 @@ import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.example.gymbro.network.userMessage
+import com.example.gymbro.viewmodel.EmptyText
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
 // A color of the theme of the page, e.g. R.attr.accentColor: the favorite color of the user
 // (res/values/attrs.xml). The context must be a page or a view of the page (not the application).
@@ -112,6 +118,28 @@ fun showChoiceModal(
 fun TextView.showError(message: String) {
     text = message
     isVisible = true
+}
+
+// The text of an empty list (see EmptyText of the ViewModels); null: hidden
+fun TextView.showEmptyText(empty: EmptyText?) {
+    when (empty) {
+        null -> isVisible = false
+        is EmptyText.Text -> showError(context.getString(empty.text))
+        is EmptyText.Error -> showError(empty.error.userMessage(context))
+    }
+}
+
+// MVVM: shows the state of the ViewModel every time it changes, while the page is visible (and
+// at once when it becomes visible again). Fragments: call it on viewLifecycleOwner.
+fun <T> LifecycleOwner.observe(state: Flow<T>, show: suspend (T) -> Unit) {
+    lifecycleScope.launch {
+        repeatOnLifecycle(Lifecycle.State.STARTED) { state.collect(show) }
+    }
+}
+
+// MVVM: receives the one-shot events of the ViewModel (e.g. a message) while the page exists
+fun <T> LifecycleOwner.onEvents(events: Flow<T>, handle: suspend (T) -> Unit) {
+    lifecycleScope.launch { events.collect(handle) }
 }
 
 // The page (root) ends above the keyboard while it is open, otherwise above the navigation bar of

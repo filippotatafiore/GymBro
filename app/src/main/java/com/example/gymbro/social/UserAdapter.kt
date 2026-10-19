@@ -12,14 +12,15 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.gymbro.R
 import com.example.gymbro.network.SocialUser
-import com.example.gymbro.network.UserSession
 import kotlinx.coroutines.CoroutineScope
 
 // Fills the lists of users of the social page (search, followers, following): one row
 // (res/layout/item_user.xml) per user, with picture, username and how they are related to the
-// logged user (e.g. "Follows you"). Tap a row to open the profile. scope: of the page (pictures).
+// logged user (e.g. "Follows you"). Tap a row to open the profile. scope: of the page (pictures);
+// myId: the logged user ("You").
 class UserAdapter(
     private val scope: CoroutineScope,
+    private val myId: Long?,
     private val onClick: (SocialUser) -> Unit
 ) : ListAdapter<SocialUser, UserAdapter.UserViewHolder>(DIFF) {
 
@@ -38,7 +39,7 @@ class UserAdapter(
         val user = getItem(position)
         Avatars.show(holder.avatar, user.id, user.hasPicture, scope)
         holder.name.text = user.username
-        val relation = relationText(holder.itemView.context, user)
+        val relation = relationText(holder.itemView.context, user, myId)
         holder.relation.text = relation
         holder.relation.isVisible = relation != null
         holder.itemView.setOnClickListener { onClick(user) }
@@ -51,8 +52,8 @@ class UserAdapter(
         }
 
         // e.g. "Follows you", "You follow each other"; null: no relation
-        fun relationText(context: Context, user: SocialUser): String? = when {
-            user.id == UserSession.userId -> context.getString(R.string.you)
+        fun relationText(context: Context, user: SocialUser, myId: Long?): String? = when {
+            user.id == myId -> context.getString(R.string.you)
             user.isMutual -> context.getString(R.string.you_follow_each_other)
             user.isFollowing -> context.getString(R.string.following)
             user.followsYou -> context.getString(R.string.follows_you)

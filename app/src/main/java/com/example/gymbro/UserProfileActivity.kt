@@ -8,34 +8,38 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.gymbro.network.ApiClient
-import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserProfile
-import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.PlanAdapter
 import com.example.gymbro.profile.PersonalBestAdapter
-import com.example.gymbro.profile.PersonalBests
 import com.example.gymbro.profile.PostAdapter
 import com.example.gymbro.profile.ProfileHeader
-import com.example.gymbro.social.Follows
-import kotlinx.coroutines.launch
+import com.example.gymbro.viewmodel.FollowListViewModel
+import com.example.gymbro.viewmodel.UserProfileViewModel
 
 // Profile of another user, opened from the social page (feed, search, lists of followers): picture,
 // how many posts, followers and followed users (tap them to see the lists), the button to follow the
 // user or to stop following them, and "Share a plan" (Messages) when they follow each other. Then
 // their personal bests, public workout plans (tap one to see it and add it to your plans) and posts.
-// Nothing of the user can be changed here.
+// Nothing of the user can be changed here. Data and follow: UserProfileViewModel.
 class UserProfileActivity : ThemedActivity() {
 
-    private var userId = 0L
-    private var username = ""
-    private var profile: UserProfile? = null
+    private val viewModel: UserProfileViewModel by viewModels {
+        UserProfileViewModel.factory(intent.getLongExtra(EXTRA_USER_ID, 0L), intent.getStringExtra(EXTRA_USERNAME).orEmpty())
+    }
+
+    private val userId: Long
+        get() = viewModel.userId
+    private val username: String
+        get() = viewModel.state.value.username
+
+    // The profile shown (null: not downloaded yet)
+    private var shownProfile: UserProfile? = null
 
     private lateinit var header: ProfileHeader
     private lateinit var followButton: Button
@@ -52,16 +56,14 @@ class UserProfileActivity : ThemedActivity() {
         super.onCreate(savedInstanceState)
 
         // Nobody logged in (e.g. app restored after the logout): back to the welcome page
-        if (!UserSession.isLoggedIn) {
+        if (!viewModel.isLoggedIn) {
             WelcomeActivity.open(this)
             finish()
             return
         }
-        userId = intent.getLongExtra(EXTRA_USER_ID, 0L)
-        username = intent.getStringExtra(EXTRA_USERNAME).orEmpty()
 
         // your own profile: the Profile page, where it can be changed
-        if (userId == UserSession.userId) {
+        if (viewModel.isMe) {
             startActivity(Intent(this, ProfileActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
             finish()
             return
@@ -71,20 +73,18 @@ class UserProfileActivity : ThemedActivity() {
         setContentView(R.layout.activity_user_profile)
 
         findViewById<View>(R.id.userProfileBackButton).setOnClickListener { finish() }
-        findViewById<TextView>(R.id.userProfileTitle).text = username
         val scroll = findViewById<NestedScrollView>(R.id.userProfileScroll)
         header = ProfileHeader(
             this,
             onPosts = { scroll.smoothScrollTo(0, findViewById<View>(R.id.userPostsTitle).top) },
-            onFollowers = { FollowListActivity.open(this, userId, username, FollowListActivity.Tab.FOLLOWERS) },
-            onFollowing = { FollowListActivity.open(this, userId, username, FollowListActivity.Tab.FOLLOWING) }
+            onFollowers = { FollowListActivity.open(this, userId, username, FollowListViewModel.Tab.FOLLOWERS) },
+            onFollowing = { FollowListActivity.open(this, userId, username, FollowListViewModel.Tab.FOLLOWING) }
         )
-        header.username.text = username
         header.subtitle.isVisible = false
 
         followButton = findViewById(R.id.followButton)
         shareButton = findViewById(R.id.shareWithUserButton)
-        followButton.setOnClickListener { changeFollow() }
+        followButton.setOnClickListener { viewModel.changeFollow() }
         shareButton.setOnClickListener { ConversationActivity.open(this, userId, username) }
 
         bestEmpty = findViewById(R.id.userBestEmpty)
@@ -105,56 +105,55 @@ class UserProfileActivity : ThemedActivity() {
 
         // no bottom strip: the page ends above the navigation bar of the phone
         keepAboveKeyboard(findViewById(R.id.userProfileRoot))
+
+        observe(viewModel.state) { state -> show(state) }
+        onEvents(viewModel.events) { event ->
+            when (event) {
+                UserProfileViewModel.Event.UserNotFound -> {
+                    Toast.makeText(this, R.string.user_not_found, Toast.LENGTH_LONG).show()
+                    finish()
+                }
+                is UserProfileViewModel.Event.Error ->
+                    Toast.makeText(this, event.error.userMessage(this), Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        load()
+        viewModel.load()
     }
 
-    // Profile, picture, posts and public plans of the user, from the server (in background)
-    private fun load() {
-        val token = UserSession.token ?: return
-        lifecycleScope.launch {
-            try {
-                showProfile(ApiClient.getProfile(token, userId))
-                val picture = if (profile?.user?.hasPicture == true) ApiClient.getPicture(userId) else null
-                if (picture != null) header.picture.setImageBitmap(picture) else header.picture.setImageResource(R.drawable.default_avatar)
+    private fun show(state: UserProfileViewModel.State) {
+        findViewById<TextView>(R.id.userProfileTitle).text = state.username
+        header.username.text = state.username
+        state.profile?.let { if (it !== shownProfile) showProfile(it) }
+        followButton.isEnabled = !state.followBusy
 
-                val posts = ApiClient.getPosts(userId)
-                val bests = PersonalBests.from(posts)
-                postAdapter.show(posts, bests.map { it.id }.toSet())
-                bestAdapter.submitList(bests)
-                postsEmpty.isVisible = posts.isEmpty()
-                bestEmpty.isVisible = bests.isEmpty()
-
-                val plans = ApiClient.getPublicPlans(userId)
-                planAdapter.submitList(plans)
-                plansEmpty.isVisible = plans.isEmpty()
-            } catch (e: ApiException) {
-                if (e.code == 404) {
-                    Toast.makeText(this@UserProfileActivity, R.string.user_not_found, Toast.LENGTH_LONG).show()
-                    finish()
-                } else {
-                    Toast.makeText(this@UserProfileActivity, e.userMessage(this@UserProfileActivity), Toast.LENGTH_LONG).show()
-                }
-            }
+        if (state.pictureLoaded) {
+            if (state.picture != null) header.picture.setImageBitmap(state.picture) else header.picture.setImageResource(R.drawable.default_avatar)
+        }
+        state.posts?.let { posts ->
+            postAdapter.show(posts.posts, posts.personalBests.map { it.id }.toSet())
+            bestAdapter.submitList(posts.personalBests)
+            postsEmpty.isVisible = posts.posts.isEmpty()
+            bestEmpty.isVisible = posts.personalBests.isEmpty()
+        }
+        state.plans?.let { plans ->
+            planAdapter.submitList(plans)
+            plansEmpty.isVisible = plans.isEmpty()
         }
     }
 
     // Counts, "Follows you", the follow button and "Share a plan"
     private fun showProfile(profile: UserProfile) {
-        this.profile = profile
+        shownProfile = profile
         val user = profile.user
-        username = user.username
-        findViewById<TextView>(R.id.userProfileTitle).text = user.username
-        header.username.text = user.username
         header.showCounts(profile)
         header.subtitle.setText(R.string.follows_you)
         header.subtitle.isVisible = user.followsYou
 
         // following: the button stops following (neutral); otherwise it follows (favorite color)
-        followButton.isEnabled = true
         followButton.setText(
             when {
                 user.isFollowing -> R.string.unfollow
@@ -170,23 +169,6 @@ class UserProfileActivity : ThemedActivity() {
             else ColorStateList.valueOf(themeColor(R.attr.onAccentColor))
         )
         shareButton.isVisible = user.isMutual
-    }
-
-    // Follows the user, or stops following them
-    private fun changeFollow() {
-        val token = UserSession.token ?: return
-        val following = profile?.user?.isFollowing ?: return
-        followButton.isEnabled = false
-        lifecycleScope.launch {
-            try {
-                val updated = if (following) ApiClient.unfollow(token, userId) else ApiClient.follow(token, userId)
-                Follows.changed()
-                showProfile(updated)
-            } catch (e: ApiException) {
-                followButton.isEnabled = true
-                Toast.makeText(this@UserProfileActivity, e.userMessage(this@UserProfileActivity), Toast.LENGTH_LONG).show()
-            }
-        }
     }
 
     companion object {

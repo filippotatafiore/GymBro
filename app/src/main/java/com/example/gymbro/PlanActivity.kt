@@ -14,23 +14,18 @@ import android.widget.ProgressBar
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.annotation.StringRes
 import androidx.core.view.isVisible
-import androidx.lifecycle.lifecycleScope
-import com.example.gymbro.chat.CoachChat
 import com.example.gymbro.chat.styledText
-import com.example.gymbro.network.ApiClient
-import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.SharedPlan
-import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.ExerciseEditor
 import com.example.gymbro.plan.Plan
 import com.example.gymbro.plan.PlanForm
-import com.example.gymbro.repository.PlanRepository
-import com.example.gymbro.repository.UserRepository
 import com.example.gymbro.session.exerciseDetails
-import kotlinx.coroutines.launch
+import com.example.gymbro.viewmodel.PlanViewModel
+import com.example.gymbro.viewmodel.PlanViewModel.Mode
 
 // Page of a gym workout plan. The plan is read every time the page is shown: it also shows the
 // changes made by the coach in the chat.
@@ -45,22 +40,37 @@ import kotlinx.coroutines.launch
 //   as it is now and can change it (only online).
 // - a public plan of another user (their profile, see openPublic) or a plan shared with Messages
 //   (see openShared): only to see, with "Add to my plans": a copy, then a plan like the others.
+// The plan and its changes: PlanViewModel.
 class PlanActivity : ThemedActivity() {
 
-    // OWN: a plan of the logged user; PUBLIC: a public plan of another user; SHARED: a plan sent
-    // with Messages (by the logged user or to them)
-    private enum class Mode { OWN, PUBLIC, SHARED }
+    private val viewModel: PlanViewModel by viewModels {
+        val shareId = intent.getLongExtra(EXTRA_SHARE_ID, 0L)
+        val ownerId = intent.getLongExtra(EXTRA_OWNER_ID, 0L)
+        // OWN: a plan of the logged user; PUBLIC: a public plan of another user; SHARED: a plan sent
+        // with Messages (by the logged user or to them)
+        val mode = when {
+            shareId > 0 -> Mode.SHARED
+            ownerId > 0 -> Mode.PUBLIC
+            else -> Mode.OWN
+        }
+        PlanViewModel.factory(
+            mode, intent.getLongExtra(EXTRA_PLAN_ID, 0L), ownerId, intent.getStringExtra(EXTRA_OWNER_NAME).orEmpty(), shareId
+        )
+    }
 
-    private var mode = Mode.OWN
-    private var planId = 0L
-    private var plan: Plan? = null
-    // PUBLIC: the user of the plan; SHARED: the plan shared
-    private var ownerId = 0L
-    private var ownerName = ""
-    private var shareId = 0L
-    private var shared: SharedPlan? = null
-    // a change is being saved: the other changes wait (they would start from an old plan)
-    private var saving = false
+    // The plan shown now, as the ViewModel gave it (shown again only when it changes)
+    private var shown: PlanViewModel.State? = null
+    private val plan: Plan?
+        get() = viewModel.state.value.plan
+    private val shared: SharedPlan?
+        get() = viewModel.state.value.shared
+    private val ownerName: String
+        get() = viewModel.state.value.ownerName
+
+    // The change being saved: what to do when it is saved, or with its error (e.g. close the
+    // window, or show the error in it)
+    private var onChangeSaved: () -> Unit = {}
+    private var onChangeError: (String) -> Unit = ::showToast
 
     private lateinit var title: TextView
     private lateinit var content: LinearLayout
@@ -71,19 +81,10 @@ class PlanActivity : ThemedActivity() {
         super.onCreate(savedInstanceState)
 
         // Nobody logged in (e.g. app restored after the logout): back to the welcome page
-        if (!UserSession.isLoggedIn) {
+        if (!viewModel.isLoggedIn) {
             WelcomeActivity.open(this)
             finish()
             return
-        }
-        planId = intent.getLongExtra(EXTRA_PLAN_ID, 0L)
-        ownerId = intent.getLongExtra(EXTRA_OWNER_ID, 0L)
-        ownerName = intent.getStringExtra(EXTRA_OWNER_NAME).orEmpty()
-        shareId = intent.getLongExtra(EXTRA_SHARE_ID, 0L)
-        mode = when {
-            shareId > 0 -> Mode.SHARED
-            ownerId > 0 -> Mode.PUBLIC
-            else -> Mode.OWN
         }
 
         // link to the layout
@@ -95,7 +96,7 @@ class PlanActivity : ThemedActivity() {
         bottomButton = findViewById(R.id.askCoachButton)
 
         findViewById<View>(R.id.planBackButton).setOnClickListener { finish() }
-        if (mode == Mode.OWN) {
+        if (viewModel.isOwn) {
             title.setOnClickListener { renamePlan() }
             findViewById<View>(R.id.deletePlanButton).setOnClickListener { confirmDeletePlan() }
             bottomButton.setOnClickListener { plan?.let { ChatActivity.open(this, it) } }
@@ -105,62 +106,57 @@ class PlanActivity : ThemedActivity() {
             findViewById<View>(R.id.deletePlanButton).isVisible = false
             bottomButton.setText(R.string.add_to_my_plans)
             bottomButton.isVisible = false
-            bottomButton.setOnClickListener { addToMyPlans() }
+            bottomButton.setOnClickListener { viewModel.addToMyPlans() }
         }
 
         // no bottom strip: the button stays above the navigation bar of the phone
         keepAboveKeyboard(findViewById(R.id.planRoot))
+
+        observe(viewModel.state) { state ->
+            if (!state.loading) loading.isVisible = false
+            if (!viewModel.isOwn) bottomButton.isEnabled = !state.adding
+            // the plan, shown again only when it changes
+            val plan = state.plan
+            if (plan != null && (shown?.plan != plan || shown?.shared != state.shared ||
+                    shown?.ownerName != state.ownerName || shown?.isActive != state.isActive)) {
+                shown = state
+                show(plan)
+            }
+        }
+        onEvents(viewModel.events) { event -> handle(event) }
     }
 
     override fun onResume() {
         super.onResume()
-        loadPlan()
+        // e.g. changed by the coach in the chat
+        viewModel.load()
     }
 
-    // Reads the plan (in background): your plans from this phone and then from the server, the
-    // others only from the server
-    private fun loadPlan() {
-        val token = UserSession.token ?: return
-        lifecycleScope.launch {
-            try {
-                when (mode) {
-                    Mode.OWN -> loadOwnPlan()
-                    Mode.PUBLIC -> show(ApiClient.getPublicPlan(ownerId, planId))
-                    Mode.SHARED -> {
-                        val shared = ApiClient.getSharedPlan(token, shareId)
-                        this@PlanActivity.shared = shared
-                        ownerName = shared.user?.username.orEmpty()
-                        show(shared.plan)
-                    }
-                }
-            } catch (e: ApiException) {
-                if (e.code == 404) {
-                    Toast.makeText(this@PlanActivity, R.string.plan_not_found, Toast.LENGTH_LONG).show()
-                    finish()
-                } else {
-                    Toast.makeText(this@PlanActivity, e.userMessage(this@PlanActivity), Toast.LENGTH_LONG).show()
-                }
-            } finally {
-                loading.isVisible = false
+    private fun handle(event: PlanViewModel.Event) {
+        when (event) {
+            PlanViewModel.Event.NotFound -> {
+                Toast.makeText(this, R.string.plan_not_found, Toast.LENGTH_LONG).show()
+                finish()
             }
-        }
-    }
-
-    // One of your plans: the version saved on this phone at once (also offline), then the one of the
-    // server (with the changes made offline sent first). Throws ApiException (404: deleted).
-    private suspend fun loadOwnPlan() {
-        PlanRepository.plan(planId)?.let {
-            show(it)
-            loading.isVisible = false
-        }
-        val problem = PlanRepository.trySync()
-        val synced = PlanRepository.plan(planId)
-        when {
-            synced != null -> if (synced != plan) show(synced)
-            // not on this phone and the server is not reachable
-            problem != null -> throw problem
-            // deleted (e.g. on another phone)
-            else -> throw ApiException(404, getString(R.string.plan_not_found))
+            is PlanViewModel.Event.Error -> showToast(event.error.userMessage(this))
+            PlanViewModel.Event.Saved -> onChangeSaved()
+            is PlanViewModel.Event.SaveFailed -> {
+                onChangeError(event.error.userMessage(this))
+                // e.g. deleted on another phone
+                if (event.error.code == 404) finish()
+            }
+            is PlanViewModel.Event.VisibilityNotChanged -> {
+                showToast(event.error.userMessage(this))
+                // the choice shown goes back to the saved one
+                plan?.let { show(it) }
+            }
+            PlanViewModel.Event.NowActive -> Toast.makeText(this, R.string.plan_now_active, Toast.LENGTH_SHORT).show()
+            is PlanViewModel.Event.Added -> {
+                if (!event.alreadyAdded) Toast.makeText(this, R.string.plan_added, Toast.LENGTH_SHORT).show()
+                open(this, event.planId)
+                finish()
+            }
+            PlanViewModel.Event.Deleted -> finish()
         }
     }
 
@@ -170,8 +166,7 @@ class PlanActivity : ThemedActivity() {
     // Information and advice of the coach, then each day with its exercises (they can be changed
     // only in your plans)
     private fun show(plan: Plan) {
-        this.plan = plan
-        val editable = mode == Mode.OWN
+        val editable = viewModel.isOwn
         title.text = plan.name
         content.removeAllViews()
         addInfo(plan)
@@ -224,19 +219,19 @@ class PlanActivity : ThemedActivity() {
     private fun addInfo(plan: Plan) {
         val card = layoutInflater.inflate(R.layout.item_plan_info, content, false)
         val rows = card.findViewById<LinearLayout>(R.id.planInfoRows)
-        val own = mode == Mode.OWN
-        val isActive = own && UserSession.user?.activePlanId == plan.id
+        val own = viewModel.isOwn
+        val isActive = own && viewModel.state.value.isActive
         card.findViewById<View>(R.id.planActiveLabel).isVisible = isActive
         card.findViewById<Button>(R.id.planActivateButton).apply {
             isVisible = own && !isActive
-            setOnClickListener { setActive(plan) }
+            setOnClickListener { viewModel.setActive() }
         }
         card.findViewById<View>(R.id.planVisibility).isVisible = own
         if (own) showVisibility(card, plan)
 
         val shared = shared
         when {
-            mode == Mode.PUBLIC -> addDetailRow(rows, R.string.plan_by, getString(R.string.username_value, ownerName))
+            !own && shared == null -> addDetailRow(rows, R.string.plan_by, getString(R.string.username_value, ownerName))
             shared != null -> addDetailRow(
                 rows, if (shared.fromMe) R.string.plan_shared_with else R.string.plan_shared_by,
                 getString(R.string.username_value, ownerName)
@@ -265,23 +260,7 @@ class PlanActivity : ThemedActivity() {
         group.check(if (plan.isPublic) R.id.planPublicOption else R.id.planPrivateOption)
         card.findViewById<TextView>(R.id.planVisibilityHint)
             .setText(if (plan.isPublic) R.string.plan_public_hint else R.string.plan_private_hint)
-        group.setOnCheckedChangeListener { _, checkedId -> setPublic(plan, checkedId == R.id.planPublicOption) }
-    }
-
-    private fun setPublic(plan: Plan, public: Boolean) {
-        if (saving) return
-        saving = true
-        lifecycleScope.launch {
-            try {
-                show(PlanRepository.setPublic(plan.id, public))
-            } catch (e: ApiException) {
-                showToast(e.userMessage(this@PlanActivity))
-                // the choice shown goes back to the saved one
-                show(plan)
-            } finally {
-                saving = false
-            }
-        }
+        group.setOnCheckedChangeListener { _, checkedId -> viewModel.setPublic(checkedId == R.id.planPublicOption) }
     }
 
     // Your plans: "Ask the coach to change it". The plans of the other users: "Add to my plans", or
@@ -289,39 +268,11 @@ class PlanActivity : ThemedActivity() {
     private fun showBottomButton() {
         val shared = shared
         when {
-            mode == Mode.OWN -> return
+            viewModel.isOwn -> return
             shared != null && shared.fromMe -> bottomButton.isVisible = false
             else -> {
                 bottomButton.isVisible = true
                 bottomButton.setText(if (shared?.savedPlanId != null) R.string.open_in_my_plans else R.string.add_to_my_plans)
-            }
-        }
-    }
-
-    // A copy of the plan among your plans (the plan received and already added: that one), then
-    // its page opens: there it can be changed and followed
-    private fun addToMyPlans() {
-        val token = UserSession.token ?: return
-        if (saving) return
-        saving = true
-        bottomButton.isEnabled = false
-        lifecycleScope.launch {
-            try {
-                val alreadyAdded = shared?.savedPlanId != null
-                val copy = when (mode) {
-                    Mode.SHARED -> ApiClient.saveSharedPlan(token, shareId)
-                    else -> ApiClient.copyPublicPlan(token, ownerId, planId)
-                }
-                // also on this phone: it can be seen and followed offline
-                PlanRepository.store(copy)
-                if (!alreadyAdded) Toast.makeText(this@PlanActivity, R.string.plan_added, Toast.LENGTH_SHORT).show()
-                open(this@PlanActivity, copy.id)
-                finish()
-            } catch (e: ApiException) {
-                showToast(e.userMessage(this@PlanActivity))
-            } finally {
-                saving = false
-                bottomButton.isEnabled = true
             }
         }
     }
@@ -335,36 +286,17 @@ class PlanActivity : ThemedActivity() {
     }
 
     // Saves a change on this phone and on the server (offline: on the server later, see
-    // PlanRepository), then shows the saved plan. onError: the message of the error (e.g. shown in
-    // the open window); onSaved: e.g. closes the window.
+    // PlanViewModel.save), then shows the saved plan. onError: the message of the error (e.g. shown
+    // in the open window); onSaved: e.g. closes the window.
     private fun save(changed: Plan, onError: (String) -> Unit = ::showToast, onSaved: () -> Unit = {}) {
-        if (saving) return
-        saving = true
-        lifecycleScope.launch {
-            try {
-                show(PlanRepository.update(changed).plan)
-                onSaved()
-            } catch (e: ApiException) {
-                onError(e.userMessage(this@PlanActivity))
-                // e.g. deleted on another phone
-                if (e.code == 404) finish()
-            } finally {
-                saving = false
-            }
-        }
+        if (viewModel.isSaving) return
+        onChangeSaved = onSaved
+        onChangeError = onError
+        viewModel.save(changed)
     }
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-    }
-
-
-    // The gym sessions will follow this plan (the server remembers it for the account): at once on
-    // this phone, on the server now or (offline) when it is reachable again
-    private fun setActive(plan: Plan) {
-        UserRepository.setActivePlan(plan.id)
-        Toast.makeText(this, R.string.plan_now_active, Toast.LENGTH_SHORT).show()
-        show(plan)
     }
 
 
@@ -462,16 +394,7 @@ class PlanActivity : ThemedActivity() {
     // when it is reachable again, see PlanRepository) and the chat about it on the phone
     private fun confirmDeletePlan() {
         showConfirmModal(this, this, R.string.delete_plan_title, R.string.delete_plan_message, R.string.delete) {
-            val userId = UserSession.userId ?: return@showConfirmModal
-            lifecycleScope.launch {
-                PlanRepository.delete(planId)
-                CoachChat.clear(this@PlanActivity, CoachChat.Conversation(userId, planId))
-                // it was the active plan: the server has no active plan when the plan is deleted
-                UserSession.user?.takeIf { it.activePlanId == planId }?.let {
-                    UserSession.changeLocally(it.copy(activePlanId = null))
-                }
-                finish()
-            }
+            viewModel.delete()
         }
     }
 

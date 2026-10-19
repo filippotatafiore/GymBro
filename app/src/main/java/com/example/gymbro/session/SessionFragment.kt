@@ -7,20 +7,21 @@ import android.widget.TextView
 import androidx.annotation.LayoutRes
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import androidx.fragment.app.activityViewModels
 import com.example.gymbro.MainActivity
 import com.example.gymbro.R
 import com.example.gymbro.createModal
 import com.example.gymbro.formatDuration
+import com.example.gymbro.observe
+import com.example.gymbro.viewmodel.MainViewModel
 import com.google.android.gms.maps.MapView
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 // Common part of the gym, run and swim sessions: the top strip with title, timer, pause and stop
-// buttons (res/layout/session_top_strip.xml, included in the layout of the session)
+// buttons (res/layout/session_top_strip.xml, included in the layout of the session). The session
+// in progress: MainViewModel, shared with the page (MainActivity).
 abstract class SessionFragment(@LayoutRes layout: Int) : Fragment(layout) {
+
+    protected val mainViewModel: MainViewModel by activityViewModels { MainViewModel.Factory }
 
     private lateinit var titleText: TextView
     private lateinit var timerText: TextView
@@ -31,32 +32,17 @@ abstract class SessionFragment(@LayoutRes layout: Int) : Fragment(layout) {
         timerText = view.findViewById(R.id.sessionTimer)
         pauseButton = view.findViewById(R.id.pauseButton)
 
-        pauseButton.setOnClickListener { togglePause() }
+        pauseButton.setOnClickListener { mainViewModel.pauseOrResume() }
         view.findViewById<ImageButton>(R.id.stopButton).setOnClickListener { showStopDialog() }
-        showPauseState()
 
-        // Update the timer every second while the page is visible (coroutine: the waiting
-        // does not block the app)
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                while (true) {
-                    timerText.text = formatDuration(ActiveSession.elapsedMillis())
-                    delay(1000)
-                }
-            }
-        }
+        // Paused or not, and the timer, updated every second while the page is visible
+        viewLifecycleOwner.observe(mainViewModel.session) { session -> showPauseState(session) }
+        viewLifecycleOwner.observe(mainViewModel.timer) { millis -> timerText.text = formatDuration(millis) }
     }
 
-    private fun togglePause() {
-        if (ActiveSession.isPaused) ActiveSession.resume() else ActiveSession.pause()
-        showPauseState()
-        timerText.text = formatDuration(ActiveSession.elapsedMillis())
-        (requireActivity() as MainActivity).onSessionChanged()
-    }
-
-    private fun showPauseState() {
-        val type = ActiveSession.type ?: return
-        val paused = ActiveSession.isPaused
+    private fun showPauseState(session: SessionStatus) {
+        val type = session.type ?: return
+        val paused = session.paused
 
         titleText.text = if (paused) {
             getString(R.string.session_paused, getString(type.title))
@@ -74,7 +60,7 @@ abstract class SessionFragment(@LayoutRes layout: Int) : Fragment(layout) {
     protected fun showStopDialog() {
         val activity = requireActivity() as MainActivity
         // what will be saved: the session as it is when the window opens
-        val session = activity.finishedSession() ?: return
+        val session = mainViewModel.finishedSession() ?: return
         var summaryMap: MapView? = null
         val dialog = createModal(requireContext(), R.layout.dialog_stop_session, viewLifecycleOwner) {
             summaryMap?.close()

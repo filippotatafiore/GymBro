@@ -1,51 +1,50 @@
-package com.example.gymbro.session
+package com.example.gymbro.repository
 
 import android.content.Context
-import android.content.pm.PackageManager
 import android.location.Address
 import android.location.Geocoder
 import android.util.Log
 import com.example.gymbro.network.ApiClient
 import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.UserSession
-import com.example.gymbro.network.userMessage
+import com.example.gymbro.session.GeoPoint
+import com.example.gymbro.session.RunMath
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
-
-// Google Maps API key of the installed app (AndroidManifest.xml, from local.properties), or null
-fun mapsApiKey(context: Context): String? {
-    val appInfo = context.packageManager.getApplicationInfo(
-        context.packageName,
-        PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong())
-    )
-    return appInfo.metaData?.getString("com.google.android.geo.API_KEY")?.takeIf { it.isNotBlank() }
-}
 
 // A place found with the search bar of the route planner
 data class Place(val name: String, val point: GeoPoint)
 
-// Route and distance of a run planned on the map
-object RouteFinder {
+// Route and distance of a run planned on the map. alongStreets = false: straight lines, because
+// the walking route was not available (problem: why). provider and attribution: the service that
+// computed the walking route and its credits.
+class PlannedRoute(
+    val distanceMeters: Double,
+    val path: List<GeoPoint>,
+    val alongStreets: Boolean,
+    val problem: ApiException? = null,
+    val provider: String? = null,
+    val attribution: String? = null
+)
 
-    private const val TAG = "RouteFinder"
-
-    // alongStreets = false: straight lines, because the walking route was not available (problem: why).
-    // provider and attribution: the service that computed the walking route and its credits.
-    class PlannedRoute(
-        val distanceMeters: Double,
-        val path: List<GeoPoint>,
-        val alongStreets: Boolean,
-        val problem: String? = null,
-        val provider: String? = null,
-        val attribution: String? = null
-    )
+// Routes and places of the route planner, before a run (Repository pattern)
+interface RouteRepository {
 
     // Walking route from the position of the user to the destination, through the stop (if any):
-    // its distance is the goal of the run. It is computed by the GymBro server with
-    // OpenRouteService (free, OpenStreetMap data) or the Google Routes API: their keys stay on the
-    // server. If that is not possible (server not reachable, keys not set up...) the distance is
-    // measured along straight lines.
-    suspend fun walkingRoute(context: Context, origin: GeoPoint, stop: GeoPoint?, destination: GeoPoint): PlannedRoute {
+    // its distance is the goal of the run. If it is not available, straight lines (never an error).
+    suspend fun walkingRoute(origin: GeoPoint, stop: GeoPoint?, destination: GeoPoint): PlannedRoute
+
+    // Places matching a name or address: first near the user (about 50 km around), then anywhere
+    suspend fun searchPlaces(query: String, near: GeoPoint?): List<Place>
+}
+
+// context: of the app (Geocoder)
+class RouteRepositoryImpl(private val context: Context) : RouteRepository {
+
+    // Computed by the GymBro server with OpenRouteService (free, OpenStreetMap data) or the Google
+    // Routes API: their keys stay on the server. If that is not possible (server not reachable, keys
+    // not set up...) the distance is measured along straight lines.
+    override suspend fun walkingRoute(origin: GeoPoint, stop: GeoPoint?, destination: GeoPoint): PlannedRoute {
         val problem = try {
             val token = UserSession.token ?: throw ApiException(401, "Login required")
             val route = ApiClient.walkingRoute(token, origin, stop, destination)
@@ -55,15 +54,14 @@ object RouteFinder {
             )
         } catch (e: ApiException) {
             Log.w(TAG, "Walking route not available, using straight lines: ${e.message}")
-            e.userMessage(context)
+            e
         }
         val path = listOfNotNull(origin, stop, destination)
         return PlannedRoute(RunMath.lengthMeters(path), path, alongStreets = false, problem = problem)
     }
 
-    // Places matching a name or address (Android Geocoder, which uses the Google servers).
-    // First near the user (about 50 km around), then anywhere.
-    suspend fun searchPlaces(context: Context, query: String, near: GeoPoint?): List<Place> {
+    // Android Geocoder, which uses the Google servers
+    override suspend fun searchPlaces(query: String, near: GeoPoint?): List<Place> {
         if (!Geocoder.isPresent()) return emptyList()
         val geocoder = Geocoder(context)
         if (near != null) {
@@ -93,4 +91,8 @@ object RouteFinder {
     // e.g. "Piazza del Duomo, 20122 Milano MI, Italy"
     private fun describe(address: Address): String =
         address.getAddressLine(0) ?: address.featureName ?: "%.5f, %.5f".format(address.latitude, address.longitude)
+
+    companion object {
+        private const val TAG = "RouteRepository"
+    }
 }

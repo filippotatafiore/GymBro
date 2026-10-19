@@ -10,7 +10,7 @@ import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.view.Gravity
 import android.widget.ImageButton
-import com.example.gymbro.session.ActiveSession
+import com.example.gymbro.session.SessionStatus
 
 // Bottom strip shared by all the pages (res/layout/bottom_nav.xml):
 // - moves between the pages
@@ -57,11 +57,12 @@ class BottomNavBar(private val activity: Activity, private val currentPage: Page
     }
 
     // Updates the home icon: shining (pulsing while running, steady while paused) if a session
-    // is in progress, normal otherwise. Call it in onResume() and when the session changes.
-    fun refresh() {
+    // is in progress, normal otherwise. Call it in onResume() and when the session changes, with
+    // the session in progress given by the ViewModel of the page.
+    fun refresh(session: SessionStatus) {
         stopGlow()
 
-        if (!ActiveSession.isActive) {
+        if (!session.isActive) {
             homeButton.background = null
             // in the favorite color if the home is the page shown
             homeButton.imageTintList = ColorStateList.valueOf(
@@ -74,7 +75,7 @@ class BottomNavBar(private val activity: Activity, private val currentPage: Page
         homeButton.background = glow
         homeButton.imageTintList = ColorStateList.valueOf(activity.themeColor(R.attr.accentTextColor))
 
-        if (!ActiveSession.isPaused) {
+        if (!session.paused) {
             glowAnimation = ObjectAnimator.ofInt(glow, "alpha", 255, 60).apply {
                 duration = 1000
                 repeatCount = ValueAnimator.INFINITE

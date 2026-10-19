@@ -105,4 +105,9 @@ dependencies {
     // Lists (exercise list) and fragments (map)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.fragment)
+
+    // MVVM: a ViewModel for every page (see the viewmodel package)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.fragment.ktx)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

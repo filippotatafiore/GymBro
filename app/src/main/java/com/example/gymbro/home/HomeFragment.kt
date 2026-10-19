@@ -4,33 +4,25 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.gymbro.MainActivity
 import com.example.gymbro.R
 import com.example.gymbro.createModal
 import com.example.gymbro.data.TrainingSession
-import com.example.gymbro.gymBroApp
-import com.example.gymbro.network.ApiException
-import com.example.gymbro.network.userMessage
-import com.example.gymbro.repository.SessionRepository
-import com.example.gymbro.session.publishSession
+import com.example.gymbro.observe
 import com.example.gymbro.showConfirmModal
 import com.example.gymbro.showSessionDetails
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
+import com.example.gymbro.viewmodel.HomeViewModel
 
-// Home shown when no session is in progress: start training button + last sessions of the logged user
+// Home shown when no session is in progress: start training button + last sessions of the logged
+// user (HomeViewModel, shared with the page: MainActivity)
 class HomeFragment : Fragment(R.layout.fragment_home) {
 
-    // Sessions being published right now (clientId: avoids publishing twice with a double tap)
-    private val publishing = mutableSetOf<String>()
+    private val viewModel: HomeViewModel by activityViewModels { HomeViewModel.Factory }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         view.findViewById<Button>(R.id.new_session_Button).setOnClickListener {
@@ -45,7 +37,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         // --------------------------------------------------------- LAST SESSIONS
 
         val adapter = SessionHistoryAdapter(
-            onPublish = { session -> publish(session) },
+            onPublish = { session -> viewModel.publish(session) },
             onDelete = { session -> confirmDelete(session) },
             onClick = { session -> showSessionDetails(requireContext(), viewLifecycleOwner, session) }
         )
@@ -55,17 +47,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val emptyText = view.findViewById<TextView>(R.id.emptySessionsText)
 
         // The sessions of this user saved on this phone (also offline), synchronized with the server
-        // by MainActivity every time the page is shown: the list is updated every time a session is
-        // saved, published, deleted or downloaded
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                combine(SessionRepository.sessions(), SessionRepository.refreshFailed) { sessions, failed -> sessions to failed }
-                    .collect { (sessions, failed) ->
-                        adapter.submitList(sessions)
-                        emptyText.isVisible = sessions.isEmpty()
-                        emptyText.setText(if (failed) R.string.error_server_unreachable else R.string.no_sessions_yet)
-                    }
-            }
+        // every time the page is shown: the list is updated every time a session is saved,
+        // published, deleted or downloaded
+        viewLifecycleOwner.observe(viewModel.state) { state ->
+            state ?: return@observe
+            adapter.submitList(state.sessions)
+            emptyText.isVisible = state.sessions.isEmpty()
+            emptyText.setText(if (state.refreshFailed) R.string.error_server_unreachable else R.string.no_sessions_yet)
         }
     }
 
@@ -92,24 +80,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         dialog.show()
     }
 
-    // Publishes the session on the profile (its button becomes a check mark). Only online: a session
-    // finished offline is sent to the server first.
-    private fun publish(session: TrainingSession) {
-        if (!publishing.add(session.clientId)) return
-        val context = requireContext().applicationContext
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                publishSession(context, session)
-                Toast.makeText(context, R.string.session_published, Toast.LENGTH_SHORT).show()
-            } catch (e: ApiException) {
-                Toast.makeText(context, e.userMessage(context), Toast.LENGTH_LONG).show()
-            } finally {
-                publishing.remove(session.clientId)
-            }
-        }
-    }
-
     // Asks for confirmation, then deletes the session from LAST SESSIONS: at once on this phone, on the
     // server now or (offline) when it is reachable again
     private fun confirmDelete(session: TrainingSession) {
@@ -117,14 +87,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             requireContext(), viewLifecycleOwner,
             R.string.delete_session_title, R.string.delete_session_message, R.string.delete
         ) {
-            val app = requireContext().gymBroApp
-            app.applicationScope.launch {
-                try {
-                    SessionRepository.delete(session)
-                } catch (e: ApiException) {
-                    Toast.makeText(app, e.userMessage(app), Toast.LENGTH_LONG).show()
-                }
-            }
+            viewModel.delete(session)
         }
     }
 }

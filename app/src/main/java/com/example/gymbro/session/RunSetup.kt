@@ -15,8 +15,6 @@ import com.example.gymbro.MainActivity
 import com.example.gymbro.R
 import androidx.core.view.isVisible
 import com.example.gymbro.createModal
-import com.example.gymbro.network.UserSession
-import com.example.gymbro.repository.UserRepository
 import com.example.gymbro.showError
 
 // Before a run starts (before the timer): permissions (location, notifications, physical activity
@@ -51,7 +49,7 @@ class RunSetup(private val activity: MainActivity) {
         val data = result.data
         if (result.resultCode == Activity.RESULT_OK && data != null) {
             val (goalKm, plan) = RoutePlannerActivity.readResult(data)
-            activity.startRun(goalKm, plan, UserSession.user?.weightKg ?: RunTracker.DEFAULT_WEIGHT_KG)
+            activity.startRun(goalKm, plan, activity.viewModel.bodyWeightKg ?: RunTracker.DEFAULT_WEIGHT_KG)
         }
     }
 
@@ -69,7 +67,7 @@ class RunSetup(private val activity: MainActivity) {
         val weightInput = dialog.findViewById<EditText>(R.id.bodyWeightInput)
         val error = dialog.findViewById<TextView>(R.id.goalError)
 
-        val profileWeight = UserSession.user?.weightKg
+        val profileWeight = activity.viewModel.bodyWeightKg
         weightInput.isVisible = profileWeight == null
         dialog.findViewById<View>(R.id.bodyWeightLabel).isVisible = profileWeight == null
 
@@ -82,7 +80,8 @@ class RunSetup(private val activity: MainActivity) {
                 error.showError(activity.getString(R.string.error_invalid_body_weight))
                 return null
             }
-            saveWeightInProfile(kg)
+            // saved in the profile (phone and server, also offline): it is not asked again
+            activity.viewModel.saveBodyWeight(kg)
             return kg
         }
 
@@ -102,13 +101,6 @@ class RunSetup(private val activity: MainActivity) {
             routePlanner.launch(Intent(activity, RoutePlannerActivity::class.java))
         }
         dialog.show()
-    }
-
-    // The weight typed is saved in the profile of the user (phone and server, also offline: see
-    // UserRepository): it is not asked again
-    private fun saveWeightInProfile(kg: Double) {
-        val user = UserSession.user ?: return
-        UserRepository.saveBodyData(user.heightCm, kg, user.birthYear, user.sex)
     }
 
     // Goal distance typed by the user, in km or miles (saved in km)

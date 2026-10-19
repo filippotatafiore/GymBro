@@ -28,7 +28,7 @@ class SwimSetup(private val activity: MainActivity) {
 
     // "Swim" pressed in the "start training" window
     fun begin() {
-        if (SwimTracker.voiceCounting && !VoiceLapCounter.hasPermission(activity)) {
+        if (activity.viewModel.swimVoiceCounting && !VoiceLapCounter.hasPermission(activity)) {
             micPermission.launch(Manifest.permission.RECORD_AUDIO)
         } else {
             showSetup()
@@ -43,7 +43,7 @@ class SwimSetup(private val activity: MainActivity) {
         val preview = dialog.findViewById<TextView>(R.id.swimGoalPreview)
         val error = dialog.findViewById<TextView>(R.id.swimSetupError)
 
-        poolInput.setText(DecimalFormat("0.#").format(SwimTracker.lastPoolLengthM))
+        poolInput.setText(DecimalFormat("0.#").format(activity.viewModel.lastPoolLengthM))
 
         fun readPool(): Double? =
             poolInput.text.toString().replace(',', '.').toDoubleOrNull()?.takeIf { it in SwimMath.POOL_RANGE_M }

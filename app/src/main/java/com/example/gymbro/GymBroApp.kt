@@ -2,15 +2,13 @@ package com.example.gymbro
 
 import android.app.Application
 import android.content.Context
+import android.widget.Toast
 import androidx.room.Room
 import com.example.gymbro.data.AppDatabase
 import com.example.gymbro.network.ApiClient
 import com.example.gymbro.network.UserSession
-import com.example.gymbro.repository.PlanRepository
-import com.example.gymbro.repository.ProfileRepository
-import com.example.gymbro.repository.SessionRepository
-import com.example.gymbro.repository.SyncManager
-import com.example.gymbro.repository.UserRepository
+import com.example.gymbro.network.userMessage
+import com.example.gymbro.repository.Notices
 import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.RunTracker
 import com.example.gymbro.session.RunTrackingService
@@ -20,6 +18,7 @@ import com.google.android.gms.maps.MapsInitializer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 // Created by Android when the app starts (see android:name in AndroidManifest.xml),
 // before any activity: holds what is shared by the whole app
@@ -43,6 +42,11 @@ class GymBroApp : Application() {
     // Coroutines that must complete even if the page that started them is closed (e.g. saving a session)
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    // The repositories: the data of the user saved on this phone, synchronized with the server
+    // (see AppContainer: given to the ViewModels of the pages)
+    lateinit var container: AppContainer
+        private set
+
     override fun onCreate() {
         super.onCreate()
         ActiveSession.init(this)
@@ -55,13 +59,26 @@ class GymBroApp : Application() {
         Appearance.init(this)
         UserSession.init(this)
         ApiClient.init(this)
-        // the data of the user saved on this phone, synchronized with the server
-        SessionRepository.init(this)
-        PlanRepository.init(this)
-        ProfileRepository.init(this)
-        UserRepository.init(this)
+        container = AppContainer(this)
+        showNotices(container.notices)
         // last: it may synchronize at once (if the phone is online)
-        SyncManager.init(this)
+        container.start()
+    }
+
+    // The messages of the work done in background (e.g. a session saved offline), whatever page
+    // is open: as toasts
+    private fun showNotices(notices: Notices) {
+        applicationScope.launch {
+            notices.shown.collect { notice ->
+                val error = notice.error?.userMessage(this@GymBroApp)
+                val text = when {
+                    notice.text != null && error != null -> getString(notice.text, error)
+                    notice.text != null -> getString(notice.text)
+                    else -> error.orEmpty()
+                }
+                Toast.makeText(this@GymBroApp, text, if (notice.long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }
 

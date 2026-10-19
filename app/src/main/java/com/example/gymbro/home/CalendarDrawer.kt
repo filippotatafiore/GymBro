@@ -14,17 +14,14 @@ import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.drawerlayout.widget.DrawerLayout
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import com.example.gymbro.MainActivity
 import com.example.gymbro.R
 import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.displayTitle
 import com.example.gymbro.formatDuration
-import com.example.gymbro.repository.SessionRepository
+import com.example.gymbro.observe
 import com.example.gymbro.showSessionDetails
-import kotlinx.coroutines.launch
+import com.example.gymbro.viewmodel.HomeViewModel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -39,7 +36,8 @@ import java.util.Locale
 // profile: the days of a month, with a green dot under the days with at least one training
 // session. Tap a day with a dot: a small window over the dot lists the sessions of that day
 // (tap one to see its details). Layout: res/layout/calendar_drawer.xml in activity_main.xml.
-class CalendarDrawer(private val activity: MainActivity) {
+// The sessions: HomeViewModel.
+class CalendarDrawer(private val activity: MainActivity, viewModel: HomeViewModel) {
 
     private val drawerLayout: DrawerLayout = activity.findViewById(R.id.mainDrawer)
     private val drawer: View = activity.findViewById(R.id.calendarDrawer)
@@ -86,17 +84,11 @@ class CalendarDrawer(private val activity: MainActivity) {
         })
         activity.onBackPressedDispatcher.addCallback(activity, closeOnBack)
 
-        // The sessions of the logged user saved on this phone, also offline (see SessionRepository):
-        // the dots are updated automatically when a session is saved, deleted or downloaded
-        activity.lifecycleScope.launch {
-            activity.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                SessionRepository.sessions().collect { sessions ->
-                    sessionsByDay = sessions.groupBy {
-                        Instant.ofEpochMilli(it.startTime).atZone(ZoneId.systemDefault()).toLocalDate()
-                    }
-                    showMonth()
-                }
-            }
+        // The sessions of the logged user saved on this phone, also offline: the dots are updated
+        // automatically when a session is saved, deleted or downloaded
+        activity.observe(viewModel.sessionsByDay) { days ->
+            sessionsByDay = days ?: return@observe
+            showMonth()
         }
         showMonth()
     }

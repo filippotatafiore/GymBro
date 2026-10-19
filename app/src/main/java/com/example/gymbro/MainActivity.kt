@@ -1,6 +1,5 @@
 package com.example.gymbro
 
-import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -13,42 +12,43 @@ import com.example.gymbro.ui.theme.GymBroTheme
 
 
 import android.app.Dialog
+import android.os.Bundle
 import android.view.View
 import android.widget.Toast
-import androidx.fragment.app.FragmentActivity
+import androidx.activity.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.gymbro.data.TrainingSession
 import com.example.gymbro.home.CalendarDrawer
 import com.example.gymbro.home.HomeFragment
-import com.example.gymbro.network.ApiException
-import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.Plan
 import com.example.gymbro.profile.PersonalInfoForm
-import com.example.gymbro.repository.SessionRepository
-import com.example.gymbro.repository.SyncManager
-import com.example.gymbro.session.ActiveSession
 import com.example.gymbro.session.GymSessionFragment
 import com.example.gymbro.session.GymSetup
-import com.example.gymbro.session.RunMath
 import com.example.gymbro.session.RunPlan
 import com.example.gymbro.session.RunSessionFragment
 import com.example.gymbro.session.RunSetup
-import com.example.gymbro.session.RunTracker
 import com.example.gymbro.session.RunTrackingService
+import com.example.gymbro.session.SessionStatus
 import com.example.gymbro.session.SessionType
 import com.example.gymbro.session.SwimSessionFragment
 import com.example.gymbro.session.SwimSetup
-import com.example.gymbro.session.SwimTracker
-import com.example.gymbro.session.publishSession
+import com.example.gymbro.viewmodel.HomeViewModel
+import com.example.gymbro.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 
 // Home page. Its middle part shows the home (start training + last sessions) or, while a
 // session is in progress, the session itself: it stays there when changing page and coming back.
 // FragmentActivity (instead of ComponentActivity) is needed to host these parts (fragments).
+// The session in progress: MainViewModel; the finished sessions (last sessions, calendar):
+// HomeViewModel, shared with HomeFragment.
 class MainActivity : ThemedActivity() {
+
+    val viewModel: MainViewModel by viewModels { MainViewModel.Factory }
+    private val homeViewModel: HomeViewModel by viewModels { HomeViewModel.Factory }
 
     private lateinit var bottomNav: BottomNavBar
 
@@ -71,7 +71,7 @@ class MainActivity : ThemedActivity() {
         super.onCreate(savedInstanceState)
 
         // Nobody logged in: the app starts from the welcome page (register / log in)
-        if (!UserSession.isLoggedIn) {
+        if (!viewModel.isLoggedIn) {
             WelcomeActivity.open(this)
             finish()
             return
@@ -102,7 +102,29 @@ class MainActivity : ThemedActivity() {
 
         // --------------------------------------------------------- CALENDAR
 
-        calendar = CalendarDrawer(this)
+        calendar = CalendarDrawer(this, homeViewModel)
+
+
+        // --------------------------------------------------------- SESSION
+
+        // Every time the page is shown, and when a session starts, is paused/resumed or stops:
+        // home / gym / run / swim session, and the home icon of the bottom strip
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                viewModel.session.collect { session ->
+                    showCurrentPage(session)
+                    bottomNav.refresh(session)
+                }
+            }
+        }
+        onEvents(viewModel.events) { event ->
+            when (event) {
+                is MainViewModel.Event.ChooseGymDay -> gymSetup.chooseDay(event.plan, event.last)
+                is MainViewModel.Event.PlanNotLoaded -> Toast.makeText(
+                    this, getString(R.string.plan_not_loaded, event.error.userMessage(this)), Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 
     fun openCalendar() {
@@ -111,14 +133,10 @@ class MainActivity : ThemedActivity() {
 
     override fun onResume() {
         super.onResume()
-        showCurrentPage()
-        bottomNav.refresh()
-        if (UserSession.askPersonalInfo) askPersonalInfo()
+        if (viewModel.askPersonalInfo) askPersonalInfo()
         // a run in progress is tracked again if the app was closed meanwhile (or after a new login)
-        if (ActiveSession.type == SessionType.RUN) RunTrackingService.start(this)
-        // LAST SESSIONS and calendar show the sessions saved on this phone (also offline): what
-        // changed on this phone is sent, then the sessions of the server are downloaded
-        SyncManager.syncInBackground()
+        if (viewModel.session.value.type == SessionType.RUN) RunTrackingService.start(this)
+        viewModel.onPageShown()
     }
 
     override fun onPause() {
@@ -134,16 +152,17 @@ class MainActivity : ThemedActivity() {
         if (personalInfoDialog != null) return
         val dialog = createModal(this, R.layout.dialog_personal_info, this, onDismiss = { personalInfoDialog = null })
         fun done() {
-            UserSession.askPersonalInfo = false
+            viewModel.personalInfoAsked()
             dialog.dismiss()
         }
-        PersonalInfoForm(dialog.window!!.decorView, lifecycleScope) {
+        PersonalInfoForm(dialog.window!!.decorView, viewModel.user) { heightCm, weightKg, birthYear, sex ->
+            viewModel.saveBodyData(heightCm, weightKg, birthYear, sex)
             Toast.makeText(this, R.string.profile_saved, Toast.LENGTH_SHORT).show()
             done()
         }
         dialog.findViewById<View>(R.id.personalInfoLaterButton).setOnClickListener { done() }
         // back button or tap outside: like "Later" (closed by a recreation of the page: asked again)
-        dialog.setOnCancelListener { UserSession.askPersonalInfo = false }
+        dialog.setOnCancelListener { viewModel.personalInfoAsked() }
         personalInfoDialog = dialog
         dialog.show()
     }
@@ -151,15 +170,14 @@ class MainActivity : ThemedActivity() {
 
     // --------------------------------------------------------- SESSION
 
-    // Gym: first the day of the active workout plan (GymSetup), which then calls startGym
+    // Gym: first the day of the active workout plan (MainViewModel, GymSetup), then startGym
     fun prepareGym() {
-        gymSetup.begin()
+        viewModel.prepareGym()
     }
 
     // plan = null: session without plan (the exercises are added during the session)
     fun startGym(plan: Plan?, dayIndex: Int) {
-        ActiveSession.startGym(plan, dayIndex)
-        onSessionChanged()
+        viewModel.startGym(plan, dayIndex)
     }
 
     // Run: first the permissions and the goal (RunSetup), which then calls startRun
@@ -169,10 +187,8 @@ class MainActivity : ThemedActivity() {
 
     // The timer starts now; the GPS positions and the steps are received by RunTrackingService
     fun startRun(goalKm: Double?, plan: RunPlan?, weightKg: Double) {
-        RunTracker.start(goalKm, plan, weightKg, countSteps = RunTrackingService.canCountSteps(this))
-        ActiveSession.start(SessionType.RUN)
+        viewModel.startRun(goalKm, plan, weightKg, countSteps = RunTrackingService.canCountSteps(this))
         RunTrackingService.start(this)
-        onSessionChanged()
     }
 
     // Swim: first the microphone permission, the pool length and the goal (SwimSetup), which then
@@ -183,87 +199,19 @@ class MainActivity : ThemedActivity() {
 
     // The timer starts now; the laps are added on the swim page (buttons or voice)
     fun startSwim(poolLengthM: Double, goalLaps: Int?) {
-        SwimTracker.start(poolLengthM, goalLaps)
-        ActiveSession.start(SessionType.SWIM)
-        onSessionChanged()
+        viewModel.startSwim(poolLengthM, goalLaps)
     }
 
-    // The session in progress as it would be saved now (shown in the window to stop it)
-    fun finishedSession(): TrainingSession? {
-        val type = ActiveSession.type ?: return null
-        val run = if (type == SessionType.RUN) RunTracker.current else null
-        val gym = type == SessionType.GYM
-        val swim = type == SessionType.SWIM
-        return TrainingSession(
-            // a new id for each session: the server saves it only once, also if sent again
-            clientId = UUID.randomUUID().toString(),
-            type = type,
-            startTime = ActiveSession.startTime,
-            durationMillis = ActiveSession.elapsedMillis(),
-            // run: distance rounded to the nearest 0.1 km (the one used for the personal bests);
-            // swim: laps x pool length
-            distanceKm = run?.let { RunMath.roundKm(it.distanceKm) } ?: if (swim) SwimTracker.meters / 1000 else null,
-            kcal = run?.kcal,
-            maxSpeedKmh = run?.let { it.maxSpeedMps * 3.6 },
-            goalKm = if (run != null) RunTracker.goalKm else null,
-            route = run?.route?.filter { it.size >= 2 },
-            steps = if (run != null) RunTracker.steps else null,
-            // gym: the exercises as they were done, and the day of the plan followed
-            exercises = if (gym) ActiveSession.exercises else null,
-            planId = if (gym) ActiveSession.planId else null,
-            planName = if (gym) ActiveSession.planName else null,
-            planDay = if (gym) ActiveSession.planDay else null,
-            planDayName = if (gym) ActiveSession.planDayName else null,
-            // swim: the pool, the laps swum and the goal
-            poolLengthM = if (swim) SwimTracker.poolLengthM else null,
-            laps = if (swim) SwimTracker.laps else null,
-            goalLaps = if (swim) SwimTracker.goalLaps else null
-        )
-    }
-
-    // Saves the session on this phone (it appears at once in LAST SESSIONS and in the calendar) and
-    // on the server (the same on every phone of the user), publishes it on the profile if requested,
-    // and goes back to the home. Server not reachable: the session is sent later (it can be
-    // published then: publishing needs the server).
+    // Saves the session (see MainViewModel.saveSession) and goes back to the home. Run: the GPS
+    // stops first.
     fun saveSession(session: TrainingSession, publish: Boolean) {
-        if (session.type == SessionType.RUN) {
-            RunTrackingService.stop(this)
-            RunTracker.clear()
-        }
-        if (session.type == SessionType.SWIM) SwimTracker.clear()
-        ActiveSession.clear()
-
-        // Saved (and published) in background: database and network must not block the app.
-        // applicationScope: the work completes even if this page is closed meanwhile.
-        val app = gymBroApp
-        app.applicationScope.launch {
-            val saved = SessionRepository.save(session)
-            if (saved == null) {
-                Toast.makeText(app, R.string.session_saved_offline, Toast.LENGTH_LONG).show()
-                return@launch
-            }
-            if (publish) {
-                try {
-                    publishSession(app, saved)
-                    Toast.makeText(app, R.string.session_published, Toast.LENGTH_SHORT).show()
-                } catch (e: ApiException) {
-                    // the session is saved anyway: it can be published later from LAST SESSIONS
-                    Toast.makeText(app, e.userMessage(app), Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-        onSessionChanged()
-    }
-
-    // Called when a session starts, is paused/resumed or stops
-    fun onSessionChanged() {
-        showCurrentPage()
-        bottomNav.refresh()
+        if (session.type == SessionType.RUN) RunTrackingService.stop(this)
+        viewModel.saveSession(session, publish)
     }
 
     // Shows home / gym session / run session / swim session, depending on the session in progress
-    private fun showCurrentPage() {
-        val page = when (ActiveSession.type) {
+    private fun showCurrentPage(session: SessionStatus) {
+        val page = when (session.type) {
             null -> HomeFragment::class.java
             SessionType.GYM -> GymSessionFragment::class.java
             SessionType.RUN -> RunSessionFragment::class.java

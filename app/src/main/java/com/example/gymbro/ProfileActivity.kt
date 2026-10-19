@@ -1,17 +1,11 @@
 package com.example.gymbro
 
+import android.app.Dialog
 import android.content.res.ColorStateList
 import android.graphics.BitmapFactory
 import com.example.gymbro.data.ProfileEntity
-import com.example.gymbro.plan.Plan
-import com.example.gymbro.repository.PlanRepository
-import com.example.gymbro.repository.ProfileRepository
-import com.example.gymbro.repository.SessionRepository
-import com.example.gymbro.repository.UserRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import android.os.Bundle
 import android.util.Patterns
 import android.view.View
@@ -28,24 +22,18 @@ import android.widget.RadioGroup
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
-import androidx.core.content.edit
+import androidx.activity.viewModels
 import androidx.core.view.isVisible
-import androidx.core.widget.doAfterTextChanged
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.gymbro.home.SessionHistoryAdapter
-import com.example.gymbro.network.ApiClient
-import com.example.gymbro.network.ApiException
 import com.example.gymbro.network.Better
 import com.example.gymbro.network.Metric
 import com.example.gymbro.network.PlanRequest
 import com.example.gymbro.network.Post
 import com.example.gymbro.network.Sex
 import com.example.gymbro.network.User
-import com.example.gymbro.network.UserSession
 import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.PlanAdapter
 import com.example.gymbro.plan.PlanGoal
@@ -54,15 +42,13 @@ import com.example.gymbro.plan.PlanPicker
 import com.example.gymbro.profile.BodyData
 import com.example.gymbro.profile.ManualExercises
 import com.example.gymbro.profile.PersonalBestAdapter
-import com.example.gymbro.profile.PersonalBests
 import com.example.gymbro.profile.PersonalInfoForm
 import com.example.gymbro.profile.PostAdapter
 import com.example.gymbro.profile.ProfileHeader
 import com.example.gymbro.profile.PictureChooser
-import com.example.gymbro.session.ActiveSession
-import com.example.gymbro.session.RunTrackingService
-import com.example.gymbro.session.publishSession
-import kotlinx.coroutines.launch
+import com.example.gymbro.viewmodel.FollowListViewModel
+import com.example.gymbro.viewmodel.ProfileViewModel
+import com.example.gymbro.viewmodel.ProfileViewModel.Event
 
 import androidx.core.widget.NestedScrollView
 import androidx.drawerlayout.widget.DrawerLayout
@@ -72,6 +58,9 @@ import java.time.Year
 import java.util.Locale
 import java.util.Stack
 
+// Profile of the logged user: posts and personal bests, workout plans, followers and followed
+// users, picture, publishing, and the sliding menu (personal information, look, account, logout).
+// Data and actions: ProfileViewModel.
 class ProfileActivity : ThemedActivity() {
 
     companion object {
@@ -80,14 +69,14 @@ class ProfileActivity : ThemedActivity() {
         private const val STATE_MENU = "menu"
     }
 
+    private val viewModel: ProfileViewModel by viewModels { ProfileViewModel.Factory }
+
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var menuButton: ImageButton
     private lateinit var menuContainer: FrameLayout
     private val menuHistory = Stack<Int>() // Stack to store previous menus
     // Menu shown now: saved in menuHistory when another one is opened, to come back to it
     private var currentMenu = R.layout.profile_menu
-    // The plans saved on this phone (the active one is shown first)
-    private var plans = emptyList<Plan>()
     // A post was just published: the list shows its top, where the new post appears
     private var scrollToNewPost = false
 
@@ -106,13 +95,28 @@ class ProfileActivity : ThemedActivity() {
     private val planAdapter = PlanAdapter(onClick = { plan -> PlanActivity.open(this, plan.id) })
 
     // A new profile picture: taken with the camera or chosen from the gallery
-    private val pictureChooser = PictureChooser(this) { jpeg -> changePicture(jpeg) }
+    private val pictureChooser = PictureChooser(this) { jpeg -> viewModel.changePicture(jpeg) }
+
+    // The forms and windows waiting for the server (the last one opened of each kind): their
+    // buttons wait, and they show the answer (e.g. an error)
+    private var accountError: TextView? = null
+    private var accountSave: Button? = null
+    private var deleteDialog: Dialog? = null
+    private var deleteError: TextView? = null
+    private var deleteConfirm: Button? = null
+    private var planPicker: PlanPicker? = null
+    private var sessionPicker: Dialog? = null
+    private var sessionPickerAdapter: SessionHistoryAdapter? = null
+    private var manualDialog: Dialog? = null
+    private var manualError: TextView? = null
+    private var manualConfirm: Button? = null
+    private var createPlanDialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Nobody logged in (e.g. app restored after the logout): back to the welcome page
-        if (!UserSession.isLoggedIn) {
+        if (!viewModel.isLoggedIn) {
             WelcomeActivity.open(this)
             finish()
             return
@@ -173,7 +177,7 @@ class ProfileActivity : ThemedActivity() {
 
             // Handle the logout button (if present in the current layout)
             menuContainer.findViewById<Button>(R.id.logoutButton)?.setOnClickListener {
-                logout()
+                viewModel.logout()
             }
 
             // Handle the back button (if present in the current layout)
@@ -229,8 +233,8 @@ class ProfileActivity : ThemedActivity() {
         header = ProfileHeader(
             this,
             onPosts = { scroll.smoothScrollTo(0, findViewById<View>(R.id.postsSection).top) },
-            onFollowers = { openFollowList(FollowListActivity.Tab.FOLLOWERS) },
-            onFollowing = { openFollowList(FollowListActivity.Tab.FOLLOWING) }
+            onFollowers = { openFollowList(FollowListViewModel.Tab.FOLLOWERS) },
+            onFollowing = { openFollowList(FollowListViewModel.Tab.FOLLOWING) }
         )
         emptyResultsText = findViewById(R.id.emptyResultsText)
         emptyPersonalBestsText = findViewById(R.id.emptyPersonalBestsText)
@@ -255,19 +259,13 @@ class ProfileActivity : ThemedActivity() {
         findViewById<Button>(R.id.newPlanButton).setOnClickListener { showCreatePlanDialog() }
 
         // The profile saved on this phone (also offline), updated at every change: posts and personal
-        // bests, workout plans, followers, followed users and picture (see the repositories)
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { ProfileRepository.posts().collect { showPosts(it) } }
-                launch { ProfileRepository.profile().collect { showSavedProfile(it) } }
-                launch {
-                    PlanRepository.plans().collect {
-                        plans = it
-                        showPlans()
-                    }
-                }
-            }
-        }
+        // bests, workout plans, followers, followed users and picture (see ProfileViewModel)
+        observe(viewModel.posts) { posts -> posts?.let { showPosts(it) } }
+        observe(viewModel.profile) { profile -> showSavedProfile(profile) }
+        observe(viewModel.workoutPlans) { plans -> plans?.let { showPlans(it) } }
+        observe(viewModel.user) { user -> user?.let { showUser(it) } }
+        observe(viewModel.busy) { busy -> showBusy(busy) }
+        onEvents(viewModel.events) { event -> handle(event) }
 
 
         // --------------------------------------------------------- NAVBAR
@@ -283,16 +281,74 @@ class ProfileActivity : ThemedActivity() {
 
     override fun onResume() {
         super.onResume()
-        bottomNav.refresh()
-        UserSession.user?.let { showUser(it) }
-        // e.g. a plan made active in its page
-        showPlans()
-        refreshProfile()
+        bottomNav.refresh(viewModel.sessionStatus())
+        // the profile downloaded again (e.g. a plan made active in its page)
+        viewModel.onPageShown()
     }
 
     override fun onPause() {
         super.onPause()
         bottomNav.stopGlow()
+    }
+
+    // The answers of the server to the actions of the user
+    private fun handle(event: Event) {
+        when (event) {
+            is Event.Error -> showLongToast(event.error.userMessage(this))
+            Event.LoggedOut -> WelcomeActivity.open(this)
+            Event.AccountUpdated -> {
+                Toast.makeText(this, R.string.account_updated, Toast.LENGTH_SHORT).show()
+                drawerLayout.closeDrawer(GravityCompat.END)
+            }
+            is Event.AccountNotUpdated -> accountError?.showError(event.error.userMessage(this))
+            Event.AccountDeleted -> {
+                deleteDialog?.dismiss()
+                Toast.makeText(this, R.string.account_deleted, Toast.LENGTH_LONG).show()
+                WelcomeActivity.open(this)
+            }
+            is Event.AccountNotDeleted -> deleteError?.showError(event.error.userMessage(this))
+            is Event.PlansToPublish -> showPlanToPublishPicker(event)
+            Event.PlanPublished -> {
+                planPicker?.dialog?.dismiss()
+                Toast.makeText(this, R.string.plan_published, Toast.LENGTH_SHORT).show()
+            }
+            is Event.PlanNotPublished -> planPicker?.showError(event.error.userMessage(this))
+            is Event.SessionsToPublish -> showSessionsToPublish(event)
+            Event.SessionPublished -> {
+                sessionPicker?.dismiss()
+                Toast.makeText(this, R.string.session_published, Toast.LENGTH_SHORT).show()
+            }
+            Event.ManualPublished -> manualDialog?.dismiss()
+            is Event.ManualNotPublished -> {
+                scrollToNewPost = false
+                manualError?.showError(event.error.userMessage(this))
+            }
+            is Event.PlanCreated -> {
+                createPlanDialog?.dismiss()
+                PlanActivity.open(this, event.planId)
+            }
+            is Event.PlanNotCreated ->
+                createPlanDialog?.findViewById<TextView>(R.id.createPlanError)?.showError(event.error.userMessage(this))
+        }
+    }
+
+    private fun showLongToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    }
+
+    // The buttons of the forms and windows waiting for the server
+    private fun showBusy(busy: ProfileViewModel.Busy) {
+        accountSave?.isEnabled = !busy.savingAccount
+        deleteConfirm?.isEnabled = !busy.deletingAccount
+        planPicker?.busy = busy.publishingPlan
+        manualConfirm?.isEnabled = !busy.publishingManual
+        createPlanDialog?.let { dialog ->
+            // while the coach writes the plan the window cannot be closed
+            dialog.setCancelable(!busy.creatingPlan)
+            dialog.findViewById<Button>(R.id.createPlanButton)?.isEnabled = !busy.creatingPlan
+            dialog.findViewById<View>(R.id.createPlanProgress)?.isVisible = busy.creatingPlan
+            if (busy.creatingPlan) dialog.findViewById<View>(R.id.createPlanError)?.isVisible = false
+        }
     }
 
 
@@ -304,32 +360,9 @@ class ProfileActivity : ThemedActivity() {
     }
 
     // Followers or followed users of the logged user
-    private fun openFollowList(tab: FollowListActivity.Tab) {
-        val user = UserSession.user ?: return
+    private fun openFollowList(tab: FollowListViewModel.Tab) {
+        val user = viewModel.user.value ?: return
         FollowListActivity.open(this, user.id, user.username, tab)
-    }
-
-    // Downloads the profile from the server and saves it on this phone (in background): the pages
-    // show it through the repositories. The changes made offline are sent first (personal
-    // information, look, workout plans). Offline the profile saved on this phone stays.
-    private fun refreshProfile() {
-        lifecycleScope.launch {
-            try {
-                showUser(ProfileRepository.refresh())
-            } catch (e: ApiException) {
-                when (e.code) {
-                    0 -> {}
-                    // the login is no longer valid (e.g. logged out from the server)
-                    401 -> {
-                        Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
-                        logout()
-                        return@launch
-                    }
-                    else -> Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
-                }
-            }
-            PlanRepository.trySync()
-        }
     }
 
     // Followers, followed users and picture saved on this phone (null: never downloaded)
@@ -343,65 +376,29 @@ class ProfileActivity : ThemedActivity() {
 
     // Shows the posts of the user and the personal bests chosen among them ("PERSONAL BEST" also on
     // their posts). After a new post: the top of the list, where it appears.
-    private fun showPosts(posts: List<Post>) {
-        val bests = PersonalBests.from(posts)
+    private fun showPosts(posts: ProfileViewModel.Posts) {
+        val bests = posts.personalBests
         val scrollToTop = scrollToNewPost
         scrollToNewPost = false
-        postAdapter.show(posts, bests.map { it.id }.toSet()) {
+        postAdapter.show(posts.posts, bests.map { it.id }.toSet()) {
             if (scrollToTop) postList.scrollToPosition(0)
         }
-        emptyResultsText.isVisible = posts.isEmpty()
-        header.showPostsCount(posts.size)
+        emptyResultsText.isVisible = posts.posts.isEmpty()
+        header.showPostsCount(posts.posts.size)
 
         personalBestAdapter.submitList(bests)
         emptyPersonalBestsText.isVisible = bests.isEmpty()
     }
 
-    // Workout plans of the user, the last changed first
-    private fun showPlans() {
-        // the active plan first, with "ACTIVE"
-        val activePlanId = UserSession.user?.activePlanId
-        val sorted = plans.sortedByDescending { it.id == activePlanId }
-        val activeChanged = planAdapter.activePlanId != activePlanId
-        planAdapter.activePlanId = activePlanId
-        planAdapter.submitList(sorted) {
+    // Workout plans of the user, the active one first (with "ACTIVE"), then the last changed
+    private fun showPlans(plans: ProfileViewModel.Plans) {
+        val activeChanged = planAdapter.activePlanId != plans.activePlanId
+        planAdapter.activePlanId = plans.activePlanId
+        planAdapter.submitList(plans.plans) {
             @Suppress("NotifyDataSetChanged")  // the badge of every card may change
             if (activeChanged) planAdapter.notifyDataSetChanged()
         }
-        emptyPlansText.isVisible = sorted.isEmpty()
-    }
-
-    // Back to the welcome page. The session in progress (if any) is kept for when this user logs in
-    // again; the GPS of a run in progress stops until then.
-    private fun logout() {
-        RunTrackingService.stop(this)
-        val token = UserSession.token
-        UserSession.clear()
-        SessionRepository.clear()
-
-        // Invalidate the token on the server too (if the server is not reachable there is nothing to do).
-        // applicationScope: this page is closed right away.
-        if (token != null) {
-            gymBroApp.applicationScope.launch {
-                try {
-                    ApiClient.logout(token)
-                } catch (_: ApiException) {
-                }
-            }
-        }
-        WelcomeActivity.open(this)
-    }
-
-    // The new picture (already prepared, see PictureChooser) is uploaded to the server right away
-    // (only online), then saved on this phone
-    private fun changePicture(jpeg: ByteArray) {
-        lifecycleScope.launch {
-            try {
-                ProfileRepository.changePicture(jpeg)
-            } catch (e: ApiException) {
-                Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
-            }
-        }
+        emptyPlansText.isVisible = plans.plans.isEmpty()
     }
 
 
@@ -410,7 +407,8 @@ class ProfileActivity : ThemedActivity() {
     // "Personal information" page of the menu: body data of the user (see PersonalInfoForm), saved
     // also offline
     private fun showPersonalInfoForm() {
-        PersonalInfoForm(menuContainer, lifecycleScope) {
+        PersonalInfoForm(menuContainer, viewModel.user.value) { heightCm, weightKg, birthYear, sex ->
+            viewModel.saveBodyData(heightCm, weightKg, birthYear, sex)
             Toast.makeText(this, R.string.profile_saved, Toast.LENGTH_SHORT).show()
             drawerLayout.closeDrawer(GravityCompat.END)
         }
@@ -421,7 +419,7 @@ class ProfileActivity : ThemedActivity() {
 
     // "Customize account" page of the menu: theme (dark / light) and favorite color. A choice is
     // applied at once to the whole app (this page is recreated with the menu still open, the other
-    // pages when they are shown again) and saved in the account, also offline (see UserRepository).
+    // pages when they are shown again) and saved in the account, also offline (see ProfileViewModel).
     private fun showCustomizeForm() {
         val themeGroup = menuContainer.findViewById<RadioGroup>(R.id.themeGroup)
         themeGroup.check(if (Appearance.theme == AppTheme.DARK) R.id.themeDark else R.id.themeLight)
@@ -467,7 +465,7 @@ class ProfileActivity : ThemedActivity() {
     private fun changeAppearance(accent: Accent, theme: AppTheme) {
         if (accent == Appearance.accent && theme == Appearance.theme) return
         val themeChanged = theme != Appearance.theme
-        UserRepository.setAppearance(accent, theme)
+        viewModel.changeAppearance(accent, theme)
         if (!themeChanged) recreate()
     }
 
@@ -477,7 +475,7 @@ class ProfileActivity : ThemedActivity() {
     // "Modify account" page of the settings: username, email and password. The current password is
     // always needed; after a new password, the other phones must log in again.
     private fun showModifyAccountForm() {
-        val user = UserSession.user ?: return
+        val user = viewModel.user.value ?: return
         val usernameInput = menuContainer.findViewById<EditText>(R.id.accountUsernameInput)
         val emailInput = menuContainer.findViewById<EditText>(R.id.accountEmailInput)
         val newPasswordInput = menuContainer.findViewById<EditText>(R.id.accountNewPasswordInput)
@@ -487,6 +485,8 @@ class ProfileActivity : ThemedActivity() {
         val save = menuContainer.findViewById<Button>(R.id.saveAccountButton)
         usernameInput.setText(user.username)
         emailInput.setText(user.email)
+        accountError = error
+        accountSave = save.apply { isEnabled = !viewModel.busy.value.savingAccount }
 
         save.setOnClickListener {
             val username = usernameInput.text.toString().trim()
@@ -502,29 +502,9 @@ class ProfileActivity : ThemedActivity() {
                 else -> null
             }
             if (problem != null) return@setOnClickListener error.showError(getString(problem))
-            val token = UserSession.token ?: return@setOnClickListener
             error.isVisible = false
             getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(save.windowToken, 0)
-
-            lifecycleScope.launch {
-                save.isEnabled = false
-                try {
-                    val updated = ApiClient.updateAccount(
-                        token, currentPassword,
-                        username.takeIf { it != user.username },
-                        email.takeIf { it != user.email },
-                        newPassword.ifEmpty { null }
-                    )
-                    UserSession.updateUser(updated)
-                    showUser(updated)
-                    Toast.makeText(this@ProfileActivity, R.string.account_updated, Toast.LENGTH_SHORT).show()
-                    drawerLayout.closeDrawer(GravityCompat.END)
-                } catch (e: ApiException) {
-                    error.showError(e.userMessage(this@ProfileActivity))
-                } finally {
-                    save.isEnabled = true
-                }
-            }
+            viewModel.updateAccount(username, email, newPassword, currentPassword)
         }
     }
 
@@ -537,49 +517,15 @@ class ProfileActivity : ThemedActivity() {
         val error = dialog.findViewById<TextView>(R.id.deleteAccountError)
         val confirm = dialog.findViewById<Button>(R.id.confirmDeleteAccountButton)
         dialog.findViewById<View>(R.id.cancelButton).setOnClickListener { dialog.dismiss() }
+        deleteDialog = dialog
+        deleteError = error
+        deleteConfirm = confirm.apply { isEnabled = !viewModel.busy.value.deletingAccount }
 
         confirm.setOnClickListener {
             if (password.text.isEmpty()) return@setOnClickListener error.showError(getString(R.string.error_current_password))
-            val token = UserSession.token ?: return@setOnClickListener
-            val userId = UserSession.userId ?: return@setOnClickListener
-            lifecycleScope.launch {
-                confirm.isEnabled = false
-                try {
-                    ApiClient.deleteAccount(token, password.text.toString())
-                    dialog.dismiss()
-                    deleteLocalData(userId)
-                    Toast.makeText(this@ProfileActivity, R.string.account_deleted, Toast.LENGTH_LONG).show()
-                    WelcomeActivity.open(this@ProfileActivity)
-                } catch (e: ApiException) {
-                    error.showError(e.userMessage(this@ProfileActivity))
-                } finally {
-                    confirm.isEnabled = true
-                }
-            }
+            viewModel.deleteAccount(password.text.toString())
         }
         dialog.show()
-    }
-
-    // The data of the deleted account on this phone: session in progress, sessions, workout plans,
-    // posts, profile, chats with the coach, login
-    private fun deleteLocalData(userId: Long) {
-        RunTrackingService.stop(this)
-        SessionRepository.clear()
-        UserSession.clear()
-        // session in progress of the user (ActiveSession, swim and its settings) and plan saved by the
-        // older versions of the app: emptied right now (commit), otherwise a write in background
-        // would create the file again
-        for (name in listOf("active_session_$userId", "swim_$userId", "swim_settings_$userId", "active_plan_$userId")) {
-            getSharedPreferences(name, MODE_PRIVATE).edit(commit = true) { clear() }
-            deleteSharedPreferences(name)
-        }
-        val database = gymBroApp.database
-        gymBroApp.applicationScope.launch {
-            database.chatMessageDao().deleteAllOfUser(userId)
-            SessionRepository.deleteAll(userId)
-            PlanRepository.deleteAll(userId)
-            ProfileRepository.deleteAll(userId)
-        }
     }
 
 
@@ -599,40 +545,19 @@ class ProfileActivity : ThemedActivity() {
         }
         dialog.findViewById<View>(R.id.publishPlanOption).setOnClickListener {
             dialog.dismiss()
-            showPlanToPublishPicker()
+            viewModel.choosePlanToPublish()
         }
         dialog.show()
     }
 
     // The private workout plans: the one tapped becomes public (everyone sees it on the profile and
     // can add it to their plans; it can be made private again in its page). Only online.
-    private fun showPlanToPublishPicker() {
-        lifecycleScope.launch {
-            try {
-                PlanRepository.sync()
-                val privatePlans = PlanRepository.all().filter { !it.isPublic }
-                PlanPicker.show(
-                    this@ProfileActivity, this@ProfileActivity,
-                    getString(R.string.publish_plan_title), getString(R.string.publish_plan_message),
-                    getString(R.string.no_private_plans), privatePlans
-                ) { plan, picker ->
-                    picker.busy = true
-                    lifecycleScope.launch {
-                        try {
-                            PlanRepository.setPublic(plan.id, true)
-                            picker.dialog.dismiss()
-                            Toast.makeText(this@ProfileActivity, R.string.plan_published, Toast.LENGTH_SHORT).show()
-                        } catch (e: ApiException) {
-                            picker.showError(e.userMessage(this@ProfileActivity))
-                        } finally {
-                            picker.busy = false
-                        }
-                    }
-                }
-            } catch (e: ApiException) {
-                Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
-            }
-        }
+    private fun showPlanToPublishPicker(event: Event.PlansToPublish) {
+        planPicker = PlanPicker.show(
+            this, this,
+            getString(R.string.publish_plan_title), getString(R.string.publish_plan_message),
+            getString(R.string.no_private_plans), event.plans
+        ) { plan, _ -> viewModel.publishPlan(plan.id) }
     }
 
     // List of the finished sessions not published yet: tap one to publish it.
@@ -640,44 +565,30 @@ class ProfileActivity : ThemedActivity() {
     private fun showSessionPicker() {
         val dialog = createModal(this, R.layout.dialog_publish_session, this)
         val list = dialog.findViewById<RecyclerView>(R.id.sessionPickerList)
-        val noSessionsText = dialog.findViewById<TextView>(R.id.noSessionsText)
-        dialog.findViewById<View>(R.id.activeSessionHint).isVisible = ActiveSession.isActive
+        dialog.findViewById<View>(R.id.activeSessionHint).isVisible = viewModel.sessionInProgress
         dialog.findViewById<View>(R.id.cancelButton).setOnClickListener { dialog.dismiss() }
 
-        var publishing = false
         val adapter = SessionHistoryAdapter(onClick = { session ->
-            if (!publishing) {
-                publishing = true
-                lifecycleScope.launch {
-                    try {
-                        scrollToNewPost = true
-                        publishSession(this@ProfileActivity, session)
-                        dialog.dismiss()
-                        Toast.makeText(this@ProfileActivity, R.string.session_published, Toast.LENGTH_SHORT).show()
-                    } catch (e: ApiException) {
-                        Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
-                    } finally {
-                        publishing = false
-                    }
-                }
-            }
+            scrollToNewPost = true
+            viewModel.publishSession(session)
         })
         list.layoutManager = LinearLayoutManager(this)
         list.adapter = adapter
+        sessionPicker = dialog
+        sessionPickerAdapter = adapter
 
         // The sessions of LAST SESSIONS not published yet (synchronized first with the server, if it
         // is reachable: publishing needs it)
-        lifecycleScope.launch {
-            try {
-                SessionRepository.sync()
-            } catch (e: ApiException) {
-                noSessionsText.text = e.userMessage(this@ProfileActivity)
-            }
-            val sessions = SessionRepository.all().filter { it.publishedPostId == null }
-            adapter.submitList(sessions)
-            noSessionsText.isVisible = sessions.isEmpty()
-        }
+        viewModel.chooseSessionToPublish()
         dialog.show()
+    }
+
+    private fun showSessionsToPublish(event: Event.SessionsToPublish) {
+        val dialog = sessionPicker ?: return
+        val noSessionsText = dialog.findViewById<TextView>(R.id.noSessionsText)
+        event.problem?.let { noSessionsText.text = it.userMessage(this) }
+        sessionPickerAdapter?.submitList(event.sessions)
+        noSessionsText.isVisible = event.sessions.isEmpty()
     }
 
     // Result added manually: exercise from a predefined list, measured by time or weight,
@@ -694,6 +605,9 @@ class ProfileActivity : ThemedActivity() {
         val notesInput = dialog.findViewById<EditText>(R.id.notesInput)
         val error = dialog.findViewById<TextView>(R.id.publishError)
         val confirm = dialog.findViewById<Button>(R.id.publishConfirmButton)
+        manualDialog = dialog
+        manualError = error
+        manualConfirm = confirm.apply { isEnabled = !viewModel.busy.value.publishingManual }
 
         // The result is a weight or a time, depending on how the exercise is measured
         metricGroup.setOnCheckedChangeListener { _, checkedId ->
@@ -731,21 +645,9 @@ class ProfileActivity : ThemedActivity() {
                 }
             }
             val exercise = ManualExercises.all[exerciseSpinner.selectedItemPosition]
-            val token = UserSession.token ?: return@setOnClickListener
-
-            lifecycleScope.launch {
-                confirm.isEnabled = false
-                try {
-                    val post = ApiClient.publishManual(token, exercise.name, metric, better, amount, notesInput.text.toString().trim())
-                    dialog.dismiss()
-                    scrollToNewPost = true
-                    ProfileRepository.addPost(post)
-                } catch (e: ApiException) {
-                    error.showError(e.userMessage(this@ProfileActivity))
-                } finally {
-                    confirm.isEnabled = true
-                }
-            }
+            // the new post appears at the top of the list
+            scrollToNewPost = true
+            viewModel.publishManual(exercise.name, metric, better, amount, notesInput.text.toString().trim())
         }
         dialog.show()
     }
@@ -763,11 +665,9 @@ class ProfileActivity : ThemedActivity() {
         val daysGroup = dialog.findViewById<RadioGroup>(R.id.planDaysGroup)
         val minutesGroup = dialog.findViewById<RadioGroup>(R.id.planMinutesGroup)
         val preferences = dialog.findViewById<EditText>(R.id.planPreferencesInput)
-        val error = dialog.findViewById<TextView>(R.id.createPlanError)
-        val progress = dialog.findViewById<View>(R.id.createPlanProgress)
         val create = dialog.findViewById<Button>(R.id.createPlanButton)
 
-        val user = UserSession.user
+        val user = viewModel.user.value
         dialog.findViewById<TextView>(R.id.planBodyData).text = bodyDataSummary(user)
         dialog.findViewById<View>(R.id.planBodyDataHint).isVisible = user?.heightCm == null || user.weightKg == null
 
@@ -778,7 +678,6 @@ class ProfileActivity : ThemedActivity() {
         minutesGroup.check(R.id.minutes60)
 
         create.setOnClickListener {
-            val token = UserSession.token ?: return@setOnClickListener
             val request = PlanRequest(
                 goal = PlanGoal.entries[goalSpinner.selectedItemPosition],
                 level = when (levelGroup.checkedRadioButtonId) {
@@ -804,28 +703,10 @@ class ProfileActivity : ThemedActivity() {
                 language = Locale.getDefault().getDisplayLanguage(Locale.ENGLISH)
             )
             getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(create.windowToken, 0)
-
-            // while the coach writes the plan the window cannot be closed
-            dialog.setCancelable(false)
-            create.isEnabled = false
-            progress.isVisible = true
-            error.isVisible = false
-            lifecycleScope.launch {
-                try {
-                    val plan = ApiClient.createPlan(token, request)
-                    // also on this phone: it can be seen, followed and changed offline
-                    PlanRepository.store(plan)
-                    dialog.dismiss()
-                    PlanActivity.open(this@ProfileActivity, plan.id)
-                } catch (e: ApiException) {
-                    error.showError(e.userMessage(this@ProfileActivity))
-                } finally {
-                    dialog.setCancelable(true)
-                    create.isEnabled = true
-                    progress.isVisible = false
-                }
-            }
+            viewModel.createPlan(request)
         }
+        createPlanDialog = dialog
+        showBusy(viewModel.busy.value)
         dialog.show()
     }
 
@@ -852,19 +733,13 @@ class ProfileActivity : ThemedActivity() {
     // --------------------------------------------------------- POSTS
 
     // Asks for confirmation, then deletes the post (only online): posts and personal bests are
-    // updated through ProfileRepository
+    // updated through ProfileViewModel
     private fun confirmDeletePost(post: Post) {
         showConfirmModal(
             this, this,
             R.string.delete_post_title, R.string.delete_post_message, R.string.delete
         ) {
-            lifecycleScope.launch {
-                try {
-                    ProfileRepository.deletePost(post)
-                } catch (e: ApiException) {
-                    Toast.makeText(this@ProfileActivity, e.userMessage(this@ProfileActivity), Toast.LENGTH_LONG).show()
-                }
-            }
+            viewModel.deletePost(post)
         }
     }
 }

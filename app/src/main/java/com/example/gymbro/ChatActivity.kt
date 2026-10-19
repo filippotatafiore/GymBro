@@ -9,30 +9,26 @@ import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
-import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.gymbro.chat.ChatAdapter
 import com.example.gymbro.chat.ChatFormatting
 import com.example.gymbro.chat.ChatItem
-import com.example.gymbro.chat.CoachChat
 import com.example.gymbro.chat.key
 import com.example.gymbro.data.ChatMessage
 import com.example.gymbro.data.ChatRole
-import com.example.gymbro.network.UserSession
+import com.example.gymbro.network.userMessage
 import com.example.gymbro.plan.Plan
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
+import com.example.gymbro.repository.ChatRepository
+import com.example.gymbro.viewmodel.ChatViewModel
 
-// Chat page: conversation with the AI coach (see chat/CoachChat.kt). Two kinds of chat:
+// Chat page: conversation with the AI coach (ChatViewModel, ChatRepository). Two kinds of chat:
 // - general chat (second icon of the bottom strip): questions about exercises, technique,
 //   training plans and running
 // - chat about a workout plan (button "Ask the coach" of the page of a plan, see open): the coach
@@ -40,34 +36,32 @@ import kotlinx.coroutines.launch
 // The conversations are saved on the phone (one for each user and plan), the answers come from the server.
 class ChatActivity : ThemedActivity() {
 
+    private val viewModel: ChatViewModel by viewModels {
+        ChatViewModel.factory(intent.getLongExtra(EXTRA_PLAN_ID, 0L).takeIf { it > 0 })
+    }
+
     private var bottomNav: BottomNavBar? = null
-    private lateinit var conversation: CoachChat.Conversation
     private lateinit var chatList: RecyclerView
     private lateinit var welcome: View
     private lateinit var input: EditText
     private lateinit var sendButton: ImageButton
     private lateinit var adapter: ChatAdapter
 
-    // Messages of the conversation now shown (to know if the user has started the chat)
-    private var messageCount = 0
     // The last row of the list now shown (see ChatItem.key)
     private var lastRowKey: Any? = null
 
     private val isPlanChat: Boolean
-        get() = conversation.planId != null
+        get() = viewModel.isPlanChat
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Nobody logged in (e.g. app restored after the logout): back to the welcome page
-        val userId = UserSession.userId
-        if (userId == null) {
+        if (!viewModel.isLoggedIn) {
             WelcomeActivity.open(this)
             finish()
             return
         }
-        val planId = intent.getLongExtra(EXTRA_PLAN_ID, 0L).takeIf { it > 0 }
-        conversation = CoachChat.Conversation(userId, planId)
 
         // link to the layout
         setContentView(R.layout.activity_chat)
@@ -78,7 +72,7 @@ class ChatActivity : ThemedActivity() {
         sendButton = findViewById(R.id.sendButton)
 
         adapter = ChatAdapter(
-            onRetry = { CoachChat.retry(this, conversation) },
+            onRetry = { viewModel.retry() },
             onCopy = { message -> copy(message) },
             // chat about a plan: back to the page of the plan, which shows the changes
             onPlanUpdatedClick = { finish() }
@@ -109,31 +103,18 @@ class ChatActivity : ThemedActivity() {
 
         // new chat: after a confirmation, the conversation is deleted
         findViewById<View>(R.id.newChatButton).setOnClickListener {
-            if (messageCount == 0 && !CoachChat.isWaiting(conversation)) return@setOnClickListener
+            if (!viewModel.canStartNewChat) return@setOnClickListener
             showConfirmModal(this, this, R.string.new_chat_title, R.string.new_chat_message, R.string.new_chat) {
-                CoachChat.clear(this, conversation)
+                viewModel.newChat()
             }
         }
 
 
         // --------------------------------------------------------- CONVERSATION
 
-        // The messages of this conversation are read from the database in background; the list is
+        // The messages of this conversation, read from the database in background: the list is
         // updated every time a message is saved or the coach starts/stops writing
-        val dao = gymBroApp.database.chatMessageDao()
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                combine(dao.getAll(userId, planId), CoachChat.status(conversation)) { list, status -> list to status }
-                    .collect { (list, status) -> showConversation(list, status) }
-            }
-        }
-        // the last message has no answer (e.g. the app was closed while the coach was writing):
-        // it can be asked again
-        lifecycleScope.launch {
-            if (dao.getLast(userId, planId, 1).firstOrNull()?.role == ChatRole.USER) {
-                CoachChat.answerMissing(conversation, getString(R.string.coach_no_answer))
-            }
-        }
+        observe(viewModel.state) { state -> state?.let { showConversation(it.messages, it.status) } }
 
 
         // --------------------------------------------------------- NAVBAR
@@ -147,7 +128,7 @@ class ChatActivity : ThemedActivity() {
 
     override fun onResume() {
         super.onResume()
-        bottomNav?.refresh()
+        bottomNav?.refresh(viewModel.sessionStatus())
     }
 
     override fun onPause() {
@@ -191,27 +172,26 @@ class ChatActivity : ThemedActivity() {
     }
 
     private fun send(text: String) {
-        val message = text.trim()
-        if (message.isEmpty() || CoachChat.isWaiting(conversation)) return
-        CoachChat.send(this, conversation, message)
+        viewModel.send(text)
     }
 
     private fun updateSendButton() {
-        sendButton.isEnabled = input.text.isNotBlank() && !CoachChat.isWaiting(conversation)
+        sendButton.isEnabled = input.text.isNotBlank() && !viewModel.isWaiting
     }
 
     // Messages + the last row: the coach writing, or the answer that did not arrive (tap to retry)
-    private fun showConversation(messages: List<ChatMessage>, status: CoachChat.Status) {
+    private fun showConversation(messages: List<ChatMessage>, status: ChatRepository.Status) {
         val items = messages.map<ChatMessage, ChatItem> { ChatItem.Message(it) }.toMutableList()
         when (status) {
-            CoachChat.Status.Waiting -> items.add(ChatItem.Typing)
-            is CoachChat.Status.Failed -> items.add(ChatItem.Problem(status.message))
-            CoachChat.Status.Idle -> {}
+            ChatRepository.Status.Waiting -> items.add(ChatItem.Typing)
+            // no error: no answer (e.g. the app was closed while the coach was writing)
+            is ChatRepository.Status.Failed ->
+                items.add(ChatItem.Problem(status.error?.userMessage(this) ?: getString(R.string.coach_no_answer)))
+            ChatRepository.Status.Idle -> {}
         }
 
         welcome.isVisible = items.isEmpty()
         chatList.isVisible = items.isNotEmpty()
-        messageCount = messages.size
 
         // a new last row (a message, the coach writing, an error): the list scrolls to it
         val lastRowChanged = items.lastOrNull()?.key != lastRowKey

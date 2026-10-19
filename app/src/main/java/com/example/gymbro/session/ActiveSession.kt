@@ -20,6 +20,13 @@ enum class SessionType(
     SWIM(R.string.swim, R.string.swim_session, R.drawable.swim_icon)
 }
 
+// The session in progress as the pages show it: its type (null = no session) and whether it is
+// paused (e.g. the home icon of the bottom strip shines while a session is in progress)
+data class SessionStatus(val type: SessionType?, val paused: Boolean) {
+    val isActive: Boolean
+        get() = type != null
+}
+
 // The training session in progress (if any) of the logged user. It is saved in SharedPreferences,
 // so it is kept when changing page and even when the app is closed. Every user has their own:
 // after a logout the session stays there, waiting for the same user to log in again.
@@ -54,6 +61,9 @@ object ActiveSession {
 
     val isPaused: Boolean
         get() = prefs.getLong(KEY_PAUSED_AT, 0L) != 0L
+
+    val status: SessionStatus
+        get() = SessionStatus(type, isPaused)
 
     // When the session was started (milliseconds since 1970)
     val startTime: Long

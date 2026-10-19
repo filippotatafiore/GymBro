@@ -13,6 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+slides/
 
 # REST API server: local virtualenv, key of the Firebase database, old SQLite database and pictures
 server/.venv/

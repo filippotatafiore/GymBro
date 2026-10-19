@@ -1,12 +1,14 @@
 package com.example.gymbro.repository
 
 import androidx.room.withTransaction
-import com.example.gymbro.GymBroApp
+import com.example.gymbro.data.AppDatabase
 import com.example.gymbro.data.PlanEntity
 import com.example.gymbro.network.ApiClient
 import com.example.gymbro.network.ApiException
+import com.example.gymbro.network.PlanRequest
 import com.example.gymbro.network.UserSession
 import com.example.gymbro.plan.Plan
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -23,38 +25,79 @@ import java.time.Instant
 // - a plan deleted offline is hidden at once and deleted on the server at the next sync
 // - what needs the server is done only online: the coach (new plans, changes in the chat), public
 //   or private, copies of the plans of other users. Their result is saved here too (store).
-object PlanRepository {
+interface PlanRepository {
 
     // A change saved on this phone; synced = also on the server (false: offline, sent later)
     class Saved(val plan: Plan, val synced: Boolean)
 
-    private lateinit var app: GymBroApp
-    private val dao get() = app.database.planDao()
-    private val mutex = Mutex()
-
-    fun init(app: GymBroApp) {
-        this.app = app
-    }
-
     // The plans of the logged user saved on this phone, the last changed first, updated at every change
-    fun plans(): Flow<List<Plan>> {
-        val userId = UserSession.userId ?: return flowOf(emptyList())
-        return dao.observe(userId).map { rows -> rows.map { it.toPlan() } }
-    }
+    fun plans(): Flow<List<Plan>>
 
     // The same, read once
-    suspend fun all(): List<Plan> {
-        val userId = UserSession.userId ?: return emptyList()
-        return dao.getAll(userId).map { it.toPlan() }
-    }
+    suspend fun all(): List<Plan>
 
     // A plan saved on this phone (null: not downloaded yet, or deleted)
-    suspend fun plan(id: Long): Plan? = dao.get(id)?.toPlan()
+    suspend fun plan(id: Long): Plan?
 
     // Sends the changes made on this phone (deleted, changed plans), then downloads all the plans
     // of the server (e.g. changed by the coach or on another phone). Throws ApiException (e.g. server
     // not reachable): the plans on this phone stay.
-    suspend fun sync() {
+    suspend fun sync()
+
+    // Like sync, but without errors: returns the error (e.g. offline), or null if synced
+    suspend fun trySync(): ApiException?
+
+    // A change by hand (exercises, days, name): saved on this phone, then on the server. Offline
+    // (synced = false) it is sent at the next sync. The saving completes also if the page is closed.
+    // Throws ApiException for the other errors (e.g. 404: the plan does not exist anymore).
+    suspend fun update(plan: Plan): Saved
+
+    // Deletes a plan: at once on this phone, on the server now or (offline) at the next sync.
+    // Returns false if it was deleted only on this phone for now.
+    suspend fun delete(id: Long): Boolean
+
+    // Public (everyone sees it on the profile) or private: only online, like publishing a post.
+    // The changes made offline are sent first. Throws ApiException.
+    suspend fun setPublic(id: Long, public: Boolean): Plan
+
+    // A new plan written by the AI coach (only online). Throws ApiException.
+    suspend fun create(request: PlanRequest): Plan
+
+    // A copy among the plans of the logged user of a public plan of another user, or of a plan
+    // received with Messages (the copy already added, if any). Only online. Throws ApiException.
+    suspend fun copyPublic(ownerId: Long, planId: Long): Plan
+    suspend fun copyShared(shareId: Long): Plan
+
+    // A plan as answered by the server (written or changed by the coach, copied from another user)
+    suspend fun store(plan: Plan)
+
+    // Account deleted
+    suspend fun deleteAll(userId: Long)
+}
+
+// scope: of the app, the changes are saved also if the page is closed meanwhile
+class PlanRepositoryImpl(
+    private val database: AppDatabase,
+    private val scope: CoroutineScope,
+    private val notices: Notices
+) : PlanRepository {
+
+    private val dao get() = database.planDao()
+    private val mutex = Mutex()
+
+    override fun plans(): Flow<List<Plan>> {
+        val userId = UserSession.userId ?: return flowOf(emptyList())
+        return dao.observe(userId).map { rows -> rows.map { it.toPlan() } }
+    }
+
+    override suspend fun all(): List<Plan> {
+        val userId = UserSession.userId ?: return emptyList()
+        return dao.getAll(userId).map { it.toPlan() }
+    }
+
+    override suspend fun plan(id: Long): Plan? = dao.get(id)?.toPlan()
+
+    override suspend fun sync() {
         val userId = UserSession.userId ?: return
         val token = UserSession.token ?: return
         mutex.withLock {
@@ -80,7 +123,7 @@ object PlanRepository {
                 }
             }
             val downloaded = ApiClient.getPlans(token)
-            app.database.withTransaction {
+            database.withTransaction {
                 val waiting = dao.getEveryRow(userId).filter { it.changed || it.deleted }.map { it.id }.toSet()
                 dao.deleteSynced(userId)
                 downloaded.filter { it.id !in waiting }.forEach { dao.save(PlanEntity.of(userId, it)) }
@@ -88,8 +131,7 @@ object PlanRepository {
         }
     }
 
-    // Like sync, but without errors: returns the error (e.g. offline), or null if synced
-    suspend fun trySync(): ApiException? =
+    override suspend fun trySync(): ApiException? =
         try {
             sync()
             null
@@ -97,25 +139,22 @@ object PlanRepository {
             e
         }
 
-    // A change by hand (exercises, days, name): saved on this phone, then on the server. Offline
-    // (synced = false) it is sent at the next sync. The saving completes also if the page is closed.
-    // Throws ApiException for the other errors (e.g. 404: the plan does not exist anymore).
-    suspend fun update(plan: Plan): Saved {
+    override suspend fun update(plan: Plan): PlanRepository.Saved {
         val userId = UserSession.userId ?: throw ApiException(401, "Login required")
         val token = UserSession.token ?: throw ApiException(401, "Login required")
         val row = PlanEntity.of(userId, plan.copy(updatedAt = Instant.now()), changed = true)
         dao.save(row)
-        return app.applicationScope.async {
+        return scope.async {
             mutex.withLock {
                 try {
                     val saved = ApiClient.updatePlan(token, row.toPlan())
                     keepIfNotChangedAgain(row, saved)
-                    Saved(saved, synced = true)
+                    PlanRepository.Saved(saved, synced = true)
                 } catch (e: ApiException) {
                     when (e.code) {
                         0 -> {
-                            OfflineNotice.show(app)
-                            Saved(row.toPlan(), synced = false)
+                            notices.savedOffline()
+                            PlanRepository.Saved(row.toPlan(), synced = false)
                         }
                         404 -> {
                             dao.delete(row.id)
@@ -132,41 +171,51 @@ object PlanRepository {
         }.await()
     }
 
-    // Deletes a plan: at once on this phone, on the server now or (offline) at the next sync.
-    // Returns false if it was deleted only on this phone for now.
-    suspend fun delete(id: Long): Boolean {
+    override suspend fun delete(id: Long): Boolean {
         val token = UserSession.token ?: return false
         dao.markDeleted(id)
-        return app.applicationScope.async {
+        return scope.async {
             mutex.withLock {
                 try {
                     ApiClient.deletePlan(token, id)
                     dao.delete(id)
                     true
                 } catch (e: ApiException) {
-                    if (e.code == 404) dao.delete(id) else OfflineNotice.show(app)
+                    if (e.code == 404) dao.delete(id) else notices.savedOffline()
                     e.code == 404
                 }
             }
         }.await()
     }
 
-    // Public (everyone sees it on the profile) or private: only online, like publishing a post.
-    // The changes made offline are sent first. Throws ApiException.
-    suspend fun setPublic(id: Long, public: Boolean): Plan {
+    override suspend fun setPublic(id: Long, public: Boolean): Plan {
         val token = UserSession.token ?: throw ApiException(401, "Login required")
         sync()
         return ApiClient.setPlanPublic(token, id, public).also { store(it) }
     }
 
-    // A plan as answered by the server (written or changed by the coach, copied from another user)
-    suspend fun store(plan: Plan) {
+    // Also on this phone: it can be seen, followed and changed offline
+    override suspend fun create(request: PlanRequest): Plan {
+        val token = UserSession.token ?: throw ApiException(401, "Login required")
+        return ApiClient.createPlan(token, request).also { store(it) }
+    }
+
+    override suspend fun copyPublic(ownerId: Long, planId: Long): Plan {
+        val token = UserSession.token ?: throw ApiException(401, "Login required")
+        return ApiClient.copyPublicPlan(token, ownerId, planId).also { store(it) }
+    }
+
+    override suspend fun copyShared(shareId: Long): Plan {
+        val token = UserSession.token ?: throw ApiException(401, "Login required")
+        return ApiClient.saveSharedPlan(token, shareId).also { store(it) }
+    }
+
+    override suspend fun store(plan: Plan) {
         val userId = UserSession.userId ?: return
         dao.save(PlanEntity.of(userId, plan))
     }
 
-    // Account deleted
-    suspend fun deleteAll(userId: Long) {
+    override suspend fun deleteAll(userId: Long) {
         dao.deleteAll(userId)
     }
 
