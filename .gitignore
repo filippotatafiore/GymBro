@@ -14,6 +14,7 @@
 .cxx
 local.properties
 slides/
+screenshots/
 
 # REST API server: local virtualenv, key of the Firebase database, old SQLite database and pictures
 server/.venv/

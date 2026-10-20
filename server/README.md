@@ -240,14 +240,24 @@ python app.py
 The emulator reaches the PC at `http://10.0.2.2:5000`: remove `API_BASE_URL` from
 `local.properties` (it is the default) and run the app again.
 
-## Copy the old SQLite database (once)
+### With the Firestore emulator (no online database, no key)
 
-`migrate_to_firestore.py` copies `gymbro.db` and the `uploads` folder of the old server into
-Firestore, with the same ids (users, passwords, logins, posts, pictures). With `firebase_key.json`
-in this folder and the virtual environment above:
+Use this to try changes without touching the real data. It needs Node.js and Java.
 
-```
-.venv\Scripts\python migrate_to_firestore.py
-```
+1. Start the emulator of Firebase:
 
-Then `gymbro.db`, `uploads` and `migrate_to_firestore.py` can be deleted.
+   ```
+   npx firebase-tools emulators:start --only firestore --project demo-gymbro
+   ```
+
+2. In another terminal, from the `server` folder:
+
+   ```
+   $env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080"
+   .venv\Scripts\python app.py
+   ```
+
+   The command that sets the variable is for PowerShell.
+
+The server uses the emulator when `FIRESTORE_EMULATOR_HOST` is set. The data stay only in the
+emulator and are deleted when it stops.

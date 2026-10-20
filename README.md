@@ -49,6 +49,26 @@ Project for the course **Mobile Applications and Cloud Computing**. Author: Fili
   - The home, the calendar, the profile, the plans and the chats also work offline.
   - Changes made offline are sent to the server as soon as the phone is back online.
 
+## Navigation graph
+
+![GymBro navigation graph](docs/navigation-graph.png)
+
+The image is also available as a vector file, sharper when zoomed:
+[docs/navigation-graph.svg](docs/navigation-graph.svg).
+
+How to read it:
+
+- **Nodes**: the 43 screens and windows of the app. Each one shows its number, its name and the
+  class that shows it.
+- **Arrows**: each one is labeled with the action that opens the next screen.
+- **Columns**: one per area of the app: access, home, training sessions, AI coach, social, profile
+  and workout plans.
+- **Bottom bar** (at the top of the graph): moves between the four main pages, 05 Home, 19 Chat,
+  20 Social and 27 Profile.
+- **Dashed tags**: the arrow continues at the screen with that number, for example "→ 05 Home"
+  after a session is saved.
+- **Not drawn**: Back, Cancel and closing a window, which all return to the previous screen.
+
 ## Architecture
 
 ![GymBro architecture](docs/architecture.png)
@@ -130,6 +150,29 @@ Example: a run is stopped with **Save & publish**.
 | 9 | Your own API service, CRUD interface | Flask REST API: create, read, update and delete users, sessions, workout plans, posts, follows and shared plans |
 | 10 | Data storage, service on a PaaS | Firestore in the cloud, Room and `SharedPreferences` on the phone. The server runs on Vercel (PaaS) |
 
+## Security and privacy
+
+- **No secrets in git**:
+  - The app reads the Google Maps key and the server address from `local.properties`, which git
+    ignores.
+  - The keys of the server (Firebase service account, OpenRouteService, Groq, Gemini) are
+    environment variables on Vercel, or files ignored by git on the PC.
+  - The app never sees them.
+- **Passwords**: stored only as PBKDF2-SHA256 hashes.
+- **Login tokens**:
+  - Random, and stored on the server only as SHA-256 hashes.
+  - Sent over HTTPS as a Bearer token.
+  - A new password logs out the other phones.
+- **Account deletion**: removes all the user's data: profile, picture, posts, sessions, workout
+  plans, follows and shared plans.
+- **AI coach**: receives the goal, the preferences and the body data (height, weight, BMI, age,
+  sex), but never the username, the email or the password.
+- **Body data**: only the user can see them.
+- **Microphone**:
+  - While waiting for a voice, the app only measures how loud the sound is.
+  - Then the phone's speech recognizer listens for the number of laps.
+  - Nothing is recorded or sent to the GymBro server.
+
 ## Project structure
 
 ```
@@ -153,16 +196,21 @@ GymBro/
 ├── app/src/main/res/     XML layouts, drawables, strings, themes
 ├── app/src/test/         unit tests (JUnit), ViewModel tests with fake repositories
 ├── server/               Flask REST API (Vercel + Firestore), see server/README.md
-└── docs/                 architecture graph
+└── docs/                 architecture graph and navigation graph
 ```
 
 ## Build and run
 
 ### Server
 
-The server is already online on Vercel and deployed again on every push to GitHub. To create your
-own deployment (Firestore, Vercel, keys), or to run the server on your PC, follow
-[server/README.md](server/README.md).
+The server is already online on Vercel and deployed again on every push to GitHub.
+[server/README.md](server/README.md) covers the following:
+
+- the REST API: all 42 endpoints and their request bodies;
+- the data in Firestore;
+- the keys;
+- the deployment on Vercel;
+- how to run the server on your PC, with the online database or with the Firestore emulator.
 
 ### App
 
