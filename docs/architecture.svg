@@ -1,0 +1,241 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1172" viewBox="0 0 1700 1172">
+<title>GymBro architecture</title>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3e4c59"/></marker></defs>
+<rect width="1700" height="1172" fill="#ffffff"/>
+<text x="40" y="50" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="700" fill="#1f2933" text-anchor="start">GymBro · Architecture</text>
+<text x="40" y="76" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14.5" fill="#52606d" text-anchor="start">Android app in Kotlin with MVVM (View → ViewModel → Repository → data sources) · own Flask REST API on Vercel (PaaS) · Firebase Cloud Firestore</text>
+<rect x="20" y="96" width="1080" height="1016" rx="16" fill="#f8faff" stroke="#3b6fd8" stroke-width="2"/>
+<text x="40" y="124" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#3b6fd8" text-anchor="start">ANDROID APP · on the phone · Kotlin · minSdk 33</text>
+<rect x="1140" y="96" width="540" height="1016" rx="16" fill="#fffaf3" stroke="#e07b24" stroke-width="2"/>
+<text x="1160" y="124" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700" fill="#e07b24" text-anchor="start">CLOUD</text>
+<rect x="360" y="140" width="720" height="212" rx="12" fill="#e8f0fd" stroke="#4a7fe0" stroke-width="1.5"/>
+<text x="376" y="164" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="700" fill="#2456b8" text-anchor="start">UI LAYER · View</text>
+<text x="376" y="184" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#52606d" text-anchor="start">Activities and Fragments with XML layouts: they only draw the state and pass the user's actions to their ViewModel</text>
+<rect x="373" y="198" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="456.0" y="216.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">WelcomeActivity</text>
+<rect x="549" y="198" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="632.0" y="216.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">MainActivity</text>
+<rect x="725" y="198" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="808.0" y="216.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">HomeFragment</text>
+<rect x="901" y="198" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="984.0" y="216.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">CalendarDrawer</text>
+<rect x="373" y="234" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="456.0" y="252.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">Gym/Run/Swim fragments</text>
+<rect x="549" y="234" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="632.0" y="252.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">RoutePlannerActivity</text>
+<rect x="725" y="234" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="808.0" y="252.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">ChatActivity</text>
+<rect x="901" y="234" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="984.0" y="252.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">PlanActivity</text>
+<rect x="373" y="270" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="456.0" y="288.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">SocialActivity</text>
+<rect x="549" y="270" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="632.0" y="288.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">UserProfileActivity</text>
+<rect x="725" y="270" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="808.0" y="288.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">FollowListActivity</text>
+<rect x="901" y="270" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="984.0" y="288.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">MessagesActivity</text>
+<rect x="373" y="306" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="456.0" y="324.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">ConversationActivity</text>
+<rect x="549" y="306" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="632.0" y="324.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">ProfileActivity</text>
+<rect x="725" y="306" width="166" height="28" rx="6" fill="#ffffff" stroke="#4a7fe0" stroke-width="1.2"/>
+<text x="808.0" y="324.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">BottomNavBar</text>
+<rect x="901" y="306" width="166" height="28" rx="6" fill="#ffffff" stroke="#34a853" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="984.0" y="324.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">Google Maps SDK</text>
+<path d="M470,356 L470,400" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="482" y="383" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">user actions → ViewModel functions</text>
+<path d="M800,400 L800,356" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="812" y="383" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">StateFlow&lt;State&gt; + one-shot events</text>
+<rect x="360" y="404" width="720" height="212" rx="12" fill="#e6f5ed" stroke="#2e9e6a" stroke-width="1.5"/>
+<text x="376" y="428" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="700" fill="#1d7a4f" text-anchor="start">VIEWMODEL LAYER · one ViewModel per page (androidx.lifecycle)</text>
+<text x="376" y="448" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#52606d" text-anchor="start">read-only StateFlow state · one-shot events (Channel) · coroutines in viewModelScope · repositories injected by a Factory</text>
+<rect x="373" y="462" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="456.0" y="480.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">WelcomeViewModel</text>
+<rect x="549" y="462" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="632.0" y="480.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">MainViewModel</text>
+<rect x="725" y="462" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="808.0" y="480.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">HomeViewModel</text>
+<rect x="901" y="462" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="984.0" y="480.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">GymSessionViewModel</text>
+<rect x="373" y="498" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="456.0" y="516.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">RunSessionViewModel</text>
+<rect x="549" y="498" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="632.0" y="516.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">SwimSessionViewModel</text>
+<rect x="725" y="498" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="808.0" y="516.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">RoutePlannerViewModel</text>
+<rect x="901" y="498" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="984.0" y="516.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">ChatViewModel</text>
+<rect x="373" y="534" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="456.0" y="552.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">SocialViewModel</text>
+<rect x="549" y="534" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="632.0" y="552.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">UserProfileViewModel</text>
+<rect x="725" y="534" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="808.0" y="552.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">FollowListViewModel</text>
+<rect x="901" y="534" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="984.0" y="552.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">MessagesViewModel</text>
+<rect x="373" y="570" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="456.0" y="588.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">ConversationViewModel</text>
+<rect x="549" y="570" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="632.0" y="588.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">PlanViewModel</text>
+<rect x="725" y="570" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2"/>
+<text x="808.0" y="588.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">ProfileViewModel</text>
+<rect x="901" y="570" width="166" height="28" rx="6" fill="#ffffff" stroke="#2e9e6a" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="984.0" y="588.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#52606d" text-anchor="middle">unit tests: fake repos</text>
+<path d="M470,620 L470,720" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="482" y="662" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">calls the repository interfaces</text>
+<text x="482" y="679" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#52606d" text-anchor="start">(suspend functions, Flow)</text>
+<rect x="760" y="638" width="320" height="64" rx="10" fill="#f1eafc" stroke="#8a5cd6" stroke-width="1.5"/>
+<text x="774" y="661" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="700" fill="#6a3fb8" text-anchor="start">DOMAIN LAYER · use case</text>
+<text x="774" y="681" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">SessionPlanChanges: gym session edits → plan</text>
+<path d="M984,618 L984,636" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M984,704 L984,722" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="360" y="724" width="720" height="184" rx="12" fill="#fff3dc" stroke="#d4931c" stroke-width="1.5"/>
+<text x="376" y="748" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="700" fill="#9a6206" text-anchor="start">DATA LAYER · Repository pattern (interface + Impl)</text>
+<text x="376" y="768" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#52606d" text-anchor="start">one instance each, created in AppContainer (manual dependency injection) · offline first: sync when back online</text>
+<rect x="373" y="782" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2"/>
+<text x="456.0" y="800.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">UserRepository</text>
+<rect x="549" y="782" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2"/>
+<text x="632.0" y="800.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">AccountRepository</text>
+<rect x="725" y="782" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2"/>
+<text x="808.0" y="800.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">SessionRepository</text>
+<rect x="901" y="782" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2"/>
+<text x="984.0" y="800.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">PlanRepository</text>
+<rect x="373" y="818" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2"/>
+<text x="456.0" y="836.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">ProfileRepository</text>
+<rect x="549" y="818" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2"/>
+<text x="632.0" y="836.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">SocialRepository</text>
+<rect x="725" y="818" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2"/>
+<text x="808.0" y="836.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">MessageRepository</text>
+<rect x="901" y="818" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2"/>
+<text x="984.0" y="836.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">ChatRepository</text>
+<rect x="373" y="854" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2"/>
+<text x="456.0" y="872.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">RouteRepository</text>
+<rect x="549" y="854" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2"/>
+<text x="632.0" y="872.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">SyncManager</text>
+<rect x="725" y="854" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2"/>
+<text x="808.0" y="872.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">Notices → toasts</text>
+<rect x="901" y="854" width="166" height="28" rx="6" fill="#ffffff" stroke="#d4931c" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="984.0" y="872.5" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#1f2933" text-anchor="middle">AppContainer (DI)</text>
+<path d="M473,910 L473,948" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="481" y="934" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11.5" fill="#52606d" text-anchor="start">Room DAO</text>
+<path d="M720,910 L720,948" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="728" y="934" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11.5" fill="#52606d" text-anchor="start">read / write</text>
+<path d="M967,910 L967,948" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="975" y="934" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11.5" fill="#52606d" text-anchor="start">suspend calls</text>
+<rect x="360" y="952" width="226" height="140" rx="10" fill="#ffffff" stroke="#7b8794" stroke-width="1.5"/>
+<text x="374" y="975" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#3e4c59" text-anchor="start">Room database (SQLite)</text>
+<text x="374" y="995" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">AppDatabase, DAOs with Flow</text>
+<text x="374" y="1012" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">training_sessions, plans,</text>
+<text x="374" y="1029" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">posts, profiles, chat_messages</text>
+<text x="374" y="1046" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">the pages show these data,</text>
+<text x="374" y="1063" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">also offline</text>
+<rect x="607" y="952" width="226" height="140" rx="10" fill="#ffffff" stroke="#7b8794" stroke-width="1.5"/>
+<text x="621" y="975" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#3e4c59" text-anchor="start">SharedPreferences, files</text>
+<text x="621" y="995" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">UserSession: login token, user,</text>
+<text x="621" y="1012" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">changes not sent yet (offline)</text>
+<text x="621" y="1029" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">ActiveSession, RunTracker,</text>
+<text x="621" y="1046" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">SwimTracker: session in progress,</text>
+<text x="621" y="1063" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">kept when the app is closed</text>
+<rect x="854" y="952" width="226" height="140" rx="10" fill="#ffffff" stroke="#7b8794" stroke-width="1.5"/>
+<text x="868" y="975" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#3e4c59" text-anchor="start">ApiClient (network)</text>
+<text x="868" y="995" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">REST + JSON over HTTPS</text>
+<text x="868" y="1012" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">HttpURLConnection, org.json</text>
+<text x="868" y="1029" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">suspend, on Dispatchers.IO</text>
+<text x="868" y="1046" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">Authorization: Bearer token</text>
+<text x="868" y="1063" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">ApiException (0 = offline)</text>
+<text x="40" y="158" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13" font-weight="700" fill="#b32d3d" text-anchor="start">DEVICE · sensors and system services</text>
+<rect x="40" y="172" width="290" height="150" rx="10" fill="#fdeef0" stroke="#d64c5c" stroke-width="1.5"/>
+<text x="54" y="195" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#b32d3d" text-anchor="start">Camera and photo picker</text>
+<text x="54" y="215" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">camera app (TakePicture, FileProvider)</text>
+<text x="54" y="232" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">or the system photo picker</text>
+<text x="54" y="249" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">PictureChooser + ProfilePictures:</text>
+<text x="54" y="266" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">image processing (upright, square,</text>
+<text x="54" y="283" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">512 × 512 JPEG) → profile picture</text>
+<path d="M330,247 L358,247" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="404" width="290" height="108" rx="10" fill="#fdeef0" stroke="#d64c5c" stroke-width="1.5"/>
+<text x="54" y="427" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#b32d3d" text-anchor="start">GPS + step counter</text>
+<text x="54" y="447" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">Fused Location Provider, 1 fix / 2 s</text>
+<text x="54" y="464" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">step counter sensor (SensorManager)</text>
+<text x="54" y="481" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">RunTrackingService: foreground service</text>
+<text x="54" y="503" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#52606d" text-anchor="start">→ RunTracker → Run/Main ViewModels</text>
+<path d="M330,458 L358,458" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="520" width="290" height="96" rx="10" fill="#fdeef0" stroke="#d64c5c" stroke-width="1.5"/>
+<text x="54" y="543" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#b32d3d" text-anchor="start">Microphone + speech recognizer</text>
+<text x="54" y="563" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">AudioRecord: loudness only</text>
+<text x="54" y="580" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">SpeechRecognizer: laps said aloud</text>
+<text x="54" y="597" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">VoiceLapCounter → SwimSessionViewModel</text>
+<path d="M330,568 L358,568" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="734" width="290" height="76" rx="10" fill="#fdeef0" stroke="#d64c5c" stroke-width="1.5"/>
+<text x="54" y="757" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#b32d3d" text-anchor="start">Network state</text>
+<text x="54" y="777" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">ConnectivityManager callback:</text>
+<text x="54" y="794" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">back online → SyncManager.sync()</text>
+<path d="M330,772 L358,772" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="822" width="290" height="76" rx="10" fill="#fdeef0" stroke="#d64c5c" stroke-width="1.5"/>
+<text x="54" y="845" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#b32d3d" text-anchor="start">Geocoder</text>
+<text x="54" y="865" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">places searched in the route planner</text>
+<text x="54" y="882" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">→ RouteRepository</text>
+<path d="M330,860 L358,860" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="952" width="290" height="140" rx="10" fill="#fdeef0" stroke="#d64c5c" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="54" y="975" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#b32d3d" text-anchor="start">Runtime permissions</text>
+<text x="54" y="995" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">location, physical activity (steps),</text>
+<text x="54" y="1012" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">microphone, notifications:</text>
+<text x="54" y="1029" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">asked only when they are needed</text>
+<text x="54" y="1046" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">camera: no permission needed</text>
+<text x="54" y="1063" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">(the camera app takes the photo)</text>
+<rect x="1160" y="146" width="500" height="64" rx="10" fill="#eef8f0" stroke="#34a853" stroke-width="1.5"/>
+<text x="1174" y="169" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#1e7e34" text-anchor="start">Google Maps Platform</text>
+<text x="1174" y="189" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">map tiles for the Maps SDK of the app (key in local.properties)</text>
+<path d="M1067,320 L1120,320 L1120,178 L1158,178" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1160" y="230" width="500" height="62" rx="10" fill="#f6f8fa" stroke="#57606a" stroke-width="1.5"/>
+<text x="1174" y="253" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#24292f" text-anchor="start">GitHub repository (this code)</text>
+<text x="1174" y="273" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">every push to main → the server is deployed again on Vercel</text>
+<path d="M1290,292 L1290,322" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1160" y="324" width="280" height="352" rx="12" fill="#ffffff" stroke="#1f2933" stroke-width="1.5"/>
+<text x="1176" y="348" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="700" fill="#1f2933" text-anchor="start">Vercel · PaaS</text>
+<text x="1176" y="367" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#52606d" text-anchor="start">serverless functions, Hobby plan (free)</text>
+<text x="1176" y="384" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#52606d" text-anchor="start">region fra1 (Frankfurt)</text>
+<rect x="1176" y="398" width="248" height="262" rx="10" fill="#f4f5f7" stroke="#3e4c59" stroke-width="1.5"/>
+<text x="1190" y="420" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#1f2933" text-anchor="start">Flask REST API (Python)</text>
+<text x="1190" y="438" font-family="Consolas, 'Roboto Mono', Menlo, monospace" font-size="12" fill="#52606d" text-anchor="start">server/app.py</text>
+<text x="1190" y="462" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">• register, login, logout</text>
+<text x="1190" y="479" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">• account, body data, appearance</text>
+<text x="1190" y="496" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">• finished sessions, workout plans</text>
+<text x="1190" y="513" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">• posts and personal bests</text>
+<text x="1190" y="530" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">• search, follows, feed</text>
+<text x="1190" y="547" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">• public and shared workout plans</text>
+<text x="1190" y="564" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">• walking routes of the runs</text>
+<text x="1190" y="581" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">• AI coach: chat and new plans</text>
+<text x="1190" y="606" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#52606d" text-anchor="start">passwords: PBKDF2-SHA256 hashes</text>
+<text x="1190" y="623" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#52606d" text-anchor="start">login tokens: random, saved hashed</text>
+<text x="1190" y="640" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#52606d" text-anchor="start">service keys: only on the server</text>
+<rect x="1460" y="404" width="200" height="118" rx="10" fill="#ffffff" stroke="#e07b24" stroke-width="1.5"/>
+<text x="1474" y="427" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#b85d10" text-anchor="start">Walking routes</text>
+<text x="1474" y="447" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">1. OpenRouteService</text>
+<text x="1474" y="464" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">2. OSRM (FOSSGIS)</text>
+<text x="1474" y="481" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">3. Google Routes API</text>
+<text x="1474" y="498" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">the first one that answers</text>
+<path d="M1424,463 L1458,463" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1460" y="540" width="200" height="118" rx="10" fill="#ffffff" stroke="#e07b24" stroke-width="1.5"/>
+<text x="1474" y="563" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#b85d10" text-anchor="start">AI coach (LLM)</text>
+<text x="1474" y="583" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">1. Groq: gpt-oss, Qwen</text>
+<text x="1474" y="600" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">2. Google Gemini</text>
+<text x="1474" y="617" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">plans as JSON (schema)</text>
+<text x="1474" y="634" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">the first model that answers</text>
+<path d="M1424,599 L1458,599" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M1300,660 L1300,768" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1310" y="718" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11.5" fill="#52606d" text-anchor="start">Firestore client library (service account)</text>
+<rect x="1160" y="770" width="500" height="96" rx="10" fill="#fff5e0" stroke="#f2a20c" stroke-width="1.5"/>
+<text x="1174" y="793" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#a86b00" text-anchor="start">Firebase Cloud Firestore · NoSQL database (Google Cloud)</text>
+<text x="1174" y="813" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">collections: users, posts, sessions, plans, follows, shares,</text>
+<text x="1174" y="830" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">tokens, pictures, usernames, emails, counters</text>
+<text x="1174" y="847" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">Spark plan (free), in Europe</text>
+<rect x="1160" y="892" width="500" height="96" rx="10" fill="#ffffff" stroke="#b32d3d" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="1174" y="915" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="13.5" font-weight="700" fill="#b32d3d" text-anchor="start">Secrets: never in git</text>
+<text x="1174" y="935" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">app: MAPS_API_KEY and API_BASE_URL in local.properties</text>
+<text x="1174" y="952" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">server: environment variables on Vercel</text>
+<text x="1174" y="969" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" fill="#1f2933" text-anchor="start">(Firebase service account, OpenRouteService, Groq, Gemini)</text>
+<path d="M1080,1022 L1124,1022 L1124,560 L1174,560" fill="none" stroke="#3e4c59" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1116" y="790" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11.5" fill="#1f2933" text-anchor="middle" transform="rotate(-90 1116 790)">HTTPS · REST + JSON · Bearer token</text>
+<text x="40" y="1146" font-family="'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#52606d" text-anchor="start">Arrows: calls and data flow. AppContainer creates every repository once; the ViewModel factories inject them (in the unit tests the ViewModels receive fake repositories).</text>
+</svg>
