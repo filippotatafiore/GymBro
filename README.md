@@ -7,7 +7,7 @@ results and plans.
 Project for the course **Mobile Applications and Cloud Computing**. Author: Filippo Tatafiore.
 
 - **App**: Kotlin, XML views, MVVM, Room, coroutines and Flow, Google Maps. Android 13+ (minSdk 33).
-- **Server**: our own REST API in Python (Flask) on **Vercel** (PaaS), with the data in **Firebase
+- **Server**: own REST API in Python (Flask) on **Vercel** (PaaS), with the data in **Firebase
   Cloud Firestore**. See [server/README.md](server/README.md).
 
 ## Features
@@ -53,7 +53,7 @@ Project for the course **Mobile Applications and Cloud Computing**. Author: Fili
 
 ![GymBro navigation graph](docs/navigation-graph.png)
 
-The image is also available as a vector file, sharper when zoomed:
+The image is also available as a vector file:
 [docs/navigation-graph.svg](docs/navigation-graph.svg).
 
 How to read it:
@@ -65,8 +65,7 @@ How to read it:
   and workout plans.
 - **Bottom bar** (at the top of the graph): moves between the four main pages, 05 Home, 19 Chat,
   20 Social and 27 Profile.
-- **Dashed tags**: the arrow continues at the screen with that number, for example "→ 05 Home"
-  after a session is saved.
+- **Dashed tags**: the arrow continues at the screen with that number.
 - **Not drawn**: Back, Cancel and closing a window, which all return to the previous screen.
 
 ## Architecture
@@ -135,29 +134,8 @@ Example: a run is stopped with **Save & publish**.
    phone is back online. It can then be published from LAST SESSIONS. `Notices` shows the result as
    a toast.
 
-## Course requirements (the 10 points of the project)
-
-| # | Requirement | In GymBro |
-|---|-------------|-----------|
-| 1 | Use cloud services | Our REST API on Vercel, Firebase Cloud Firestore, Google Maps Platform, the language models of Groq and Gemini, OpenRouteService |
-| 2 | Multi-users | Accounts, follows, feed, public profiles and plans, plans shared between users |
-| 3 | Graphics | Google Maps with the runs drawn as lines (live run, summary, route planner), map markers and views drawn with `Canvas` (swim lap ring, microphone level) |
-| 4 | Sensors | GPS (Fused Location Provider), step counter sensor, microphone (loudness and speech recognition) |
-| 5 | Camera / image | Profile picture taken with the camera or chosen from the gallery, then processed: turned upright, cropped to a square, scaled to 512 × 512, compressed to JPEG |
-| 6 | Concurrency | Coroutines and Flow, `viewModelScope` and an application scope, a foreground service, background sync |
-| 7 | Authentication | Registration and login with email and password. Passwords are stored as PBKDF2-SHA256 hashes. Login tokens are random and stored only as hashes. Logout, password change (which logs out the other devices) and account deletion |
-| 8 | Cloud service from a provider | Firebase Cloud Firestore (Google Cloud), Google Maps SDK, AI models (Groq, Gemini) |
-| 9 | Your own API service, CRUD interface | Flask REST API: create, read, update and delete users, sessions, workout plans, posts, follows and shared plans |
-| 10 | Data storage, service on a PaaS | Firestore in the cloud, Room and `SharedPreferences` on the phone. The server runs on Vercel (PaaS) |
-
 ## Security and privacy
 
-- **No secrets in git**:
-  - The app reads the Google Maps key and the server address from `local.properties`, which git
-    ignores.
-  - The keys of the server (Firebase service account, OpenRouteService, Groq, Gemini) are
-    environment variables on Vercel, or files ignored by git on the PC.
-  - The app never sees them.
 - **Passwords**: stored only as PBKDF2-SHA256 hashes.
 - **Login tokens**:
   - Random, and stored on the server only as SHA-256 hashes.
